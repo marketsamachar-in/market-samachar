@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /output/
+Disallow: /pipeline
+
+Sitemap: https://marketsamachar.in/sitemap.xml

@@ -1,0 +1,38 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#07070e"/>
+  <path d="M30,2 L2,2 L2,30"   fill="none" stroke="#1a1a2e" stroke-width="1.2"/>
+  <path d="M482,2 L510,2 L510,30" fill="none" stroke="#1a1a2e" stroke-width="1.2"/>
+  <path d="M2,482 L2,510 L30,510" fill="none" stroke="#1a1a2e" stroke-width="1.2"/>
+  <path d="M510,482 L510,510 L482,510" fill="none" stroke="#1a1a2e" stroke-width="1.2"/>
+  <circle cx="256" cy="150" r="114" fill="none" stroke="#00ff8810" stroke-width="1.5"/>
+  <circle cx="256" cy="150" r="108" fill="#0d0d1e" stroke="#00ff8832" stroke-width="1"/>
+  <circle cx="256" cy="150" r="97"  fill="none" stroke="#0d1f11" stroke-width="0.5"/>
+  <rect x="207" y="193" width="14" height="27"  rx="2.5" fill="#0c2016"/>
+  <rect x="228" y="175" width="14" height="45"  rx="2.5" fill="#0f3520"/>
+  <rect x="249" y="153" width="14" height="67"  rx="2.5" fill="#006838"/>
+  <rect x="270" y="129" width="14" height="91"  rx="2.5" fill="#00cc60"/>
+  <rect x="291" y="101" width="14" height="119" rx="2.5" fill="#00ff88"/>
+  <rect x="291" y="101" width="14" height="4"   rx="2"   fill="#ffffff" opacity="0.22"/>
+  <line x1="298" y1="93" x2="298" y2="101" stroke="#00ff88" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="298" cy="101" r="3.5" fill="#00ff88"/>
+  <path d="M 285,101 A 13,13 0 0,1 311,101" stroke="#00ff88" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M 272,101 A 26,26 0 0,1 324,101" stroke="#00ff8848" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <line x1="148" y1="222" x2="364" y2="222" stroke="#00ff8815" stroke-width="1"/>
+  <text x="256" y="318"
+    font-family="'DM Sans',system-ui,sans-serif"
+    font-size="44" font-weight="800" letter-spacing="5"
+    fill="#00ff88" text-anchor="middle">MARKET</text>
+  <line x1="138" y1="332" x2="374" y2="332" stroke="#141428" stroke-width="0.8"/>
+  <text x="256" y="390"
+    font-family="'DM Sans',system-ui,sans-serif"
+    font-size="44" font-weight="800" letter-spacing="2"
+    fill="#e8eaf0" text-anchor="middle">SAMACHAR</text>
+  <rect x="201" y="400" width="110" height="2.5" rx="1.5" fill="#00ff88"/>
+  <text x="256" y="432"
+    font-family="'DM Mono','Courier New',monospace"
+    font-size="13" font-weight="400" letter-spacing="2.5"
+    fill="#334455" text-anchor="middle">marketsamachar.in</text>
+  <circle cx="178" cy="464" r="2.5" fill="#00ff88" opacity="0.5"/>
+  <line x1="188" y1="464" x2="324" y2="464" stroke="#0f1f14" stroke-width="0.8"/>
+  <circle cx="334" cy="464" r="2.5" fill="#00ff88" opacity="0.5"/>
+</svg>
