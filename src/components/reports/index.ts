@@ -1,0 +1,1 @@
+export { WeeklyReportCard } from './WeeklyReportCard';
