@@ -1,0 +1,5 @@
+{
+  "name": "Market Live Data",
+  "description": "Fetches and deduplicates market news using smart intervals based on market hours.",
+  "requestFramePermissions": []
+}
