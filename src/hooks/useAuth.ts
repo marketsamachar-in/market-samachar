@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext, createContext } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, type Profile } from '../lib/supabase';
 import { registerSWAndGetToken, listenForegroundMessages } from '../lib/firebase';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface AuthState {
   user: User | null;
@@ -20,7 +22,13 @@ export interface AuthState {
   signOut: () => Promise<void>;
 }
 
-export function useAuth(): AuthState {
+// ─── Context ──────────────────────────────────────────────────────────────────
+
+const AuthContext = createContext<AuthState | null>(null);
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -38,7 +46,23 @@ export function useAuth(): AuthState {
     if (!error && data) setProfile(data as Profile);
   }, []);
 
-  // ── Bootstrap ───────────────────────────────────────────────────────────────
+  // ── FCM permission + token ──────────────────────────────────────────────────
+  const requestNotificationPermission = useCallback(async (userId: string) => {
+    if (!supabase) return;
+    if (!('Notification' in window)) return;
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') return;
+      const token = await registerSWAndGetToken();
+      if (!token) return;
+      await supabase.from('profiles').update({ fcm_token: token }).eq('id', userId);
+      listenForegroundMessages();
+    } catch {
+      // Non-fatal — app works fine without push notifications
+    }
+  }, []);
+
+  // ── Bootstrap + auth listener ───────────────────────────────────────────────
   useEffect(() => {
     if (!supabase) return;
 
@@ -54,9 +78,20 @@ export function useAuth(): AuthState {
       setUser(newSession?.user ?? null);
       if (newSession?.user) {
         fetchProfile(newSession.user.id);
-        // Request push permission + save FCM token on login
         if (_event === 'SIGNED_IN') {
           requestNotificationPermission(newSession.user.id);
+          // Sync user into local SQLite — non-fatal if it fails
+          const u = newSession.user;
+          fetch('/api/auth/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id:     u.id,
+              email:  u.email,
+              name:   u.user_metadata?.full_name || u.email,
+              avatar: u.user_metadata?.avatar_url || null,
+            }),
+          }).catch(() => {});
         }
       } else {
         setProfile(null);
@@ -64,35 +99,13 @@ export function useAuth(): AuthState {
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [fetchProfile]);
-
-  // ── FCM permission + token ──────────────────────────────────────────────────
-  const requestNotificationPermission = useCallback(async (userId: string) => {
-    if (!supabase) return;
-    if (!('Notification' in window)) return;
-
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return;
-
-      const token = await registerSWAndGetToken();
-      if (!token) return;
-
-      // Persist FCM token on the user's profile so the server can reach them
-      await supabase.from('profiles').update({ fcm_token: token }).eq('id', userId);
-
-      // Start listening for foreground messages
-      listenForegroundMessages();
-    } catch {
-      // Non-fatal — app works fine without push notifications
-    }
-  }, []);
+  }, [fetchProfile, requestNotificationPermission]);
 
   // ── Derived values ──────────────────────────────────────────────────────────
   const proExpiresAt = profile?.pro_expires_at ? new Date(profile.pro_expires_at) : null;
-  const isPro = !!(profile?.is_pro && (!proExpiresAt || proExpiresAt > new Date()));
-  const coins     = profile?.coins      ?? 0;
-  const investorIq = profile?.investor_iq ?? 300;
+  const isPro        = !!(profile?.is_pro && (!proExpiresAt || proExpiresAt > new Date()));
+  const coins        = profile?.coins       ?? 0;
+  const investorIq   = profile?.investor_iq ?? 300;
 
   // ── Auth methods — all no-op when supabase is unconfigured ──────────────────
   const signInWithGoogle = useCallback(async () => {
@@ -120,7 +133,8 @@ export function useAuth(): AuthState {
     await supabase.auth.signOut();
   }, []);
 
-  return {
+  // ── Context value ───────────────────────────────────────────────────────────
+  const value: AuthState = {
     user, session, profile, loading,
     isPro, proExpiresAt,
     coins, investorIq,
@@ -130,4 +144,14 @@ export function useAuth(): AuthState {
     signUpWithEmail,
     signOut,
   };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
+export function useAuth(): AuthState {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
+  return ctx;
 }
