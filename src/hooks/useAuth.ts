@@ -15,8 +15,6 @@ export interface AuthState {
   /** Shorthand for signInWithGoogle — opens OAuth redirect */
   signIn: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithPhone: (phone: string) => Promise<void>;
-  verifyPhoneOtp: (phone: string, token: string) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -105,18 +103,6 @@ export function useAuth(): AuthState {
     });
   }, []);
 
-  const signInWithPhone = useCallback(async (phone: string) => {
-    if (!supabase) throw new Error('Supabase not configured');
-    const { error } = await supabase.auth.signInWithOtp({ phone });
-    if (error) throw error;
-  }, []);
-
-  const verifyPhoneOtp = useCallback(async (phone: string, token: string) => {
-    if (!supabase) throw new Error('Supabase not configured');
-    const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
-    if (error) throw error;
-  }, []);
-
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     if (!supabase) throw new Error('Supabase not configured');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -140,8 +126,6 @@ export function useAuth(): AuthState {
     coins, investorIq,
     signIn: signInWithGoogle,
     signInWithGoogle,
-    signInWithPhone,
-    verifyPhoneOtp,
     signInWithEmail,
     signUpWithEmail,
     signOut,
