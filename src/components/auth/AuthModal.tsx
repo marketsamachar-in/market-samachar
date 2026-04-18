@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { X, Phone, Mail, Chrome } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Mail, Chrome } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 // ─── Styles (inline to stay self-contained) ───────────────────────────────────
@@ -89,24 +89,6 @@ const s = {
     boxSizing: 'border-box' as const,
     marginBottom: '1rem',
   },
-  otpRow: {
-    display: 'flex',
-    gap: '8px',
-    marginBottom: '1rem',
-  },
-  otpInput: {
-    flex: 1,
-    background: '#07070e',
-    border: '1px solid #1e1e2e',
-    borderRadius: '6px',
-    color: '#e8eaf0',
-    fontFamily: "'DM Mono', monospace",
-    fontSize: '1.2rem',
-    padding: '0.65rem 0',
-    outline: 'none',
-    textAlign: 'center' as const,
-    width: '44px',
-  },
   primaryBtn: {
     width: '100%',
     background: '#00ff88',
@@ -152,112 +134,6 @@ const s = {
     lineHeight: 1.6,
   },
 };
-
-// ─── Phone OTP Panel ──────────────────────────────────────────────────────────
-function PhonePanel({ onSuccess }: { onSuccess: () => void }) {
-  const { signInWithPhone, verifyPhoneOtp } = useAuth();
-  const [phone, setPhone]     = useState('');
-  const [step, setStep]       = useState<'phone' | 'otp'>('phone');
-  const [otp, setOtp]         = useState(['', '', '', '', '', '']);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
-  const inputRefs             = useRef<(HTMLInputElement | null)[]>([]);
-
-  const handleSend = async () => {
-    setError('');
-    if (!phone.match(/^\+?[1-9]\d{9,14}$/)) {
-      setError('Enter a valid phone number with country code, e.g. +919876543210');
-      return;
-    }
-    setLoading(true);
-    try {
-      await signInWithPhone(phone.startsWith('+') ? phone : `+91${phone}`);
-      setStep('otp');
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpChange = (idx: number, val: string) => {
-    if (!/^\d?$/.test(val)) return;
-    const next = [...otp];
-    next[idx] = val;
-    setOtp(next);
-    if (val && idx < 5) inputRefs.current[idx + 1]?.focus();
-    if (!val && idx > 0) inputRefs.current[idx - 1]?.focus();
-  };
-
-  const handleVerify = async () => {
-    setError('');
-    const token = otp.join('');
-    if (token.length !== 6) { setError('Enter the 6-digit OTP'); return; }
-    setLoading(true);
-    try {
-      await verifyPhoneOtp(phone.startsWith('+') ? phone : `+91${phone}`, token);
-      onSuccess();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Invalid OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (step === 'otp') return (
-    <div>
-      <label style={s.label}>OTP SENT TO {phone}</label>
-      <div style={s.otpRow}>
-        {otp.map((d, i) => (
-          <input
-            key={i}
-            ref={el => { inputRefs.current[i] = el; }}
-            style={s.otpInput}
-            value={d}
-            maxLength={1}
-            inputMode="numeric"
-            onChange={e => handleOtpChange(i, e.target.value)}
-            onKeyDown={e => { if (e.key === 'Backspace' && !otp[i] && i > 0) inputRefs.current[i - 1]?.focus(); }}
-            onPaste={e => {
-              const digits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6).split('');
-              const next = [...otp];
-              digits.forEach((d, j) => { if (i + j < 6) next[i + j] = d; });
-              setOtp(next);
-              inputRefs.current[Math.min(i + digits.length, 5)]?.focus();
-              e.preventDefault();
-            }}
-          />
-        ))}
-      </div>
-      {error && <div style={s.error}>{error}</div>}
-      <button style={s.primaryBtn} onClick={handleVerify} disabled={loading}>
-        {loading ? 'VERIFYING...' : 'VERIFY OTP'}
-      </button>
-      <button style={s.ghostBtn} onClick={() => { setStep('phone'); setOtp(['','','','','','']); setError(''); }}>
-        ← Change number
-      </button>
-    </div>
-  );
-
-  return (
-    <div>
-      <label style={s.label}>MOBILE NUMBER</label>
-      <input
-        style={s.input}
-        placeholder="+91 98765 43210"
-        value={phone}
-        onChange={e => setPhone(e.target.value)}
-        inputMode="tel"
-        onKeyDown={e => e.key === 'Enter' && handleSend()}
-      />
-      {error && <div style={s.error}>{error}</div>}
-      <button style={s.primaryBtn} onClick={handleSend} disabled={loading}>
-        {loading ? 'SENDING...' : 'SEND OTP'}
-      </button>
-      <p style={s.hint}>We'll send a one-time password via SMS.<br />No password to remember.</p>
-    </div>
-  );
-}
 
 // ─── Google Panel ─────────────────────────────────────────────────────────────
 function GooglePanel() {
@@ -328,14 +204,14 @@ function EmailPanel({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // ─── AuthModal ────────────────────────────────────────────────────────────────
-type Tab = 'phone' | 'google' | 'email';
+type Tab = 'google' | 'email';
 
 interface AuthModalProps {
   onClose: () => void;
   defaultTab?: Tab;
 }
 
-export function AuthModal({ onClose, defaultTab = 'phone' }: AuthModalProps) {
+export function AuthModal({ onClose, defaultTab = 'google' }: AuthModalProps) {
   const [tab, setTab] = useState<Tab>(defaultTab);
 
   return (
@@ -347,9 +223,6 @@ export function AuthModal({ onClose, defaultTab = 'phone' }: AuthModalProps) {
         </div>
 
         <div style={s.tabs}>
-          <button style={s.tab(tab === 'phone')}  onClick={() => setTab('phone')}>
-            <Phone size={12} /> PHONE
-          </button>
           <button style={s.tab(tab === 'google')} onClick={() => setTab('google')}>
             <Chrome size={12} /> GOOGLE
           </button>
@@ -359,7 +232,6 @@ export function AuthModal({ onClose, defaultTab = 'phone' }: AuthModalProps) {
         </div>
 
         <div style={s.body}>
-          {tab === 'phone'  && <PhonePanel  onSuccess={onClose} />}
           {tab === 'google' && <GooglePanel />}
           {tab === 'email'  && <EmailPanel  onSuccess={onClose} />}
         </div>
