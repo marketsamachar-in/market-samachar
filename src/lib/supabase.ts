@@ -17,7 +17,6 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
 
 export interface Profile {
   id: string;
-  phone: string | null;
   name: string | null;
   avatar: string | null;
   investor_iq: number;
