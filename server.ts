@@ -63,6 +63,7 @@ import rewardsRouter        from "./backend/src/routes/rewards.ts";
 import newsImpactRouter     from "./backend/src/routes/newsImpact.ts";
 import ipoPredictionsRouter from "./backend/src/routes/ipoPredictions.ts";
 import readingRewardsRouter from "./backend/src/routes/readingRewards.ts";
+import authSyncRouter       from "./backend/src/routes/authSync.ts";
 import { startStockPriceCron } from "./backend/src/services/stockPriceService.ts";
 import { createDailyPredictions, resolvePredictions } from "./backend/src/services/predictionService.ts";
 import { addCoins, ensureUser as ensureSqliteUser } from "./backend/src/services/coinService.ts";
@@ -1529,6 +1530,7 @@ async function startServer() {
   app.use("/api/news-impact", newsImpactRouter);
   app.use("/api/ipo-predictions", ipoPredictionsRouter);
   app.use("/api/reading-rewards", readingRewardsRouter);
+  app.use("/api/auth", authSyncRouter);
 
   // Stricter limiter for Gemini-powered routes (cost-bearing)
   app.use(["/api/summarize", "/api/translate", "/api/news/article"], articleLimiter);
@@ -2138,6 +2140,70 @@ async function startServer() {
     } catch (error) {
       console.error(`Error fetching article from ${url}:`, error);
       res.status(500).json({ error: "Failed to fetch article content" });
+    }
+  });
+
+  // GET /api/social/articles
+  // Protected — requires X-Social-Key header matching SOCIAL_API_KEY env var
+  // Query params:
+  //   since (required) — Unix timestamp in ms, returns articles fetched after this time
+  //   category (optional) — filter by category
+  // Returns articles that have ai_summary data, with all AI fields included
+  app.get('/api/social/articles', (req: Request, res: Response) => {
+    const key = req.headers['x-social-key'];
+    const expectedKey = process.env.SOCIAL_API_KEY;
+    if (!expectedKey || key !== expectedKey) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const since = parseInt(req.query.since as string) || 0;
+    const category = req.query.category as string | undefined;
+
+    try {
+      const db = rawDb;
+      let query = `
+        SELECT
+          n.id, n.title, n.link, n.pub_date, n.source, n.category,
+          n.content_snippet, n.fetched_at, n.batch_id,
+          n.ai_summary, n.summary_bullets, n.sentiment,
+          n.impact_sectors, n.key_numbers, n.translations
+        FROM news_items n
+        WHERE n.fetched_at > ?
+          AND n.ai_summary IS NOT NULL
+          AND n.ai_summary != ''
+      `;
+      const params: any[] = [since];
+
+      if (category && category !== 'all') {
+        query += ` AND n.category = ?`;
+        params.push(category);
+      }
+
+      query += ` ORDER BY n.fetched_at DESC`;
+
+      const rows = (db as any).prepare(query).all(...params);
+
+      const articles = rows.map((row: any) => ({
+        id:             row.id,
+        title:          row.title,
+        link:           row.link,
+        pubDate:        row.pub_date,
+        source:         row.source,
+        category:       row.category,
+        contentSnippet: row.content_snippet,
+        fetchedAt:      row.fetched_at,
+        batchId:        row.batch_id,
+        aiSummary:      row.ai_summary,
+        summaryBullets: row.summary_bullets ? JSON.parse(row.summary_bullets) : [],
+        sentiment:      row.sentiment ?? 'neutral',
+        impactSectors:  row.impact_sectors ? JSON.parse(row.impact_sectors) : [],
+        keyNumbers:     row.key_numbers ? JSON.parse(row.key_numbers) : [],
+        translations:   row.translations ? JSON.parse(row.translations) : {},
+      }));
+
+      res.json({ count: articles.length, articles });
+    } catch (err) {
+      res.status(500).json({ error: 'DB query failed', detail: (err as Error).message });
     }
   });
 
