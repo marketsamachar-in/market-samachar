@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
@@ -109,10 +109,36 @@ export function AppHeader({
   onSignIn,
   navTabs          = [],
 }: AppHeaderProps) {
-  const { user, coins, signOut } = useAuth();
+  const { user, profile, loading, coins, signOut } = useAuth();
 
-  const [istTime, setIstTime] = useState('');
-  const [mStatus, setMStatus] = useState(calcMarketStatus);
+  const [istTime, setIstTime]       = useState('');
+  const [mStatus, setMStatus]       = useState(calcMarketStatus);
+  const [dropdownOpen, setDropdown] = useState(false);
+  const dropdownRef                 = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [dropdownOpen]);
+
+  const handleSignOut = async () => {
+    setDropdown(false);
+    await signOut();
+    window.location.href = '/';
+  };
+
+  // Initials fallback for avatar
+  const displayName = user?.user_metadata?.full_name || user?.email || '';
+  const initials    = displayName
+    ? displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+    : '?';
 
   /* Live clock — only runs when showClock or showMarketStatus is true */
   useEffect(() => {
@@ -252,31 +278,95 @@ export function AppHeader({
             </button>
           )}
 
-          {/* Coin balance (logged in) */}
-          {user && (
-            <span style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)',
-              borderRadius: 6, padding: '4px 10px',
-              color: GREEN, ...MONO, fontSize: '0.72rem', fontWeight: 600,
-            }}>
-              🪙 {(coins ?? 0).toLocaleString('en-IN')}
-            </span>
-          )}
+          {/* Auth area */}
+          {loading ? (
+            /* Skeleton while session resolves */
+            <div style={{
+              width: 90, height: 28, borderRadius: 6,
+              background: 'rgba(255,255,255,0.05)',
+              animation: 'pulse 1.4s ease-in-out infinite',
+            }} />
+          ) : user ? (
+            <>
+              {/* Coin balance */}
+              <span style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)',
+                borderRadius: 6, padding: '4px 10px',
+                color: GREEN, ...MONO, fontSize: '0.72rem', fontWeight: 600,
+              }}>
+                🪙 {(coins ?? 0).toLocaleString('en-IN')}
+              </span>
 
-          {/* Auth actions */}
-          {user ? (
-            <button
-              onClick={signOut}
-              className="ah-btn ah-hide-sm"
-              style={{
-                background: 'none', border: `1px solid ${BORDER}`, borderRadius: 6,
-                color: MUTED, ...MONO, fontSize: '0.62rem',
-                padding: '4px 10px',
-              }}
-            >
-              OUT
-            </button>
+              {/* Avatar + dropdown */}
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setDropdown(o => !o)}
+                  className="ah-btn"
+                  style={{
+                    background: 'none', border: 'none', padding: 0,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    cursor: 'pointer',
+                  }}
+                  aria-label="Account menu"
+                >
+                  {user.user_metadata?.avatar_url ? (
+                    <img
+                      src={user.user_metadata.avatar_url}
+                      alt={displayName}
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                      style={{
+                        width: 30, height: 30, borderRadius: '50%',
+                        border: `1.5px solid ${GREEN}`, objectFit: 'cover',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 30, height: 30, borderRadius: '50%',
+                      border: `1.5px solid ${GREEN}`,
+                      background: 'rgba(0,255,136,0.12)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: GREEN, ...MONO, fontSize: '0.65rem', fontWeight: 700,
+                    }}>
+                      {initials}
+                    </div>
+                  )}
+                </button>
+
+                {dropdownOpen && (
+                  <div style={{
+                    position: 'absolute', top: 38, right: 0,
+                    background: '#0d0d1e', border: `1px solid ${BORDER}`,
+                    borderRadius: 8, minWidth: 180, zIndex: 100,
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ padding: '10px 14px 8px' }}>
+                      <p style={{ color: TEXT, ...MONO, fontSize: '0.75rem', fontWeight: 600, margin: 0 }}>
+                        {displayName}
+                      </p>
+                      <p style={{ color: MUTED, fontFamily: 'DM Sans, sans-serif', fontSize: '0.68rem', margin: '2px 0 0' }}>
+                        {user.email}
+                      </p>
+                    </div>
+                    <div style={{ borderTop: `1px solid ${BORDER}` }} />
+                    <button
+                      onClick={handleSignOut}
+                      style={{
+                        width: '100%', background: 'none', border: 'none',
+                        color: '#ff4466', ...MONO, fontSize: '0.72rem',
+                        padding: '9px 14px', textAlign: 'left', cursor: 'pointer',
+                        display: 'block',
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,68,102,0.08)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                    >
+                      SIGN OUT
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <>
               <button
