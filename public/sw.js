@@ -1,6 +1,5 @@
 // ─── Market Samachar Service Worker ──────────────────────────────────────────
 // Caches static shell + last 20 news articles for offline reading.
-// Handles FCM background push messages via Firebase compat SDK.
 
 const CACHE_NAME    = 'ms-shell-v1';
 const NEWS_CACHE    = 'ms-news-v1';
@@ -14,38 +13,6 @@ const STATIC_ASSETS = [
   '/ms-navbar.svg',
   '/manifest.json',
 ];
-
-// ── Firebase messaging (background push support) ──────────────────────────────
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-
-// Config is injected by the client via postMessage after SW registration
-let _messagingInitialised = false;
-
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'FIREBASE_CONFIG' && !_messagingInitialised) {
-    try {
-      firebase.initializeApp(event.data.config);
-      const messaging = firebase.messaging();
-
-      // Handle background messages (when app tab is not in focus)
-      messaging.onBackgroundMessage((payload) => {
-        const { title = 'Market Samachar', body = '' } = payload.notification ?? {};
-        self.registration.showNotification(title, {
-          body,
-          icon:  '/ms-icon-192.svg',
-          badge: '/ms-favicon.svg',
-          data:  { url: payload.fcmOptions?.link ?? '/' },
-          vibrate: [100, 50, 100],
-        });
-      });
-
-      _messagingInitialised = true;
-    } catch (e) {
-      // Firebase not configured — push disabled but SW still works for caching
-    }
-  }
-});
 
 // ── Install: cache static shell ───────────────────────────────────────────────
 self.addEventListener('install', (event) => {
@@ -194,9 +161,6 @@ function offlineFallback() {
 
 // ── Push: handle notifications when app is closed ─────────────────────────────
 self.addEventListener('push', (event) => {
-  if (_messagingInitialised) return; // Firebase messaging handles it
-
-  // Fallback push handler (in case Firebase not yet initialised)
   let data = {};
   try { data = event.data?.json() ?? {}; } catch {}
 
