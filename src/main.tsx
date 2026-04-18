@@ -1,6 +1,7 @@
 import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import ErrorBoundary from './components/ErrorBoundary';
+import { AuthProvider } from './hooks/useAuth';
 import './index.css';
 
 // Code-split: only load the page the user actually visits
@@ -32,9 +33,11 @@ const Loader = () => (
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <Suspense fallback={<Loader />}>
-        <Root />
-      </Suspense>
+      <AuthProvider>
+        <Suspense fallback={<Loader />}>
+          <Root />
+        </Suspense>
+      </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,
 );
