@@ -54,3 +54,33 @@ router.post("/sync", (req, res) => {
     }
 
     // Daily login bonus — once per IST calendar day
+    // created_at is Unix ms; +19800s shifts UTC→IST for DATE() comparison
+    const istDate = new Date(Date.now() + 5.5 * 60 * 60 * 1000)
+      .toISOString().slice(0, 10);
+
+    const alreadyLoggedToday = rawDb.prepare(`
+      SELECT id FROM samachar_coins
+      WHERE user_id = ? AND action_type = 'DAILY_LOGIN'
+        AND DATE(created_at / 1000 + 19800, 'unixepoch') = ?
+    `).get(id, istDate);
+
+    if (!alreadyLoggedToday) {
+      addCoins(id, DAILY_LOGIN_COINS, 'DAILY_LOGIN', istDate,
+        '📅 Daily login bonus');
+    }
+
+    // Return the full user row with updated coin balance
+    const user = rawDb.prepare(`
+      SELECT id, name, email, avatar, coins, virtual_coin_balance,
+             referral_code, is_pro, created_at
+      FROM users WHERE id = ?
+    `).get(id);
+
+    return res.json({ ok: true, user });
+  } catch (err: any) {
+    console.error("[auth/sync]", err);
+    return res.status(500).json({ ok: false, error: "Sync failed" });
+  }
+});
+
+export default router;
