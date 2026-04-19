@@ -1,4 +1,6 @@
-import "dotenv/config";
+import { config as dotenvConfig } from "dotenv";
+dotenvConfig({ path: ".env.local" }); // load .env.local first (dev secrets)
+dotenvConfig();                        // also load .env as fallback (production)
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import session from "express-session";
