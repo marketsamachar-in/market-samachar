@@ -207,7 +207,7 @@ const NewsCard: React.FC<{
   authToken?: string | null;
   voicePlayer?: any;
 }> = ({ item, lang, isSignedIn, onSignIn, authToken, voicePlayer }) => {
-  const [activePopup, setActivePopup] = useState<'summary' | 'ai-summary' | 'listen' | 'source' | null>(null);
+  const [activePopup, setActivePopup] = useState<'market-impact' | 'ai-summary' | 'listen' | 'source' | null>(null);
 
   const catColor = getCatColor(item.category);
   const catLabel = getCatLabel(item.category);
@@ -290,14 +290,14 @@ const NewsCard: React.FC<{
         </p>
       )}
 
-      {/* News Impact Panel */}
-      <NewsImpactPanel articleId={item.id} isSignedIn={isSignedIn} onSignIn={onSignIn} />
-
-      {/* 3-button action row */}
+      {/* 4-button action row */}
       <div
         className="grid gap-2 pt-2 mt-2"
-        style={{ borderTop: "1px solid #1a1a2e", gridTemplateColumns: 'repeat(3, 1fr)' }}
+        style={{ borderTop: "1px solid #1a1a2e", gridTemplateColumns: 'repeat(4, 1fr)' }}
       >
+        <button onClick={() => isSignedIn ? setActivePopup('market-impact') : onSignIn?.()} style={btnStyle('#3b9eff')} className="hover:brightness-125 justify-center">
+          <BarChart2 className="w-3 h-3" /> Impact
+        </button>
         <button onClick={() => isSignedIn ? setActivePopup('ai-summary') : onSignIn?.()} style={btnStyle('#00ff88')} className="hover:brightness-125 justify-center">
           <Sparkles className="w-3 h-3" /> AI +5
         </button>
@@ -310,6 +310,10 @@ const NewsCard: React.FC<{
       </div>
 
       {/* Popup modals */}
+      <ArticlePopupModal isOpen={activePopup === 'market-impact'} onClose={() => setActivePopup(null)} title="Market Impact" type="market-impact">
+        <NewsImpactPanel articleId={item.id} isSignedIn={isSignedIn} onSignIn={onSignIn} />
+      </ArticlePopupModal>
+
       <ArticlePopupModal isOpen={activePopup === 'ai-summary'} onClose={() => setActivePopup(null)} title="AI Summary" type="ai-summary">
         <AiSummaryPopup item={item} isSignedIn={isSignedIn} authToken={authToken} />
       </ArticlePopupModal>
