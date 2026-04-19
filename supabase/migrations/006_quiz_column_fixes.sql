@@ -1,20 +1,17 @@
--- Market Samachar — Quiz table fixes
--- Adds missing iq_change column and updates score constraint for 20-question quiz
--- Run in: Supabase Dashboard → SQL Editor
-
--- ─── 1. Add iq_change column (was inserted by server but never in schema) ──────
+-- 1. Add missing iq_change column
 alter table public.quiz_attempts
   add column if not exists iq_change integer not null default 0;
 
--- ─── 2. Update score constraint from 0–5 to 0–20 ─────────────────────────────
+-- 2. Update score constraint from 0–5 to 0–20
 alter table public.quiz_attempts
   drop constraint if exists quiz_attempts_score_check;
 
 alter table public.quiz_attempts
   add constraint quiz_attempts_score_check check (score between 0 and 20);
 
--- ─── 3. Rebuild leaderboard_alltime view to include iq totals ────────────────
-create or replace view public.leaderboard_alltime as
+-- 3. Rebuild leaderboard view (DROP first to allow new columns)
+drop view if exists public.leaderboard_alltime;
+create view public.leaderboard_alltime as
   select
     qa.user_id,
     p.name,
