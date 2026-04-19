@@ -410,11 +410,25 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
         </div>
       )}
 
-      {/* 3-button action row */}
+      {/* 4-button action row */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
         marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BORDER}`,
       }}>
+        {/* Market Impact — prompts sign-in on landing page */}
+        <button
+          onClick={onSignIn}
+          className="hp-action-btn"
+          style={{
+            background: 'none', border: `1px solid rgba(59,158,255,0.35)`, borderRadius: 4,
+            color: INFO, ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            padding: '4px 6px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+          }}
+        >
+          📊 Impact
+        </button>
+
         {/* AI Summary */}
         <button
           onClick={handleAISummary}
