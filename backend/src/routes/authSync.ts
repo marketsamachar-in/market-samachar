@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { ensureUser } from "../services/coinService.ts";
+import { ensureUser, addCoins } from "../services/coinService.ts";
+import { FIRST_LOGIN_COINS, DAILY_LOGIN_COINS } from "../services/rewardConfig.ts";
 import rawDb from "../../../pipeline/db.ts";
 
 const router = Router();
@@ -23,6 +24,13 @@ router.post("/sync", (req, res) => {
   }
 
   try {
+    // Detect new vs returning user BEFORE ensureUser creates the row
+    const existingUser = rawDb.prepare(
+      'SELECT id FROM users WHERE id = ?'
+    ).get(id) as { id: string } | undefined;
+
+    const isNewUser = !existingUser;
+
     // Create user row if it doesn't exist yet (idempotent)
     ensureUser(id, name, email);
 
@@ -39,18 +47,10 @@ router.post("/sync", (req, res) => {
       WHERE id = ?
     `).run(avatar ?? null, Date.now(), id);
 
-    // Return the full user row
-    const user = rawDb.prepare(`
-      SELECT id, name, email, avatar, coins, virtual_coin_balance,
-             referral_code, is_pro, created_at
-      FROM users WHERE id = ?
-    `).get(id);
+    // One-time welcome bonus for brand-new users
+    if (isNewUser) {
+      addCoins(id, FIRST_LOGIN_COINS, 'FIRST_LOGIN', 'welcome',
+        '🎉 Welcome to Market Samachar!');
+    }
 
-    return res.json({ ok: true, user });
-  } catch (err: any) {
-    console.error("[auth/sync]", err);
-    return res.status(500).json({ ok: false, error: "Sync failed" });
-  }
-});
-
-export default router;
+    // Daily login bonus — once per IST calendar day
