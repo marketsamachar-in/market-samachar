@@ -55,13 +55,13 @@ function initKeys(): void {
   if (multiKeys) {
     keys = multiKeys
       .split(",")
-      .map(k => k.trim())
+      .map(k => k.trim().replace(/^["']+|["']+$/g, ""))
       .filter(Boolean);
   }
 
   // Fallback to single key if GEMINI_API_KEYS not set or empty
   if (keys.length === 0 && singleKey) {
-    keys = [singleKey];
+    keys = [singleKey.trim().replace(/^["']+|["']+$/g, "")].filter(Boolean);
   }
 
   if (keys.length === 0) {
