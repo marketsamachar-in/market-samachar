@@ -6,7 +6,6 @@ import { VoicePlayerBar } from "./components/voice/VoicePlayerBar";
 import { NewsImpactPanel } from "./components/news/NewsImpactPanel";
 import { AiSummaryCard } from "./components/news/AiSummaryCard";
 import { ArticlePopupModal } from "./components/news/ArticlePopupModal";
-import { SummaryPopup } from "./components/news/SummaryPopup";
 import { AiSummaryPopup } from "./components/news/AiSummaryPopup";
 import { ListenPopup } from "./components/news/ListenPopup";
 import { SourcePopup } from "./components/news/SourcePopup";
@@ -46,7 +45,6 @@ import {
   Brain,
   ChevronRight,
   X,
-  FileText,
   Sparkles,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -295,14 +293,11 @@ const NewsCard: React.FC<{
       {/* News Impact Panel */}
       <NewsImpactPanel articleId={item.id} isSignedIn={isSignedIn} onSignIn={onSignIn} />
 
-      {/* 4-button action row */}
+      {/* 3-button action row */}
       <div
         className="grid gap-2 pt-2 mt-2"
-        style={{ borderTop: "1px solid #1a1a2e", gridTemplateColumns: 'repeat(4, 1fr)' }}
+        style={{ borderTop: "1px solid #1a1a2e", gridTemplateColumns: 'repeat(3, 1fr)' }}
       >
-        <button onClick={() => setActivePopup('summary')} style={btnStyle('#3b9eff')} className="hover:brightness-125 justify-center">
-          <FileText className="w-3 h-3" /> Summary
-        </button>
         <button onClick={() => isSignedIn ? setActivePopup('ai-summary') : onSignIn?.()} style={btnStyle('#00ff88')} className="hover:brightness-125 justify-center">
           <Sparkles className="w-3 h-3" /> AI +5
         </button>
@@ -315,10 +310,6 @@ const NewsCard: React.FC<{
       </div>
 
       {/* Popup modals */}
-      <ArticlePopupModal isOpen={activePopup === 'summary'} onClose={() => setActivePopup(null)} title="Summary" type="summary">
-        <SummaryPopup item={item} />
-      </ArticlePopupModal>
-
       <ArticlePopupModal isOpen={activePopup === 'ai-summary'} onClose={() => setActivePopup(null)} title="AI Summary" type="ai-summary">
         <AiSummaryPopup item={item} isSignedIn={isSignedIn} authToken={authToken} />
       </ArticlePopupModal>
