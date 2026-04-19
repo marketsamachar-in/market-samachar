@@ -11,15 +11,9 @@ const IPOCalendarPage  = lazy(() => import('./pages/IPOCalendarPage.tsx').then(m
 
 const path  = window.location.pathname;
 const isIPO = path.startsWith('/ipo-calendar') || path.startsWith('/ipo');
-const isApp =
-  path.startsWith('/app')           ||
-  path.startsWith('/terminal')      ||
-  path.startsWith('/paper-trading') ||
-  path.startsWith('/predict')       ||
-  path.startsWith('/rewards')       ||
-  path.startsWith('/quiz');
 
-const Root = isIPO ? IPOCalendarPage : isApp ? App : LandingPage;
+// / and /app both load the main App — LandingPage is retired
+const Root = isIPO ? IPOCalendarPage : App;
 
 const Loader = () => (
   <div style={{
