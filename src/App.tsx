@@ -353,7 +353,7 @@ export default function App() {
       case "predictions": return "/predict";
       case "rewards":     return "/rewards";
       case "quiz":        return "/quiz";
-      default:            return "/app";
+      default:            return "/";
     }
   }
 
