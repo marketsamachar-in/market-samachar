@@ -107,28 +107,27 @@ const BN_CSS = `
 export function BottomNav({ tabs }: BottomNavProps) {
   const navRef = useRef<HTMLElement>(null);
 
-  // Fallback: if fixed bottom positioning is broken (some embedded browsers),
-  // manually set top so the nav stays at the viewport bottom.
+  // Keep bottom pinned to the visual viewport on mobile browsers where
+  // the address bar auto-hides/shows during scroll, shifting fixed elements.
   useEffect(() => {
     const nav = navRef.current;
     if (!nav) return;
     const fix = () => {
-      const rect = nav.getBoundingClientRect();
-      const vpH  = document.documentElement.clientHeight;
-      if (Math.abs(rect.bottom - vpH) > 10) {
-        nav.style.top = `${vpH - 58}px`;
-        nav.style.bottom = 'auto';
-      }
+      const vvH = window.visualViewport?.height ?? document.documentElement.clientHeight;
+      const lvH = document.documentElement.clientHeight;
+      // Offset from bottom of layout viewport to bottom of visual viewport
+      const offset = lvH - vvH - (window.visualViewport?.offsetTop ?? 0);
+      nav.style.bottom = `${Math.max(0, offset)}px`;
+      nav.style.top = 'auto';
     };
-    // Run after initial layout settles
     fix();
     const t = setTimeout(fix, 100);
     window.visualViewport?.addEventListener('resize', fix);
-    window.addEventListener('resize', fix);
+    window.visualViewport?.addEventListener('scroll', fix);
     return () => {
       clearTimeout(t);
       window.visualViewport?.removeEventListener('resize', fix);
-      window.removeEventListener('resize', fix);
+      window.visualViewport?.removeEventListener('scroll', fix);
     };
   }, []);
 
