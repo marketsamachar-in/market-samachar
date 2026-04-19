@@ -12,6 +12,11 @@ const IPOCalendarPage  = lazy(() => import('./pages/IPOCalendarPage.tsx').then(m
 const path  = window.location.pathname;
 const isIPO = path.startsWith('/ipo-calendar') || path.startsWith('/ipo');
 
+// Redirect /app → / so the canonical URL is always marketsamachar.in
+if (path === '/app' || path === '/app/') {
+  window.history.replaceState({}, '', '/');
+}
+
 // / and /app both load the main App — LandingPage is retired
 const Root = isIPO ? IPOCalendarPage : App;
 
