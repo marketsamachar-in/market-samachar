@@ -309,7 +309,6 @@ function FeatureStrip() {
 
 /* ─── News Card ──────────────────────────────────────────────────────────────── */
 function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void }) {
-  const [showSnippet,   setShowSnippet]   = useState(false);
   const [showSummary,   setShowSummary]   = useState(false);
   const [summary,       setSummary]       = useState<string | null>(null);
   const [loadingSummary,setLoadingSummary]= useState(false);
@@ -320,7 +319,6 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
   const handleAISummary = async () => {
     if (showSummary) { setShowSummary(false); return; }
     setShowSummary(true);
-    setShowSnippet(false);
     if (!summary && !loadingSummary) {
       setLoadingSummary(true);
       try {
@@ -337,11 +335,6 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
         setLoadingSummary(false);
       }
     }
-  };
-
-  const handleSnippet = () => {
-    setShowSnippet(s => !s);
-    setShowSummary(false);
   };
 
   return (
@@ -404,18 +397,6 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
       )}
 
       {/* AI Summary panel */}
-      {/* Snippet panel */}
-      {showSnippet && (item.contentSnippet ?? item.content_snippet) && (
-        <div style={{
-          background: 'rgba(59,158,255,0.05)', border: `1px solid rgba(59,158,255,0.18)`,
-          borderRadius: 6, padding: '0.6rem 0.75rem', margin: '6px 0',
-          color: MUTED, ...SANS, fontSize: '0.78rem', lineHeight: 1.55,
-        }}>
-          {item.contentSnippet ?? item.content_snippet}
-        </div>
-      )}
-
-      {/* AI Summary panel */}
       {showSummary && (
         <div style={{
           background: 'rgba(0,255,136,0.04)', border: `1px solid rgba(0,255,136,0.13)`,
@@ -429,25 +410,11 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
         </div>
       )}
 
-      {/* 4-button action row */}
+      {/* 3-button action row */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
         marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BORDER}`,
       }}>
-        {/* Summary */}
-        <button
-          onClick={handleSnippet}
-          className="hp-action-btn"
-          style={{
-            background: 'none', border: `1px solid rgba(59,158,255,0.35)`, borderRadius: 4,
-            color: INFO, ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
-            padding: '4px 6px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-          }}
-        >
-          📄 Summary
-        </button>
-
         {/* AI Summary */}
         <button
           onClick={handleAISummary}
