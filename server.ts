@@ -2460,14 +2460,14 @@ async function startServer() {
     const prompt = `Based on these financial news headlines from today:
 ${headlines.map((h, i) => `${i + 1}. [${h.category.toUpperCase()}] ${h.title} (${h.url})`).join("\n")}
 
-Generate exactly 5 multiple choice questions testing market knowledge. Mix difficulty (1 easy, 2 medium, 2 hard). Rules:
+Generate exactly 20 multiple choice questions testing market knowledge. Mix difficulty (4 easy, 8 medium, 8 hard). Rules:
 - Each question must relate to one of the headlines above
 - Include the source article URL in news_source_url
 - Options must be plausible (no obviously wrong distractors)
 - Explanation should teach the reader something useful
 - Category must be one of: indian, global, companies, economy, banking, commodity, crypto, ipo
 
-Return a JSON array of exactly 5 objects.`;
+Return a JSON array of exactly 20 objects.`;
 
     const responseText = await geminiStructuredCall(prompt, {
       responseMimeType: "application/json",
@@ -2491,7 +2491,7 @@ Return a JSON array of exactly 5 objects.`;
 
     const raw = JSON.parse(responseText || "[]") as QuizQuestion[];
     // Assign stable IDs and validate option count
-    const questions: QuizQuestion[] = raw.slice(0, 5).map((q, i) => ({
+    const questions: QuizQuestion[] = raw.slice(0, 20).map((q, i) => ({
       ...q,
       id: `${today}_q${i + 1}`,
       options: q.options.slice(0, 4),
@@ -2620,8 +2620,8 @@ Return a JSON array of exactly 5 objects.`;
     if (!supabaseAdmin) return res.status(503).json({ error: "Auth service unavailable" });
 
     const { answers, time_taken_secs } = req.body as { answers?: number[]; time_taken_secs?: number };
-    if (!Array.isArray(answers) || answers.length !== 5)
-      return res.status(400).json({ error: "answers must be an array of 5 indices" });
+    if (!Array.isArray(answers) || answers.length !== 20)
+      return res.status(400).json({ error: "answers must be an array of 20 indices" });
     if (typeof time_taken_secs !== "number" || time_taken_secs <= 0)
       return res.status(400).json({ error: "time_taken_secs must be a positive number" });
 
@@ -2665,7 +2665,7 @@ Return a JSON array of exactly 5 objects.`;
     const currentIQ  = profile?.investor_iq ?? IQ_BASE;
     const tierMult   = getIQTierMultiplier(currentIQ);
     const perCorrect = Math.round(QUIZ_CORRECT_COINS * tierMult);
-    const perfectBonus = score === 5 ? Math.round(QUIZ_PERFECT_BONUS * tierMult) : 0;
+    const perfectBonus = score === questions.length ? Math.round(QUIZ_PERFECT_BONUS * tierMult) : 0;
     const coins_earned = score * perCorrect;  // excludes perfect bonus
 
     let newStreak = 1;
@@ -2678,10 +2678,10 @@ Return a JSON array of exactly 5 objects.`;
 
     const iqDelta  = calculateQuizIQDelta({
       correct:         score,
-      wrong:           5 - score,
+      wrong:           questions.length - score,
       streak_days:     newStreak,
-      time_taken_secs: time_taken_secs ?? 150,
-      question_count:  5,
+      time_taken_secs: time_taken_secs ?? 600,
+      question_count:  questions.length,
     });
     const newIQ    = clampIQ(currentIQ + iqDelta);
     const newCoins = (profile?.coins ?? 0) + coins_earned + perfectBonus;
@@ -2720,7 +2720,7 @@ Return a JSON array of exactly 5 objects.`;
       // Award per-correct-answer coins (QUIZ_CORRECT) — scaled by IQ tier
       if (coins_earned > 0) {
         addCoins(user.id, coins_earned, "QUIZ_CORRECT", today,
-          `Market Quiz: ${score}/5 correct · ${tierMult}× tier (+${coins_earned} coins)`);
+          `Market Quiz: ${score}/${questions.length} correct · ${tierMult}× tier (+${coins_earned} coins)`);
       }
 
       // Award perfect score bonus (QUIZ_BONUS) — scaled by IQ tier
@@ -2748,7 +2748,7 @@ Return a JSON array of exactly 5 objects.`;
     res.json({
       date:          today,
       score,
-      total:         5,
+      total:         questions.length,
       coins_earned:  coins_earned + perfectBonus,
       tier_multiplier: tierMult,
       new_iq:        newIQ,
