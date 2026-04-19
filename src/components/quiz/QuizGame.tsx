@@ -65,6 +65,7 @@ export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
   const [submitting,   setSubmitting]   = useState(false);
   const [submitError,  setSubmitError]  = useState('');
   const [liveScore,    setLiveScore]    = useState(0);
+  const [confirmQuit,  setConfirmQuit]  = useState(false);
 
   const answersRef   = useRef<number[]>(Array(questions.length).fill(-1));
   const startTimeRef = useRef(Date.now());
@@ -261,11 +262,17 @@ export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
             </div>
 
             <button
-              onClick={onClose}
-              style={{ color: '#334466', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
-              className="hover:text-[#e8eaf0] transition-colors"
+              onClick={() => setConfirmQuit(true)}
+              style={{
+                color: '#ff4466', background: 'rgba(255,68,102,0.08)',
+                border: '1px solid rgba(255,68,102,0.3)', borderRadius: 5,
+                cursor: 'pointer', padding: '3px 8px',
+                display: 'flex', alignItems: 'center', gap: 4,
+                ...MONO, fontSize: '0.6rem', letterSpacing: '0.06em',
+              }}
+              title="Quit quiz"
             >
-              <X size={16} />
+              <X size={12} /> QUIT
             </button>
           </div>
 
@@ -473,6 +480,58 @@ export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
           </div>
         </div>
       </div>
+
+      {/* ── Quit confirmation dialog ──────────────────────────────────────── */}
+      {confirmQuit && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          background: 'rgba(7,7,14,0.92)',
+          zIndex: 10001,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1rem',
+        }}>
+          <div style={{
+            background: '#0d0d1e',
+            border: '1px solid #ff446640',
+            borderTop: '2px solid #ff4466',
+            borderRadius: 12,
+            padding: '1.5rem',
+            width: '100%', maxWidth: 340,
+            textAlign: 'center',
+          }}>
+            <p style={{ color: '#e8eaf0', ...SANS, fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+              Quit the quiz?
+            </p>
+            <p style={{ color: '#556688', ...MONO, fontSize: 11, marginBottom: 20 }}>
+              Your progress will be lost. This counts as your daily attempt.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmQuit(false)}
+                style={{
+                  flex: 1, padding: '10px 0',
+                  background: 'none', border: '1px solid #1e1e2e',
+                  borderRadius: 8, color: '#778899',
+                  cursor: 'pointer', ...MONO, fontSize: 11,
+                }}
+              >
+                Keep Playing
+              </button>
+              <button
+                onClick={onClose}
+                style={{
+                  flex: 1, padding: '10px 0',
+                  background: 'rgba(255,68,102,0.12)', border: '1px solid #ff446640',
+                  borderRadius: 8, color: '#ff4466',
+                  cursor: 'pointer', ...MONO, fontSize: 11,
+                }}
+              >
+                Quit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
