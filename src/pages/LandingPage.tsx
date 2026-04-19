@@ -308,7 +308,8 @@ function FeatureStrip() {
 }
 
 /* ─── News Card ──────────────────────────────────────────────────────────────── */
-function NewsCard({ item }: { item: NewsItem }) {
+function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void }) {
+  const [showSnippet,   setShowSnippet]   = useState(false);
   const [showSummary,   setShowSummary]   = useState(false);
   const [summary,       setSummary]       = useState<string | null>(null);
   const [loadingSummary,setLoadingSummary]= useState(false);
@@ -319,6 +320,7 @@ function NewsCard({ item }: { item: NewsItem }) {
   const handleAISummary = async () => {
     if (showSummary) { setShowSummary(false); return; }
     setShowSummary(true);
+    setShowSnippet(false);
     if (!summary && !loadingSummary) {
       setLoadingSummary(true);
       try {
@@ -335,6 +337,11 @@ function NewsCard({ item }: { item: NewsItem }) {
         setLoadingSummary(false);
       }
     }
+  };
+
+  const handleSnippet = () => {
+    setShowSnippet(s => !s);
+    setShowSummary(false);
   };
 
   return (
@@ -397,6 +404,18 @@ function NewsCard({ item }: { item: NewsItem }) {
       )}
 
       {/* AI Summary panel */}
+      {/* Snippet panel */}
+      {showSnippet && (item.contentSnippet ?? item.content_snippet) && (
+        <div style={{
+          background: 'rgba(59,158,255,0.05)', border: `1px solid rgba(59,158,255,0.18)`,
+          borderRadius: 6, padding: '0.6rem 0.75rem', margin: '6px 0',
+          color: MUTED, ...SANS, fontSize: '0.78rem', lineHeight: 1.55,
+        }}>
+          {item.contentSnippet ?? item.content_snippet}
+        </div>
+      )}
+
+      {/* AI Summary panel */}
       {showSummary && (
         <div style={{
           background: 'rgba(0,255,136,0.04)', border: `1px solid rgba(0,255,136,0.13)`,
@@ -410,38 +429,72 @@ function NewsCard({ item }: { item: NewsItem }) {
         </div>
       )}
 
-      {/* Action row */}
+      {/* 4-button action row */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
         marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BORDER}`,
       }}>
+        {/* Summary */}
+        <button
+          onClick={handleSnippet}
+          className="hp-action-btn"
+          style={{
+            background: 'none', border: `1px solid rgba(59,158,255,0.35)`, borderRadius: 4,
+            color: INFO, ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            padding: '4px 6px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+          }}
+        >
+          📄 Summary
+        </button>
+
+        {/* AI Summary */}
         <button
           onClick={handleAISummary}
           className="hp-action-btn"
           style={{
-            background: 'none', border: `1px solid ${BORDER}`, borderRadius: 4,
-            color: MUTED, ...MONO, fontSize: '0.59rem', letterSpacing: '0.04em',
-            padding: '3px 8px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4,
+            background: 'none', border: `1px solid rgba(0,255,136,0.35)`, borderRadius: 4,
+            color: GREEN, ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            padding: '4px 6px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
           }}
         >
-          🤖 AI SUMMARY {showSummary ? '▲' : '▼'}
+          🤖 AI +5
         </button>
-        {item.link && (
+
+        {/* Listen — prompts sign-in on landing page */}
+        <button
+          onClick={onSignIn}
+          className="hp-action-btn"
+          style={{
+            background: 'none', border: `1px solid rgba(179,102,255,0.35)`, borderRadius: 4,
+            color: '#b366ff', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            padding: '4px 6px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+          }}
+        >
+          🔊 +10
+        </button>
+
+        {/* Source */}
+        {item.link ? (
           <a
             href={item.link}
             target="_blank"
             rel="noopener noreferrer"
             className="hp-action-btn"
             style={{
-              background: 'none', border: `1px solid ${BORDER}`, borderRadius: 4,
-              color: MUTED, ...MONO, fontSize: '0.59rem', letterSpacing: '0.04em',
-              padding: '3px 8px', cursor: 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none',
+              background: 'none', border: `1px solid rgba(255,221,59,0.35)`, borderRadius: 4,
+              color: '#ffdd3b', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+              padding: '4px 6px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+              textDecoration: 'none',
             }}
           >
-            ↗ SOURCE
+            ↗ Source
           </a>
+        ) : (
+          <span style={{ visibility: 'hidden' }} />
         )}
       </div>
     </article>
@@ -468,7 +521,7 @@ function NewsSkeletonCard() {
 }
 
 /* ─── News Feed (left column) ────────────────────────────────────────────────── */
-function NewsFeed() {
+function NewsFeed({ onSignIn }: { onSignIn?: () => void }) {
   const [news,        setNews]        = useState<NewsItem[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -563,7 +616,7 @@ function NewsFeed() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {loading
           ? Array.from({ length: 6 }).map((_, i) => <NewsSkeletonCard key={i} />)
-          : news.map(item => <React.Fragment key={item.id}><NewsCard item={item} /></React.Fragment>)
+          : news.map(item => <React.Fragment key={item.id}><NewsCard item={item} onSignIn={onSignIn} /></React.Fragment>)
         }
       </div>
 
@@ -980,7 +1033,7 @@ export function LandingPage() {
         }}>
           {/* Left: news feed — flex 65 */}
           <div style={{ flex: '65 65 0', minWidth: 0 }}>
-            <NewsFeed />
+            <NewsFeed onSignIn={() => setShowAuth(true)} />
           </div>
 
           {/* Right: sidebar — flex 35, sticky */}
