@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
     if (!error && data) setProfile(data as Profile);
   }, []);
 
@@ -110,10 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ── Auth methods — all no-op when supabase is unconfigured ──────────────────
   const signInWithGoogle = useCallback(async () => {
     if (!supabase) throw new Error('Supabase not configured');
-    await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
     });
+    if (error) throw error;
   }, []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
