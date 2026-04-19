@@ -54,19 +54,21 @@ router.post("/sync", (req, res) => {
     }
 
     // Daily login bonus — once per IST calendar day
-    // created_at is Unix ms; +19800s shifts UTC→IST for DATE() comparison
-    const istDate = new Date(Date.now() + 5.5 * 60 * 60 * 1000)
-      .toISOString().slice(0, 10);
+    // Skip for new users (already awarded FIRST_LOGIN welcome bonus today)
+    if (!isNewUser) {
+      const istDate = new Date(Date.now() + 5.5 * 60 * 60 * 1000)
+        .toISOString().slice(0, 10);
 
-    const alreadyLoggedToday = rawDb.prepare(`
-      SELECT id FROM samachar_coins
-      WHERE user_id = ? AND action_type = 'DAILY_LOGIN'
-        AND DATE(created_at / 1000 + 19800, 'unixepoch') = ?
-    `).get(id, istDate);
+      const alreadyLoggedToday = rawDb.prepare(`
+        SELECT id FROM samachar_coins
+        WHERE user_id = ? AND action_type IN ('DAILY_LOGIN','FIRST_LOGIN')
+          AND DATE(created_at / 1000 + 19800, 'unixepoch') = ?
+      `).get(id, istDate);
 
-    if (!alreadyLoggedToday) {
-      addCoins(id, DAILY_LOGIN_COINS, 'DAILY_LOGIN', istDate,
-        '📅 Daily login bonus');
+      if (!alreadyLoggedToday) {
+        addCoins(id, DAILY_LOGIN_COINS, 'DAILY_LOGIN', istDate,
+          '📅 Daily login bonus');
+      }
     }
 
     // Return the full user row with updated coin balance
