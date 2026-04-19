@@ -167,8 +167,8 @@ router.get("/hub", (req, res) => {
 
     // First trade timestamp
     const firstTrade = rawDb
-      .prepare("SELECT created_at FROM virtual_orders WHERE user_id = ? ORDER BY created_at ASC LIMIT 1")
-      .get(user.id) as { created_at: number } | undefined;
+      .prepare("SELECT executed_at FROM virtual_orders WHERE user_id = ? ORDER BY executed_at ASC LIMIT 1")
+      .get(user.id) as { executed_at: number } | undefined;
 
     // Streak — from users table (not tracked here but check coin ledger for consecutive days)
     const streakEntries = rawDb
@@ -194,7 +194,7 @@ router.get("/hub", (req, res) => {
     if (streakEntries.length > 0) maxStreak = Math.max(maxStreak, streak);
 
     const achievements = {
-      firstTrade:       { unlocked: tradeCount > 0,    unlockedAt: firstTrade?.created_at ?? null },
+      firstTrade:       { unlocked: tradeCount > 0,    unlockedAt: firstTrade?.executed_at ?? null },
       sevenDayStreak:   { unlocked: maxStreak >= 7,    unlockedAt: null },
       predictionStreak: { unlocked: correctPredictions >= 5, unlockedAt: null },
       quizMaster:       { unlocked: quizCount >= 100,  unlockedAt: null },
@@ -280,19 +280,24 @@ router.post("/login", (req, res) => {
       `)
       .get(user.id, yesterdayStart, yesterdayEnd);
 
-    // Get current streak from users table
-    const userRow = rawDb.prepare("SELECT streak_count, streak_last_date FROM users WHERE id = ?").get(user.id) as
-      { streak_count?: number; streak_last_date?: string } | undefined;
+    // Get current streak from users table (defensive — streak columns may not exist on old DBs)
+    let userRow: { streak_count?: number; streak_last_date?: string } | undefined;
+    try {
+      userRow = rawDb.prepare("SELECT streak_count, streak_last_date FROM users WHERE id = ?").get(user.id) as
+        { streak_count?: number; streak_last_date?: string } | undefined;
+    } catch { /* streak columns may not exist — skip */ }
 
     let newStreak = 1;
     if (loggedYesterday && userRow?.streak_count) {
       newStreak = userRow.streak_count + 1;
     }
 
-    // Update streak on user row
-    rawDb.prepare(`
-      UPDATE users SET streak_count = ?, streak_last_date = ?, updated_at = ? WHERE id = ?
-    `).run(newStreak, todayIST, Date.now(), user.id);
+    // Update streak on user row (defensive — skip if columns missing)
+    try {
+      rawDb.prepare(`
+        UPDATE users SET streak_count = ?, streak_last_date = ?, updated_at = ? WHERE id = ?
+      `).run(newStreak, todayIST, Date.now(), user.id);
+    } catch { /* streak columns may not exist — skip */ }
 
     // Calculate reward
     let coinsEarned = 0;
