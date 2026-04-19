@@ -2629,15 +2629,10 @@ Return a JSON array of exactly 20 objects.`;
     const questions = getQuizForDate(today);
     if (!questions) return res.status(404).json({ error: "No quiz available for today" });
 
-    // Check for duplicate submission
-    const { data: existing } = await supabaseAdmin
-      .from("quiz_attempts")
-      .select("id, score")
-      .eq("user_id", user.id)
-      .eq("date", today)
-      .maybeSingle();
-    if (existing) {
-      return res.status(409).json({ error: "Already submitted today", score: existing.score });
+    // Dedup check — SQLite first (always available, no Supabase dependency)
+    const existingLocal = getLocalAttempt(user.id, today);
+    if (existingLocal) {
+      return res.status(409).json({ error: "Already submitted today", score: existingLocal.score });
     }
 
     // Grade answers
@@ -2653,20 +2648,18 @@ Return a JSON array of exactly 20 objects.`;
     }));
     const score = results.filter((r) => r.correct).length;
 
-    // Fetch current profile to compute streak + iq + tier multiplier
+    // Fetch current profile for IQ/streak/tier calc (non-fatal if missing)
     const { data: profile } = await supabaseAdmin
       .from("profiles")
       .select("investor_iq, streak_count, streak_last_date, coins")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
-    // Tier multiplier based on CURRENT IQ (before this attempt's delta).
-    // Higher tiers earn proportionally more per correct answer.
-    const currentIQ  = profile?.investor_iq ?? IQ_BASE;
-    const tierMult   = getIQTierMultiplier(currentIQ);
-    const perCorrect = Math.round(QUIZ_CORRECT_COINS * tierMult);
+    const currentIQ    = profile?.investor_iq ?? IQ_BASE;
+    const tierMult     = getIQTierMultiplier(currentIQ);
+    const perCorrect   = Math.round(QUIZ_CORRECT_COINS * tierMult);
     const perfectBonus = score === questions.length ? Math.round(QUIZ_PERFECT_BONUS * tierMult) : 0;
-    const coins_earned = score * perCorrect;  // excludes perfect bonus
+    const coins_earned = score * perCorrect;
 
     let newStreak = 1;
     if (profile?.streak_last_date) {
@@ -2676,7 +2669,7 @@ Return a JSON array of exactly 20 objects.`;
       newStreak = profile.streak_last_date === yesterday ? (profile.streak_count ?? 0) + 1 : 1;
     }
 
-    const iqDelta  = calculateQuizIQDelta({
+    const iqDelta = calculateQuizIQDelta({
       correct:         score,
       wrong:           questions.length - score,
       streak_days:     newStreak,
@@ -2686,22 +2679,7 @@ Return a JSON array of exactly 20 objects.`;
     const newIQ    = clampIQ(currentIQ + iqDelta);
     const newCoins = (profile?.coins ?? 0) + coins_earned + perfectBonus;
 
-    // Persist attempt — Supabase (source of truth)
-    const { error: insertErr } = await supabaseAdmin.from("quiz_attempts").insert({
-      user_id:         user.id,
-      date:            today,
-      score,
-      time_taken_secs,
-      answers_json:    results,
-      coins_earned,
-      iq_change:       iqDelta,
-    });
-    if (insertErr) {
-      console.error("[quiz/submit] insert error:", insertErr);
-      return res.status(500).json({ error: "Failed to save attempt" });
-    }
-
-    // Mirror to local SQLite (backup + offline leaderboard fallback)
+    // ── 1. Save to SQLite FIRST — source of truth, never fails ────────────
     saveLocalAttempt({
       user_id:      user.id,
       date:         today,
@@ -2713,46 +2691,55 @@ Return a JSON array of exactly 20 objects.`;
       created_at:   Date.now(),
     });
 
-    // ── Write quiz coins to SQLite ledger (single source of truth) ────────
+    // ── 2. Award coins from SQLite immediately — never blocked by Supabase ─
     try {
       ensureSqliteUser(user.id, user.name ?? undefined, user.email ?? undefined);
-
-      // Award per-correct-answer coins (QUIZ_CORRECT) — scaled by IQ tier
       if (coins_earned > 0) {
         addCoins(user.id, coins_earned, "QUIZ_CORRECT", today,
           `Market Quiz: ${score}/${questions.length} correct · ${tierMult}× tier (+${coins_earned} coins)`);
       }
-
-      // Award perfect score bonus (QUIZ_BONUS) — scaled by IQ tier
       if (perfectBonus > 0) {
         addCoins(user.id, perfectBonus, "QUIZ_BONUS", today,
           `🧠 Perfect Score · ${tierMult}× tier (+${perfectBonus} coins)`);
       }
     } catch (coinErr) {
-      console.error("[quiz/submit] SQLite coin ledger error:", coinErr);
+      console.error("[quiz/submit] coin ledger error:", coinErr);
     }
 
-    // Update Supabase profile (mirror — non-critical, SQLite is source of truth)
+    // ── 3. Sync to Supabase (best-effort — non-fatal if schema is stale) ──
     try {
-      const { error: sbErr } = await supabaseAdmin.from("profiles").update({
-        investor_iq:       newIQ,
-        streak_count:      newStreak,
-        streak_last_date:  today,
-        coins:             newCoins,
-      }).eq("id", user.id);
-      if (sbErr) console.error("[quiz/submit] Supabase mirror sync failed:", sbErr.message);
-    } catch (sbSyncErr) {
-      console.error("[quiz/submit] Supabase mirror sync error:", sbSyncErr);
+      const { error: insertErr } = await supabaseAdmin.from("quiz_attempts").insert({
+        user_id:         user.id,
+        date:            today,
+        score,
+        time_taken_secs,
+        answers_json:    results,
+        coins_earned,
+        iq_change:       iqDelta,
+      });
+      if (insertErr) {
+        console.error("[quiz/submit] Supabase sync failed (non-fatal):", insertErr.message, insertErr.code);
+      } else {
+        await supabaseAdmin.from("profiles").update({
+          investor_iq:      newIQ,
+          streak_count:     newStreak,
+          streak_last_date: today,
+          coins:            newCoins,
+        }).eq("id", user.id);
+      }
+    } catch (sbErr) {
+      console.error("[quiz/submit] Supabase sync error (non-fatal):", sbErr);
     }
 
+    // ── 4. Always respond success — SQLite is authoritative ───────────────
     res.json({
-      date:          today,
+      date:            today,
       score,
-      total:         questions.length,
-      coins_earned:  coins_earned + perfectBonus,
+      total:           questions.length,
+      coins_earned:    coins_earned + perfectBonus,
       tier_multiplier: tierMult,
-      new_iq:        newIQ,
-      new_streak:    newStreak,
+      new_iq:          newIQ,
+      new_streak:      newStreak,
       results,
     });
   });
