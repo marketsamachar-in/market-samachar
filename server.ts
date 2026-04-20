@@ -3701,6 +3701,30 @@ body{background:#07070e;color:#e8eaf0;font-family:'DM Sans',sans-serif;min-heigh
 
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    // Pre-warm market cache so first page load shows live data immediately
+    Promise.allSettled(
+      MARKET_SYMBOLS.map((sym) => yahooFinance.quote(sym))
+    ).then((results) => {
+      const data: MarketQuote[] = results
+        .map((result, i) => {
+          if (result.status !== "fulfilled") return null;
+          const q = result.value as any;
+          return {
+            symbol: MARKET_SYMBOLS[i],
+            name: SYMBOL_NAMES[MARKET_SYMBOLS[i]] || q.shortName || MARKET_SYMBOLS[i],
+            price: q.regularMarketPrice ?? 0,
+            change: q.regularMarketChange ?? 0,
+            changePercent: q.regularMarketChangePercent ?? 0,
+            high: q.regularMarketDayHigh ?? null,
+            low: q.regularMarketDayLow ?? null,
+          } as MarketQuote;
+        })
+        .filter((q): q is MarketQuote => q !== null);
+      if (data.length > 0) {
+        marketCache = { data, fetchedAt: Date.now() };
+        console.log(`[market-data] Pre-warmed cache with ${data.length} symbols`);
+      }
+    }).catch(() => { /* non-fatal — first request will fetch */ });
   });
 
   // ── Graceful shutdown ──────────────────────────────────────────────────
