@@ -89,12 +89,13 @@ export function QuizGame({ questions, startIndex = 0, savedAnswers, initialScore
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [timeLeft, answered]);
 
-  // Reset per question
+  // Reset per question — pre-fill selectedIdx if this question was already answered in a prior session
   useEffect(() => {
+    const priorAnswer = savedAnswers?.[qIndex] ?? null;
     setTimeLeft(TIME_PER_Q);
-    setSelectedIdx(null);
+    setSelectedIdx(priorAnswer !== null ? priorAnswer : null);
     setReveal(null);
-    setRevealFailed(false);
+    setRevealFailed(priorAnswer !== null);  // shows the advance button without a reveal panel
     setTimedOut(false);
     setChecking(false);
     setSliding(false);
