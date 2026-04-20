@@ -2700,6 +2700,19 @@ Return a JSON array of exactly 20 objects.`;
     const isCorrect = answer_index === q.correct_index;
     const qIdx      = questions.findIndex((x) => x.id === question_id);
 
+    // ── Guard: return stored result if already answered (prevents double coin earn on resume) ──
+    const existingSession  = getQuizSession(user.id, today);
+    const sessionAnswers: any[] = existingSession ? JSON.parse(existingSession.answers_json) : [];
+    if (sessionAnswers[qIdx]) {
+      return res.json({
+        correct_index:   q.correct_index,
+        correct:         sessionAnswers[qIdx].correct as boolean,
+        explanation:     q.explanation,
+        news_source_url: q.news_source_url,
+        coins_awarded:   0,
+      });
+    }
+
     // ── Award coins immediately for correct answers ─────────────────────────
     let coins_awarded = 0;
     if (isCorrect && supabaseAdmin) {
@@ -2717,22 +2730,18 @@ Return a JSON array of exactly 20 objects.`;
       }
     }
 
-    // ── Persist answer to session (skip if already answered) ────────────────
+    // ── Persist answer to session ────────────────────────────────────────────
     try {
-      const existing    = getQuizSession(user.id, today);
-      const prevAnswers: any[] = existing ? JSON.parse(existing.answers_json) : [];
-      if (!prevAnswers[qIdx]) {
-        prevAnswers[qIdx] = { q_id: question_id, q_idx: qIdx, selected: answer_index, correct: isCorrect };
-        upsertQuizSession({
-          user_id:      user.id,
-          date:         today,
-          answers_json: JSON.stringify(prevAnswers),
-          current_q:    Math.min(qIdx + 1, questions.length - 1),
-          coins_so_far: (existing?.coins_so_far ?? 0) + coins_awarded,
-          started_at:   existing?.started_at ?? Date.now(),
-          updated_at:   Date.now(),
-        });
-      }
+      sessionAnswers[qIdx] = { q_id: question_id, q_idx: qIdx, selected: answer_index, correct: isCorrect };
+      upsertQuizSession({
+        user_id:      user.id,
+        date:         today,
+        answers_json: JSON.stringify(sessionAnswers),
+        current_q:    qIdx + 1,   // store N (past end) when last Q answered — avoids resume landing back on it
+        coins_so_far: (existingSession?.coins_so_far ?? 0) + coins_awarded,
+        started_at:   existingSession?.started_at ?? Date.now(),
+        updated_at:   Date.now(),
+      });
     } catch (e) {
       console.error("[quiz/check] session save error:", e);
     }
@@ -2757,14 +2766,17 @@ Return a JSON array of exactly 20 objects.`;
     if (!supabaseAdmin) return res.status(503).json({ error: "Auth service unavailable" });
 
     const { answers, time_taken_secs } = req.body as { answers?: number[]; time_taken_secs?: number };
-    if (!Array.isArray(answers) || answers.length !== 20)
-      return res.status(400).json({ error: "answers must be an array of 20 indices" });
+    if (!Array.isArray(answers) || answers.length === 0)
+      return res.status(400).json({ error: "answers must be a non-empty array of indices" });
     if (typeof time_taken_secs !== "number" || time_taken_secs <= 0)
       return res.status(400).json({ error: "time_taken_secs must be a positive number" });
 
     const today = getISTDate();
     const questions = getQuizForDate(today);
     if (!questions) return res.status(404).json({ error: "No quiz available for today" });
+
+    if (answers.length !== questions.length)
+      return res.status(400).json({ error: `answers must be an array of ${questions.length} indices` });
 
     // Dedup check — SQLite first (always available, no Supabase dependency)
     const existingLocal = getLocalAttempt(user.id, today);
