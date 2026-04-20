@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,13 +14,13 @@ interface NewsItem {
   sentiment?: "bullish" | "bearish" | "neutral";
   impactSectors?: string[];
   keyNumbers?: { value: string; context: string }[];
-  translations?: {
-    [lang: string]: {
-      title: string;
-      summary: string;
-      bullets: string[];
-    };
-  };
+  translations?: Record<string, unknown>;
+}
+
+interface LangContent {
+  title: string;
+  summary: string;
+  bullets: string[];
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -55,6 +55,8 @@ const LANG_BUTTONS = [
   { code: "mr", label: "MR" },
   { code: "bn", label: "BN" },
 ];
+
+const BULLET_SEP = " ||| ";
 
 // ─── Injected CSS (matches sample HTML exactly) ──────────────────────────────
 
@@ -187,28 +189,35 @@ const CSS = `
     border-color: rgba(0,255,136,0.5); color: #00ff88;
     background: rgba(0,255,136,0.07);
   }
+  .ai-lang-btn:disabled { opacity: 0.4; cursor: default; }
+  .ai-translating {
+    font-size: 9px; color: #444455; font-family: 'DM Mono', monospace;
+    padding-top: 4px;
+  }
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const AiSummaryCard: React.FC<{ item: NewsItem }> = ({ item }) => {
-  const [activeLang, setActiveLang] = useState("en");
+  const [activeLang,  setActiveLang]  = useState("en");
+  const [translating, setTranslating] = useState(false);
+  const cacheRef = useRef<Map<string, LangContent>>(new Map());
 
   if (!item.aiSummary) return null;
 
-  const catColor   = CAT_COLORS[item.category?.toLowerCase()] ?? "#888899";
-  const catLabel   = (item.category ?? "news").charAt(0).toUpperCase() + (item.category ?? "news").slice(1);
-  const sentKey    = item.sentiment ?? "neutral";
-  const sent       = SENT[sentKey] ?? SENT.neutral;
+  const catColor  = CAT_COLORS[item.category?.toLowerCase()] ?? "#888899";
+  const catLabel  = (item.category ?? "news").charAt(0).toUpperCase() + (item.category ?? "news").slice(1);
+  const sentKey   = item.sentiment ?? "neutral";
+  const sent      = SENT[sentKey] ?? SENT.neutral;
   const keyNumbers = item.keyNumbers ?? [];
   const bullets    = item.summaryBullets ?? [];
   const sectors    = item.impactSectors ?? [];
-  const availLangs = Object.keys(item.translations ?? {});
 
-  // Translated content
-  const tr             = activeLang !== "en" ? item.translations?.[activeLang] : undefined;
-  const displaySummary = tr?.summary  ?? item.aiSummary;
-  const displayBullets = tr?.bullets  ?? bullets;
+  // Current display content — from cache if translated, otherwise original English
+  const cached = activeLang !== "en" ? cacheRef.current.get(activeLang) : undefined;
+  const displayTitle   = cached?.title   ?? item.title;
+  const displaySummary = cached?.summary ?? item.aiSummary;
+  const displayBullets = cached?.bullets ?? bullets;
 
   // Format source + time
   let timeStr = "";
@@ -232,6 +241,53 @@ export const AiSummaryCard: React.FC<{ item: NewsItem }> = ({ item }) => {
     bi++;
   }
 
+  const handleLangClick = async (code: string) => {
+    if (code === activeLang) return;
+    setActiveLang(code);
+    if (code === "en") return;
+
+    // Already translated — use cache
+    if (cacheRef.current.has(code)) return;
+
+    setTranslating(true);
+    try {
+      // Pack title + aiSummary + bullets into the translate payload.
+      // title       → title field
+      // aiSummary   → contentSnippet field
+      // bullets     → content field (joined with separator)
+      const res = await fetch("/api/translate", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: [{
+            id:             item.id,
+            title:          item.title,
+            contentSnippet: item.aiSummary ?? "",
+            content:        (item.summaryBullets ?? []).join(BULLET_SEP),
+          }],
+          lang: code,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const t = data.items?.[0];
+        if (t) {
+          cacheRef.current.set(code, {
+            title:   t.title          || item.title,
+            summary: t.contentSnippet || item.aiSummary!,
+            bullets: t.content
+              ? t.content.split(BULLET_SEP).map((s: string) => s.trim()).filter(Boolean)
+              : item.summaryBullets ?? [],
+          });
+        }
+      }
+    } catch {
+      // On failure just show English — no error state needed
+    } finally {
+      setTranslating(false);
+    }
+  };
+
   return (
     <>
       <style>{CSS}</style>
@@ -251,22 +307,21 @@ export const AiSummaryCard: React.FC<{ item: NewsItem }> = ({ item }) => {
           </div>
           <div className="ai-text">{displaySummary}</div>
 
-          {/* Language tabs */}
-          {availLangs.length > 0 && (
-            <div className="ai-lang-row">
-              {LANG_BUTTONS.map(({ code, label }) => {
-                if (code !== "en" && !availLangs.includes(code)) return null;
-                return (
-                  <button
-                    key={code}
-                    onClick={() => setActiveLang(code)}
-                    className={`ai-lang-btn${activeLang === code ? " active" : ""}`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Language tabs — always visible */}
+          <div className="ai-lang-row">
+            {LANG_BUTTONS.map(({ code, label }) => (
+              <button
+                key={code}
+                onClick={() => handleLangClick(code)}
+                disabled={translating && code !== activeLang}
+                className={`ai-lang-btn${activeLang === code ? " active" : ""}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {translating && (
+            <div className="ai-translating">translating…</div>
           )}
         </div>
 
@@ -296,7 +351,7 @@ export const AiSummaryCard: React.FC<{ item: NewsItem }> = ({ item }) => {
               </div>
 
               {/* Headline */}
-              <div className="hl-hed">{tr?.title ?? item.title}</div>
+              <div className="hl-hed">{displayTitle}</div>
 
               {/* KEY HIGHLIGHTS */}
               {gridCells.length > 0 && (
