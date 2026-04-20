@@ -13,6 +13,10 @@ export interface AuthState {
   isPro: boolean;
   proExpiresAt: Date | null;
   coins: number;
+  /** SQLite virtual_coin_balance — live balance used across trading + navbar. */
+  virtualBalance: number;
+  /** Re-fetch the SQLite balance (call after buy/sell/reward events). */
+  refreshBalance: () => Promise<void>;
   investorIq: number;
   /** Shorthand for signInWithGoogle — opens OAuth redirect */
   signIn: () => Promise<void>;
@@ -32,8 +36,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [virtualBalance, setVirtualBalance] = useState<number>(0);
   // Start as false when supabase is unconfigured — no async work to do.
   const [loading, setLoading] = useState(!!supabase);
+
+  // ── SQLite virtual balance fetch ────────────────────────────────────────────
+  const refreshBalance = useCallback(async () => {
+    if (!supabase) return;
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) return;
+      const res = await fetch('/api/auth/balance', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      if (typeof json?.virtualBalance === 'number') {
+        setVirtualBalance(json.virtualBalance);
+      }
+    } catch {
+      // Non-fatal — navbar falls back to 0
+    }
+  }, []);
 
   // ── Fetch profile ───────────────────────────────────────────────────────────
   const fetchProfile = useCallback(async (userId: string) => {
@@ -69,7 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
-      if (data.session?.user) fetchProfile(data.session.user.id);
+      if (data.session?.user) {
+        fetchProfile(data.session.user.id);
+        refreshBalance();
+      }
       setLoading(false);
     });
 
@@ -91,15 +119,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               name:   u.user_metadata?.full_name || u.email,
               avatar: u.user_metadata?.avatar_url || null,
             }),
-          }).catch(() => {});
+          })
+            .then(r => r.ok ? r.json() : null)
+            .then(j => {
+              const v = j?.user?.virtual_coin_balance;
+              if (typeof v === 'number') setVirtualBalance(v);
+            })
+            .catch(() => {});
         }
       } else {
         setProfile(null);
+        setVirtualBalance(0);
       }
     });
 
     return () => listener.subscription.unsubscribe();
-  }, [fetchProfile, requestNotificationPermission]);
+  }, [fetchProfile, requestNotificationPermission, refreshBalance]);
 
   // ── Derived values ──────────────────────────────────────────────────────────
   const proExpiresAt = profile?.pro_expires_at ? new Date(profile.pro_expires_at) : null;
@@ -137,7 +172,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthState = {
     user, session, profile, loading,
     isPro, proExpiresAt,
-    coins, investorIq,
+    coins, virtualBalance, refreshBalance,
+    investorIq,
     signIn: signInWithGoogle,
     signInWithGoogle,
     signInWithEmail,
