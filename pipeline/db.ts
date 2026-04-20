@@ -54,6 +54,17 @@ db.exec(`
     UNIQUE(user_id, date)
   );
 
+  CREATE TABLE IF NOT EXISTS quiz_sessions (
+    user_id      TEXT    NOT NULL,
+    date         TEXT    NOT NULL,      -- YYYY-MM-DD IST
+    answers_json TEXT    NOT NULL DEFAULT '[]',
+    current_q    INTEGER NOT NULL DEFAULT 0,
+    coins_so_far INTEGER NOT NULL DEFAULT 0,
+    started_at   INTEGER NOT NULL,
+    updated_at   INTEGER NOT NULL,
+    PRIMARY KEY (user_id, date)
+  );
+
   CREATE TABLE IF NOT EXISTS predictions (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id      TEXT    NOT NULL,
@@ -195,6 +206,25 @@ const stmts = {
 
   todayBatches: db.prepare(`
     SELECT COUNT(*) AS n FROM batches WHERE fetched_at >= ?
+  `),
+
+  // ── quiz_sessions ─────────────────────────────────────────────────────────
+  getSession: db.prepare(`
+    SELECT * FROM quiz_sessions WHERE user_id = ? AND date = ? LIMIT 1
+  `),
+
+  upsertSession: db.prepare(`
+    INSERT INTO quiz_sessions (user_id, date, answers_json, current_q, coins_so_far, started_at, updated_at)
+    VALUES (@user_id, @date, @answers_json, @current_q, @coins_so_far, @started_at, @updated_at)
+    ON CONFLICT(user_id, date) DO UPDATE SET
+      answers_json = excluded.answers_json,
+      current_q    = excluded.current_q,
+      coins_so_far = excluded.coins_so_far,
+      updated_at   = excluded.updated_at
+  `),
+
+  deleteSession: db.prepare(`
+    DELETE FROM quiz_sessions WHERE user_id = ? AND date = ?
   `),
 
   // ── quiz_attempts ──────────────────────────────────────────────────────────
@@ -478,6 +508,30 @@ export function getTop10ForDate(
   date: string,
 ): Array<{ user_id: string; score: number; time_secs: number; coins_earned: number; iq_change: number }> {
   return stmts.getTop10ForDate.all(date) as any[];
+}
+
+// ─── Quiz Sessions ────────────────────────────────────────────────────────────
+
+export interface QuizSessionRow {
+  user_id:      string;
+  date:         string;
+  answers_json: string;
+  current_q:    number;
+  coins_so_far: number;
+  started_at:   number;
+  updated_at:   number;
+}
+
+export function getQuizSession(userId: string, date: string): QuizSessionRow | null {
+  return (stmts.getSession.get(userId, date) as QuizSessionRow | undefined) ?? null;
+}
+
+export function upsertQuizSession(row: QuizSessionRow): void {
+  stmts.upsertSession.run(row);
+}
+
+export function deleteQuizSession(userId: string, date: string): void {
+  stmts.deleteSession.run(userId, date);
 }
 
 // ─── Predictions ──────────────────────────────────────────────────────────────
