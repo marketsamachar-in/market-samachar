@@ -1,7 +1,13 @@
 /**
  * StockPriceService
- * Fetches 15-minute-delayed Indian stock prices from Yahoo Finance
+ * Fetches Indian stock prices from NSE India's official API
  * and caches results in the stock_price_cache SQLite table.
+ *
+ * NSE India is free, official, and works from cloud servers (Railway, etc.)
+ * unlike Yahoo Finance which blocks datacenter IPs with ETIMEDOUT.
+ *
+ * NSE requires a cookie session: hit the homepage first, then use those
+ * cookies on subsequent API calls. Session is refreshed every 25 minutes.
  */
 
 import cron from "node-cron";
@@ -31,15 +37,12 @@ export interface StockPrice {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CACHE_TTL_MS  = 15 * 60 * 1000; // 15 minutes
-const YF_BASE       = "https://query1.finance.yahoo.com/v8/finance/chart";
-const YF_HEADERS    = {
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-  "Accept":          "application/json",
-  "Accept-Language": "en-US,en;q=0.9",
-};
+const CACHE_TTL_MS    = 15 * 60 * 1000; // 15 minutes
+const NSE_BASE        = "https://www.nseindia.com";
+const NSE_SESSION_TTL = 25 * 60 * 1000; // refresh cookies every 25 min
+const BROWSER_UA      =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
 /**
  * All tradeable NSE stocks — imported from nse-symbols.ts.
@@ -101,50 +104,109 @@ export function nextMarketOpen(): string {
   return candidate.toISOString();
 }
 
-// ─── Yahoo Finance fetch ──────────────────────────────────────────────────────
+// ─── NSE India session management ────────────────────────────────────────────
 
-interface YFChartMeta {
-  symbol:                     string;
-  longName?:                  string;
-  shortName?:                 string;
-  regularMarketPrice:         number;
-  chartPreviousClose?:        number;
-  regularMarketChange?:       number;
-  regularMarketChangePercent?: number;
-  regularMarketDayHigh?:      number;
-  regularMarketDayLow?:       number;
-  regularMarketVolume?:       number;
+interface NseSession {
+  cookies:   string;
+  fetchedAt: number;
 }
 
-async function fetchFromYahoo(nseSymbol: string): Promise<StockPrice> {
-  const url = `${YF_BASE}/${encodeURIComponent(nseSymbol)}?interval=1d&range=1d`;
-  const res  = await fetch(url, { headers: YF_HEADERS, signal: AbortSignal.timeout(10_000) });
+let _nseSession: NseSession | null = null;
 
-  if (!res.ok) {
-    throw new Error(`Yahoo Finance returned ${res.status} for ${nseSymbol}`);
+/**
+ * Refresh NSE cookies by hitting the homepage.
+ * NSE requires a valid cookie (nsit/nseappid) on every API call.
+ */
+async function refreshNseSession(): Promise<string> {
+  const res = await fetch(NSE_BASE, {
+    headers: {
+      "User-Agent":      BROWSER_UA,
+      "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+    },
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  // Parse all Set-Cookie headers into a single cookie string
+  const raw = res.headers.getSetCookie?.() ?? [];
+  const cookieStr = raw.length
+    ? raw.map((c) => c.split(";")[0]).join("; ")
+    : (res.headers.get("set-cookie") ?? "").split(",").map((c) => c.split(";")[0].trim()).join("; ");
+
+  _nseSession = { cookies: cookieStr, fetchedAt: Date.now() };
+  console.log(`[StockPriceService] NSE session refreshed (${raw.length || "?"} cookies)`);
+  return cookieStr;
+}
+
+async function getNseCookies(): Promise<string> {
+  if (_nseSession && Date.now() - _nseSession.fetchedAt < NSE_SESSION_TTL) {
+    return _nseSession.cookies;
+  }
+  return refreshNseSession();
+}
+
+// ─── NSE India fetch ──────────────────────────────────────────────────────────
+
+async function fetchFromNSE(symbol: string): Promise<StockPrice> {
+  const baseSymbol = symbol.toUpperCase().replace(/\.NS$/, "");
+  const cookies    = await getNseCookies();
+
+  const url = `${NSE_BASE}/api/quote-equity?symbol=${encodeURIComponent(baseSymbol)}`;
+  const res  = await fetch(url, {
+    headers: {
+      "User-Agent":      BROWSER_UA,
+      "Accept":          "*/*",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Referer":         `${NSE_BASE}/get-quotes/equity?symbol=${encodeURIComponent(baseSymbol)}`,
+      "Cookie":          cookies,
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  // If session expired, clear it and retry once with fresh cookies
+  if (res.status === 401 || res.status === 403) {
+    _nseSession = null;
+    const freshCookies = await refreshNseSession();
+    const retry = await fetch(url, {
+      headers: {
+        "User-Agent":      BROWSER_UA,
+        "Accept":          "*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer":         `${NSE_BASE}/get-quotes/equity?symbol=${encodeURIComponent(baseSymbol)}`,
+        "Cookie":          freshCookies,
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!retry.ok) throw new Error(`NSE returned ${retry.status} for ${baseSymbol}`);
+    return parseNseResponse(await retry.json(), baseSymbol);
   }
 
-  const json: any = await res.json();
-  const meta: YFChartMeta = json?.chart?.result?.[0]?.meta;
+  if (!res.ok) throw new Error(`NSE returned ${res.status} for ${baseSymbol}`);
+  return parseNseResponse(await res.json(), baseSymbol);
+}
 
-  if (!meta || !meta.regularMarketPrice) {
-    throw new Error(`No price data in Yahoo Finance response for ${nseSymbol}`);
-  }
+function parseNseResponse(data: any, baseSymbol: string): StockPrice {
+  const price = data?.priceInfo?.lastPrice;
+  if (!price) throw new Error(`No price in NSE response for ${baseSymbol}`);
 
-  const prev   = meta.chartPreviousClose ?? meta.regularMarketPrice;
-  const change = meta.regularMarketChange        ?? (meta.regularMarketPrice - prev);
-  const changePct = meta.regularMarketChangePercent ?? (change / prev) * 100;
-  const baseSymbol = nseSymbol.replace(/\.NS$/, "");
+  const prevClose = data.priceInfo.previousClose ?? price;
+  const change    = data.priceInfo.change    ?? (price - prevClose);
+  const changePct = data.priceInfo.pChange   ?? ((change / prevClose) * 100);
+  const high      = data.priceInfo.intraDayHighLow?.max ?? price;
+  const low       = data.priceInfo.intraDayHighLow?.min ?? price;
+  const volume    = data.marketDeptOrderBook?.tradeInfo?.totalTradedVolume ?? 0;
+  const name      = data.info?.companyName ?? baseSymbol;
 
   return {
     symbol:        baseSymbol,
-    companyName:   meta.longName ?? meta.shortName ?? baseSymbol,
-    currentPrice:  Math.round(meta.regularMarketPrice  * 100) / 100,
-    change:        Math.round(change    * 100) / 100,
+    companyName:   name,
+    currentPrice:  Math.round(price    * 100) / 100,
+    change:        Math.round(change   * 100) / 100,
     changePercent: Math.round(changePct * 100) / 100,
-    high:          Math.round((meta.regularMarketDayHigh  ?? meta.regularMarketPrice) * 100) / 100,
-    low:           Math.round((meta.regularMarketDayLow   ?? meta.regularMarketPrice) * 100) / 100,
-    volume:        meta.regularMarketVolume ?? 0,
+    high:          Math.round(high     * 100) / 100,
+    low:           Math.round(low      * 100) / 100,
+    volume,
     lastUpdated:   Date.now(),
     isMarketOpen:  isMarketOpen(),
   };
@@ -175,9 +237,6 @@ function cacheToStockPrice(cached: ReturnType<typeof getStockPrice>): StockPrice
  * Falls back to stale cache on Yahoo Finance errors rather than throwing.
  */
 export async function fetchStockPrice(symbol: string): Promise<StockPrice> {
-  const nseSymbol = symbol.toUpperCase().endsWith(".NS")
-    ? symbol.toUpperCase()
-    : `${symbol.toUpperCase()}.NS`;
   const baseSymbol = symbol.toUpperCase().replace(/\.NS$/, "");
 
   // ── 1. Check cache ────────────────────────────────────────────────────────
@@ -193,24 +252,13 @@ export async function fetchStockPrice(symbol: string): Promise<StockPrice> {
     return cacheToStockPrice(cached);
   }
 
-  // ── 2. Fetch from Yahoo Finance ───────────────────────────────────────────
+  // ── 2. Fetch from NSE India ───────────────────────────────────────────────
   try {
-    const price = await fetchFromYahoo(nseSymbol);
-
-    // Persist to SQLite cache
-    upsertStockPrice(
-      price.symbol,
-      price.companyName,
-      price.currentPrice,
-      price.changePercent,
-    );
-
-    // Also store extended fields using rawDb for the extra columns we need
-    // (change, high, low, volume are not in the base upsertStockPrice signature;
-    //  they live only in the returned object — SQLite cache stores what it has)
+    const price = await fetchFromNSE(baseSymbol);
+    upsertStockPrice(price.symbol, price.companyName, price.currentPrice, price.changePercent);
     return price;
   } catch (err) {
-    console.error(`[StockPriceService] fetch error for ${nseSymbol}:`, err);
+    console.error(`[StockPriceService] NSE fetch error for ${baseSymbol}:`, (err as Error).message);
 
     // ── 3. Fallback: stale cache is better than nothing ───────────────────
     const stale = getStockPrice(baseSymbol, Infinity);
@@ -218,7 +266,7 @@ export async function fetchStockPrice(symbol: string): Promise<StockPrice> {
       return { ...cacheToStockPrice(stale), isMarketOpen: isMarketOpen(), staleData: true };
     }
 
-    // Last resort: return a zero-value placeholder so the caller never gets a 500
+    // Last resort: zero placeholder so caller never gets a 500
     return {
       symbol:        baseSymbol,
       companyName:   baseSymbol,
