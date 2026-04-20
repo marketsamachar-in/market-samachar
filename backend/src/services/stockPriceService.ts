@@ -219,7 +219,7 @@ function cacheToStockPrice(cached: ReturnType<typeof getStockPrice>): StockPrice
     symbol:        cached!.symbol,
     companyName:   cached!.company_name,
     currentPrice:  cached!.current_price,
-    change:        (cached as any).change ?? 0,
+    change:        cached!.change ?? 0,
     changePercent: cached!.change_percent,
     high:          (cached as any).high ?? cached!.current_price,
     low:           (cached as any).low  ?? cached!.current_price,
@@ -255,7 +255,7 @@ export async function fetchStockPrice(symbol: string): Promise<StockPrice> {
   // ── 2. Fetch from NSE India ───────────────────────────────────────────────
   try {
     const price = await fetchFromNSE(baseSymbol);
-    upsertStockPrice(price.symbol, price.companyName, price.currentPrice, price.changePercent);
+    upsertStockPrice(price.symbol, price.companyName, price.currentPrice, price.change, price.changePercent);
     return price;
   } catch (err) {
     console.error(`[StockPriceService] NSE fetch error for ${baseSymbol}:`, (err as Error).message);
