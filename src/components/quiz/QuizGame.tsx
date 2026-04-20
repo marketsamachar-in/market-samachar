@@ -46,28 +46,35 @@ interface RevealData {
 }
 
 interface QuizGameProps {
-  questions:    SafeQuestion[];
-  onComplete:   (result: SubmitResult) => void;
-  onClose:      () => void;
+  questions:     SafeQuestion[];
+  startIndex?:   number;
+  savedAnswers?: (number | null)[];
+  initialScore?: number;
+  onComplete:    (result: SubmitResult) => void;
+  onClose:       () => void;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
+export function QuizGame({ questions, startIndex = 0, savedAnswers, initialScore = 0, onComplete, onClose }: QuizGameProps) {
   const { session } = useAuth();
 
-  const [qIndex,       setQIndex]       = useState(0);
+  const [qIndex,       setQIndex]       = useState(startIndex);
   const [timeLeft,     setTimeLeft]     = useState(TIME_PER_Q);
   const [selectedIdx,  setSelectedIdx]  = useState<number | null>(null);
   const [reveal,       setReveal]       = useState<RevealData | null>(null);
+  const [revealFailed, setRevealFailed] = useState(false);
   const [checking,     setChecking]     = useState(false);
   const [timedOut,     setTimedOut]     = useState(false);
   const [sliding,      setSliding]      = useState(false);
   const [submitting,   setSubmitting]   = useState(false);
   const [submitError,  setSubmitError]  = useState('');
-  const [liveScore,    setLiveScore]    = useState(0);
+  const [liveScore,    setLiveScore]    = useState(initialScore);
   const [confirmQuit,  setConfirmQuit]  = useState(false);
 
-  const answersRef   = useRef<number[]>(Array(questions.length).fill(-1));
+  // Pre-fill answers from resumed session
+  const answersRef   = useRef<number[]>(
+    savedAnswers ? savedAnswers.map(a => a ?? -1) : Array(questions.length).fill(-1)
+  );
   const startTimeRef = useRef(Date.now());
   const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -87,6 +94,7 @@ export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
     setTimeLeft(TIME_PER_Q);
     setSelectedIdx(null);
     setReveal(null);
+    setRevealFailed(false);
     setTimedOut(false);
     setChecking(false);
     setSliding(false);
@@ -126,9 +134,11 @@ export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
         const data: RevealData = await res.json();
         setReveal(data);
         if (data.correct) setLiveScore(s => s + 1);
+      } else {
+        setRevealFailed(true);  // 429 or other error — still allow advancing
       }
     } catch {
-      // Reveal unavailable — still allow advancing
+      setRevealFailed(true);  // network error — still allow advancing
     }
     setChecking(false);
   }, [answered, checking, qIndex, currentQ.id, session]);
@@ -444,7 +454,7 @@ export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
             )}
 
             {/* ── Next / Submit button ─────────────────────────────────────── */}
-            {(reveal || timedOut) && !submitting && (
+            {(reveal || timedOut || revealFailed) && !submitting && (
               <button
                 onClick={advance}
                 style={{
@@ -503,7 +513,7 @@ export function QuizGame({ questions, onComplete, onClose }: QuizGameProps) {
               Quit the quiz?
             </p>
             <p style={{ color: '#556688', ...MONO, fontSize: 11, marginBottom: 20 }}>
-              Your progress will be lost. This counts as your daily attempt.
+              Your answered questions and coins are saved. Resume any time today.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
