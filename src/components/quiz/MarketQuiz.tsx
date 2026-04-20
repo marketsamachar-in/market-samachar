@@ -154,7 +154,7 @@ export function MarketQuiz() {
             // Auto-start if user signed in
             if (user) handlePlay();
           }}
-          defaultTab="phone"
+          defaultTab="google"
         />
       )}
 
