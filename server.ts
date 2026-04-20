@@ -224,11 +224,11 @@ interface NewsItem {
 const FEEDS = [
   // Indian Market
   { url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms", category: "indian" },
-  { url: "https://www.moneycontrol.com/rss/marketreports.xml", category: "indian" },
+  { url: "https://www.moneycontrol.com/rss/latestnews.xml", category: "indian" },
   { url: "https://www.livemint.com/rss/markets", category: "indian" },
   { url: "https://www.business-standard.com/rss/markets-106.rss", category: "indian" },
   { url: "https://www.financialexpress.com/market/rss/", category: "indian" },
-  { url: "https://zeenews.india.com/business/rss/business.xml", category: "indian" },
+  { url: "https://www.zeebiz.com/latest.xml/feed", category: "indian" },
   { url: "https://feeds.feedburner.com/ndtvprofit-latest", category: "indian" },
   { url: "https://www.thehindu.com/business/markets/feeder/default.rss", category: "indian" },
   // Companies
@@ -364,8 +364,8 @@ async function fetchNews() {
               });
             }
           });
-        } catch (err) {
-          console.error(`Error fetching feed ${feedObj.url}:`, err);
+        } catch (err: any) {
+          console.warn(`[rss] skipped ${feedObj.url}: ${err?.message ?? err}`);
         }
       })());
     }
