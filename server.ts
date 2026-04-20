@@ -2441,15 +2441,76 @@ async function startServer() {
   }
 
   /**
+   * Evergreen market-literacy fallback used when Gemini keys are exhausted
+   * or the news cache is empty. Persisted once per day so everyone sees the
+   * same set, and so the /check and /submit endpoints stay consistent.
+   */
+  function getFallbackQuiz(today: string): QuizQuestion[] {
+    const FALLBACK: Omit<QuizQuestion, "id">[] = [
+      { question: "What does 'Nifty 50' represent on the NSE?",
+        options: ["50 largest Indian banks", "Top 50 Indian companies by free-float market cap", "50 mid-cap stocks", "50 PSU stocks"],
+        correct_index: 1, explanation: "Nifty 50 tracks the 50 largest, most liquid Indian companies weighted by free-float market cap across sectors.",
+        news_source_url: "https://www.nseindia.com/", category: "indian", difficulty: "easy" },
+      { question: "What is the 'GMP' in the context of an IPO?",
+        options: ["Guaranteed Minimum Price", "Grey Market Premium", "Global Market Price", "Government-Mandated Price"],
+        correct_index: 1, explanation: "GMP is the unofficial premium at which IPO shares trade in the grey market before listing — it's a sentiment indicator, not a guarantee.",
+        news_source_url: "https://www.chittorgarh.com/", category: "ipo", difficulty: "easy" },
+      { question: "Which regulator oversees the Indian securities market?",
+        options: ["RBI", "SEBI", "IRDAI", "PFRDA"],
+        correct_index: 1, explanation: "SEBI (Securities and Exchange Board of India) is the statutory regulator for stock exchanges, brokers, and listed companies.",
+        news_source_url: "https://www.sebi.gov.in/", category: "sebi", difficulty: "easy" },
+      { question: "A P/E ratio tells you...",
+        options: ["The dividend yield", "Price paid per rupee of annual earnings", "Debt-to-equity ratio", "Book value per share"],
+        correct_index: 1, explanation: "Price-to-Earnings = Price ÷ EPS. It shows how much investors are paying for each ₹1 of the company's annual earnings.",
+        news_source_url: "https://www.moneycontrol.com/", category: "companies", difficulty: "medium" },
+      { question: "What happens to bond prices when interest rates rise?",
+        options: ["They rise", "They fall", "They stay the same", "Only coupon changes"],
+        correct_index: 1, explanation: "Bond prices move inversely to interest rates. Newly issued bonds at higher yields make existing lower-coupon bonds less attractive.",
+        news_source_url: "https://www.rbi.org.in/", category: "economy", difficulty: "medium" },
+      { question: "'Circuit filter' in Indian markets refers to...",
+        options: ["Trading fee tier", "Daily price movement limit before trading halts", "Brokerage discount", "Margin requirement"],
+        correct_index: 1, explanation: "Exchanges apply upper/lower circuits (e.g. 5%, 10%, 20%) to individual stocks to prevent runaway moves; trading pauses when hit.",
+        news_source_url: "https://www.nseindia.com/", category: "indian", difficulty: "medium" },
+      { question: "Which of these is a defensive sector?",
+        options: ["Real estate", "Consumer staples (FMCG)", "Auto", "Metals"],
+        correct_index: 1, explanation: "FMCG/consumer-staples demand holds up during downturns (people keep buying soap & food), so they're classed as 'defensive'.",
+        news_source_url: "https://www.livemint.com/", category: "companies", difficulty: "medium" },
+      { question: "What does RBI's 'repo rate' directly influence?",
+        options: ["Stock dividends", "Short-term cost of bank borrowing from RBI", "Gold import duty", "GST rates"],
+        correct_index: 1, explanation: "The repo rate is what RBI charges commercial banks for short-term loans — it's the anchor for lending & deposit rates across the economy.",
+        news_source_url: "https://www.rbi.org.in/", category: "rbi", difficulty: "medium" },
+      { question: "A 'bull market' is characterised by...",
+        options: ["Falling prices and pessimism", "Sustained rising prices and optimism", "Flat prices", "High volatility only"],
+        correct_index: 1, explanation: "Bull = rising trend + positive sentiment over a sustained period (typically 20%+ rally from recent lows).",
+        news_source_url: "https://economictimes.indiatimes.com/", category: "global", difficulty: "easy" },
+      { question: "What is 'T+1 settlement' on Indian exchanges?",
+        options: ["Trade settles the same day", "Trade settles 1 business day after execution", "Trade settles 2 days later", "Trade settles 1 week later"],
+        correct_index: 1, explanation: "India moved to T+1 in 2023 — shares/funds move to buyer/seller one business day after the trade. Fastest retail settlement cycle globally.",
+        news_source_url: "https://www.sebi.gov.in/", category: "sebi", difficulty: "hard" },
+    ];
+    const questions: QuizQuestion[] = FALLBACK.map((q, i) => ({
+      ...q,
+      id: `${today}_fallback_q${i + 1}`,
+    }));
+    return questions;
+  }
+
+  /**
    * Generate (or return cached) today's quiz from the live news cache.
    * Called internally by both /generate and /today.
+   * Falls back to a static evergreen set if Gemini keys are exhausted or news is empty.
    */
   async function generateOrGetQuiz(): Promise<QuizQuestion[]> {
     const today = getISTDate();
     const cached = getQuizForDate(today);
     if (cached) return cached;
 
-    if (!hasAvailableKey()) throw new Error("No Gemini API keys available");
+    if (!hasAvailableKey()) {
+      const fallback = getFallbackQuiz(today);
+      saveQuizForDate(today, fallback);
+      console.log(`[quiz] Gemini unavailable — served ${fallback.length} fallback questions for ${today}`);
+      return fallback;
+    }
 
     // Pick up to 20 recent headlines (spread across categories for variety)
     const headlines = newsCache
@@ -2458,7 +2519,12 @@ async function startServer() {
       .slice(0, 20)
       .map((n) => ({ title: n.title, url: n.link, category: n.category }));
 
-    if (headlines.length === 0) throw new Error("No news available to generate quiz");
+    if (headlines.length === 0) {
+      const fallback = getFallbackQuiz(today);
+      saveQuizForDate(today, fallback);
+      console.log(`[quiz] No news available — served ${fallback.length} fallback questions for ${today}`);
+      return fallback;
+    }
 
     const prompt = `Based on these financial news headlines from today:
 ${headlines.map((h, i) => `${i + 1}. [${h.category.toUpperCase()}] ${h.title} (${h.url})`).join("\n")}
@@ -2472,39 +2538,46 @@ Generate exactly 20 multiple choice questions testing market knowledge. Mix diff
 
 Return a JSON array of exactly 20 objects.`;
 
-    const responseText = await geminiStructuredCall(prompt, {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            question:        { type: Type.STRING },
-            options:         { type: Type.ARRAY, items: { type: Type.STRING } },
-            correct_index:   { type: Type.INTEGER },
-            explanation:     { type: Type.STRING },
-            news_source_url: { type: Type.STRING },
-            category:        { type: Type.STRING },
-            difficulty:      { type: Type.STRING },
+    try {
+      const responseText = await geminiStructuredCall(prompt, {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question:        { type: Type.STRING },
+              options:         { type: Type.ARRAY, items: { type: Type.STRING } },
+              correct_index:   { type: Type.INTEGER },
+              explanation:     { type: Type.STRING },
+              news_source_url: { type: Type.STRING },
+              category:        { type: Type.STRING },
+              difficulty:      { type: Type.STRING },
+            },
+            required: ["question", "options", "correct_index", "explanation", "news_source_url", "category", "difficulty"],
           },
-          required: ["question", "options", "correct_index", "explanation", "news_source_url", "category", "difficulty"],
         },
-      },
-    });
+      });
 
-    const raw = JSON.parse(responseText || "[]") as QuizQuestion[];
-    // Assign stable IDs and validate option count
-    const questions: QuizQuestion[] = raw.slice(0, 20).map((q, i) => ({
-      ...q,
-      id: `${today}_q${i + 1}`,
-      options: q.options.slice(0, 4),
-      correct_index: Math.max(0, Math.min(3, q.correct_index)),
-      difficulty: (["easy", "medium", "hard"].includes(q.difficulty) ? q.difficulty : "medium") as QuizQuestion["difficulty"],
-    }));
+      const raw = JSON.parse(responseText || "[]") as QuizQuestion[];
+      if (raw.length === 0) throw new Error("Empty Gemini response");
+      const questions: QuizQuestion[] = raw.slice(0, 20).map((q, i) => ({
+        ...q,
+        id: `${today}_q${i + 1}`,
+        options: q.options.slice(0, 4),
+        correct_index: Math.max(0, Math.min(3, q.correct_index)),
+        difficulty: (["easy", "medium", "hard"].includes(q.difficulty) ? q.difficulty : "medium") as QuizQuestion["difficulty"],
+      }));
 
-    saveQuizForDate(today, questions);
-    console.log(`[quiz] Generated ${questions.length} questions for ${today}`);
-    return questions;
+      saveQuizForDate(today, questions);
+      console.log(`[quiz] Generated ${questions.length} questions for ${today}`);
+      return questions;
+    } catch (err: any) {
+      console.error(`[quiz] Generation failed (${err?.message ?? err}) — serving fallback`);
+      const fallback = getFallbackQuiz(today);
+      saveQuizForDate(today, fallback);
+      return fallback;
+    }
   }
 
   /**
