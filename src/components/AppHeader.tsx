@@ -109,7 +109,10 @@ export function AppHeader({
   onSignIn,
   navTabs          = [],
 }: AppHeaderProps) {
-  const { user, profile, loading, coins, signOut } = useAuth();
+  const { user, profile, loading, coins, virtualBalance, signOut } = useAuth();
+
+  // Prefer SQLite trading/reward balance (source of truth) over Supabase mirror.
+  const displayCoins = virtualBalance > 0 ? virtualBalance : (coins ?? 0);
 
   const [istTime, setIstTime]       = useState('');
   const [mStatus, setMStatus]       = useState(calcMarketStatus);
@@ -295,7 +298,7 @@ export function AppHeader({
                 borderRadius: 6, padding: '4px 10px',
                 color: GREEN, ...MONO, fontSize: '0.72rem', fontWeight: 600,
               }}>
-                🪙 {(coins ?? 0).toLocaleString('en-IN')}
+                🪙 {displayCoins.toLocaleString('en-IN')}
               </span>
 
               {/* Avatar + dropdown */}
