@@ -11,6 +11,7 @@ import {
   RefreshCw, X, Trophy, Clock, History, BarChart2, Star,
   Wallet, AlertCircle, CheckCircle, Search, ShoppingCart,
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const BG     = '#07070e';
@@ -895,7 +896,7 @@ function MarketsTab({
             ) : (
               <span style={{ color: RED }}>STALE</span>
             )}
-            · ⟳ {secsAgo}s ago
+            · ⟳ {secsAgo < 60 ? `${secsAgo}s` : `${Math.floor(secsAgo / 60)}m ${secsAgo % 60}s`} ago
           </span>
         </div>
 
@@ -1525,6 +1526,7 @@ function OrdersTab({
 type Tab = 'market' | 'watchlist' | 'portfolio' | 'leaderboard' | 'history';
 
 export function PaperTrading({ authToken, onNavigate }: Props) {
+  const { refreshBalance } = useAuth();
   const [showEarnCoins, setShowEarnCoins] = useState(false);
   /* data */
   const [stocks,      setStocks]      = useState<StockPrice[]>([]);
@@ -1666,8 +1668,10 @@ export function PaperTrading({ authToken, onNavigate }: Props) {
     if (authToken) { fetchPortfolio(); fetchOrders(); }
   }, [authToken, fetchPortfolio, fetchOrders]);
   useEffect(() => {
-    if (!isMarketOpen) return;
-    const iv = setInterval(fetchStocks, 30_000);
+    // 30s refresh when market is open (live prices); 60s when closed so users
+    // still see backend cache updates from the 15-min cron without manual reload.
+    const intervalMs = isMarketOpen ? 30_000 : 60_000;
+    const iv = setInterval(fetchStocks, intervalMs);
     return () => clearInterval(iv);
   }, [isMarketOpen, fetchStocks]);
   useEffect(() => {
@@ -1758,6 +1762,7 @@ export function PaperTrading({ authToken, onNavigate }: Props) {
     pushToast(msg, 'success');
     fetchPortfolio();
     fetchOrders();
+    refreshBalance();
   }
 
   function onSellFromPortfolio(h: PortfolioHolding) {
@@ -1831,18 +1836,33 @@ export function PaperTrading({ authToken, onNavigate }: Props) {
               <div style={{ color: MUTED, ...MONO, fontSize: 10 }}>
                 ₹{fmt(portVal)} equivalent
               </div>
-              <button
-                onClick={() => setShowEarnCoins((p) => !p)}
-                style={{
-                  marginTop: 5, background: showEarnCoins ? GREEN + '20' : GREEN + '10',
-                  border: `1px solid ${GREEN}35`, borderRadius: 5,
-                  color: GREEN, ...MONO, fontSize: 9, fontWeight: 700,
-                  padding: '3px 10px', cursor: 'pointer', letterSpacing: '0.06em',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {showEarnCoins ? '✕ CLOSE' : '+ EARN COINS'}
-              </button>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 5 }}>
+                <button
+                  onClick={() => setShowEarnCoins((p) => !p)}
+                  style={{
+                    background: showEarnCoins ? GREEN + '20' : GREEN + '10',
+                    border: `1px solid ${GREEN}35`, borderRadius: 5,
+                    color: GREEN, ...MONO, fontSize: 9, fontWeight: 700,
+                    padding: '3px 10px', cursor: 'pointer', letterSpacing: '0.06em',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {showEarnCoins ? '✕ CLOSE' : '+ EARN COINS'}
+                </button>
+                <button
+                  onClick={() => onNavigate?.('rewards')}
+                  title="View coin history"
+                  style={{
+                    background: 'transparent',
+                    border: `1px solid ${BORDER}`, borderRadius: 5,
+                    color: MUTED, ...MONO, fontSize: 9, fontWeight: 700,
+                    padding: '3px 10px', cursor: 'pointer', letterSpacing: '0.06em',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  📜 HISTORY
+                </button>
+              </div>
             </div>
             <div style={{ width: 1, height: 42, background: BORDER, flexShrink: 0 }} />
             <div style={{ textAlign: 'center' }}>
