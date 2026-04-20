@@ -111,8 +111,11 @@ export function AppHeader({
 }: AppHeaderProps) {
   const { user, profile, loading, coins, virtualBalance, signOut } = useAuth();
 
-  // Prefer SQLite trading/reward balance (source of truth) over Supabase mirror.
-  const displayCoins = virtualBalance > 0 ? virtualBalance : (coins ?? 0);
+  // SQLite virtual_coin_balance is the single source of truth. Supabase
+  // profile.coins is a read-only mirror that stays 0, so never prefer it.
+  const displayCoins = virtualBalance;
+  // Silence unused-var warning — `coins` is kept on the context for other callers.
+  void coins;
 
   const [istTime, setIstTime]       = useState('');
   const [mStatus, setMStatus]       = useState(calcMarketStatus);
