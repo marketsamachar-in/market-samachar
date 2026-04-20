@@ -40,6 +40,7 @@ import {
   getRecentBatches, getTodayStats,
   saveQuizForDate, getQuizForDate,
   saveLocalAttempt, getLocalAttempt,
+  getQuizSession, upsertQuizSession, deleteQuizSession,
   savePrediction, getPrediction, resolvePredictionsForDate,
   savePayment, markPaymentSuccess, markPaymentFailed, getPaymentById,
   getAllPayments, updatePaymentUTR,
@@ -2537,7 +2538,27 @@ Return a JSON array of exactly 20 objects.`;
 
       // Strip answers before sending to client
       const safe = questions.map(({ correct_index: _ci, explanation: _ex, ...rest }) => rest);
-      res.json({ date: today, count: safe.length, questions: safe });
+
+      // Return session state for authenticated users (auth-optional)
+      let sessionState: { current_q: number; answers: any[]; coins_so_far: number } | null = null;
+      try {
+        const sessionUser = await getAuthUser(req);
+        if (sessionUser) {
+          const alreadyDone = getLocalAttempt(sessionUser.id, today);
+          if (!alreadyDone) {
+            const sess = getQuizSession(sessionUser.id, today);
+            if (sess) {
+              sessionState = {
+                current_q:    sess.current_q,
+                answers:      JSON.parse(sess.answers_json),
+                coins_so_far: sess.coins_so_far,
+              };
+            }
+          }
+        }
+      } catch { /* non-fatal — session lookup failure shouldn't break the quiz */ }
+
+      res.json({ date: today, count: safe.length, questions: safe, session: sessionState });
     } catch (err: any) {
       console.error("[quiz/today]", err);
       res.status(503).json({ error: err.message ?? "Quiz unavailable" });
@@ -2548,7 +2569,7 @@ Return a JSON array of exactly 20 objects.`;
    * Prevents coin-farming abuse by limiting answer reveals.
    * Sliding window: max 20 requests per user per hour.
    * Cleanup runs every 10 minutes to prevent memory leaks. */
-  const QUIZ_RATE_LIMIT   = 20;            // max requests per window
+  const QUIZ_RATE_LIMIT   = 30;            // max requests per window (30 > 20 questions)
   const QUIZ_RATE_WINDOW  = 60 * 60 * 1000; // 1 hour in ms
   const quizRateBuckets   = new Map<string, number[]>(); // userId → sorted timestamps
 
@@ -2603,11 +2624,52 @@ Return a JSON array of exactly 20 objects.`;
     const q = questions.find((q) => q.id === question_id);
     if (!q) return res.status(404).json({ error: "Question not found" });
 
+    const isCorrect = answer_index === q.correct_index;
+    const qIdx      = questions.findIndex((x) => x.id === question_id);
+
+    // ── Award coins immediately for correct answers ─────────────────────────
+    let coins_awarded = 0;
+    if (isCorrect && supabaseAdmin) {
+      try {
+        const { data: prof } = await supabaseAdmin
+          .from("profiles").select("investor_iq").eq("id", user.id).maybeSingle();
+        const tierMult   = getIQTierMultiplier(prof?.investor_iq ?? IQ_BASE);
+        const perCorrect = Math.round(QUIZ_CORRECT_COINS * tierMult);
+        ensureSqliteUser(user.id, user.name ?? undefined, user.email ?? undefined);
+        addCoins(user.id, perCorrect, "QUIZ_CORRECT", today,
+          `Quiz Q${qIdx + 1} correct · ${tierMult}× (+${perCorrect})`);
+        coins_awarded = perCorrect;
+      } catch (e) {
+        console.error("[quiz/check] coin award error:", e);
+      }
+    }
+
+    // ── Persist answer to session (skip if already answered) ────────────────
+    try {
+      const existing    = getQuizSession(user.id, today);
+      const prevAnswers: any[] = existing ? JSON.parse(existing.answers_json) : [];
+      if (!prevAnswers[qIdx]) {
+        prevAnswers[qIdx] = { q_id: question_id, q_idx: qIdx, selected: answer_index, correct: isCorrect };
+        upsertQuizSession({
+          user_id:      user.id,
+          date:         today,
+          answers_json: JSON.stringify(prevAnswers),
+          current_q:    Math.min(qIdx + 1, questions.length - 1),
+          coins_so_far: (existing?.coins_so_far ?? 0) + coins_awarded,
+          started_at:   existing?.started_at ?? Date.now(),
+          updated_at:   Date.now(),
+        });
+      }
+    } catch (e) {
+      console.error("[quiz/check] session save error:", e);
+    }
+
     res.json({
       correct_index:   q.correct_index,
-      correct:         answer_index === q.correct_index,
+      correct:         isCorrect,
       explanation:     q.explanation,
       news_source_url: q.news_source_url,
+      coins_awarded,
     });
   });
 
@@ -2661,7 +2723,13 @@ Return a JSON array of exactly 20 objects.`;
     const tierMult     = getIQTierMultiplier(currentIQ);
     const perCorrect   = Math.round(QUIZ_CORRECT_COINS * tierMult);
     const perfectBonus = score === questions.length ? Math.round(QUIZ_PERFECT_BONUS * tierMult) : 0;
-    const coins_earned = score * perCorrect;
+    const perQTotal    = score * perCorrect;
+
+    // Coins already awarded per-question via check endpoint
+    const sess           = getQuizSession(user.id, today);
+    const alreadyAwarded = sess?.coins_so_far ?? 0;
+    const remainingCoins = Math.max(0, perQTotal - alreadyAwarded);
+    const coins_earned   = remainingCoins + perfectBonus;
 
     let newStreak = 1;
     if (profile?.streak_last_date) {
@@ -2679,7 +2747,7 @@ Return a JSON array of exactly 20 objects.`;
       question_count:  questions.length,
     });
     const newIQ    = clampIQ(currentIQ + iqDelta);
-    const newCoins = (profile?.coins ?? 0) + coins_earned + perfectBonus;
+    const newCoins = (profile?.coins ?? 0) + alreadyAwarded + coins_earned;
 
     // ── 1. Save to SQLite FIRST — source of truth, never fails ────────────
     saveLocalAttempt({
@@ -2688,17 +2756,17 @@ Return a JSON array of exactly 20 objects.`;
       score,
       time_secs:    time_taken_secs,
       answers_json: JSON.stringify(results),
-      coins_earned,
+      coins_earned: perQTotal + perfectBonus,  // record total for history
       iq_change:    iqDelta,
       created_at:   Date.now(),
     });
 
-    // ── 2. Award coins from SQLite immediately — never blocked by Supabase ─
+    // ── 2. Award remaining coins (top-up from partial session + perfect bonus) ─
     try {
       ensureSqliteUser(user.id, user.name ?? undefined, user.email ?? undefined);
-      if (coins_earned > 0) {
-        addCoins(user.id, coins_earned, "QUIZ_CORRECT", today,
-          `Market Quiz: ${score}/${questions.length} correct · ${tierMult}× tier (+${coins_earned} coins)`);
+      if (remainingCoins > 0) {
+        addCoins(user.id, remainingCoins, "QUIZ_CORRECT", today,
+          `Market Quiz top-up: ${score}/${questions.length} correct · ${tierMult}× (+${remainingCoins})`);
       }
       if (perfectBonus > 0) {
         addCoins(user.id, perfectBonus, "QUIZ_BONUS", today,
@@ -2707,6 +2775,9 @@ Return a JSON array of exactly 20 objects.`;
     } catch (coinErr) {
       console.error("[quiz/submit] coin ledger error:", coinErr);
     }
+
+    // ── 2b. Clear the in-progress session ─────────────────────────────────
+    try { deleteQuizSession(user.id, today); } catch { /* non-fatal */ }
 
     // ── 3. Sync to Supabase (best-effort — non-fatal if schema is stale) ──
     try {
@@ -2738,7 +2809,7 @@ Return a JSON array of exactly 20 objects.`;
       date:            today,
       score,
       total:           questions.length,
-      coins_earned:    coins_earned + perfectBonus,
+      coins_earned:    perQTotal + perfectBonus,  // total including check-awarded
       tier_multiplier: tierMult,
       new_iq:          newIQ,
       new_streak:      newStreak,
