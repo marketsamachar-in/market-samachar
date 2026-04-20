@@ -22,13 +22,16 @@ type View = 'idle' | 'playing' | 'result' | 'leaderboard';
 
 export function MarketQuiz() {
   const { user, profile, session } = useAuth();
-  const [view,       setView]       = useState<View>('idle');
-  const [questions,  setQuestions]  = useState<SafeQuestion[]>([]);
-  const [result,     setResult]     = useState<SubmitResult | null>(null);
-  const [prevIQ,     setPrevIQ]     = useState(0);
-  const [showAuth,   setShowAuth]   = useState(false);
-  const [loadErr,    setLoadErr]    = useState('');
-  const [certificate, setCertificate] = useState<CertificateData | null>(null);
+  const [view,         setView]         = useState<View>('idle');
+  const [questions,    setQuestions]    = useState<SafeQuestion[]>([]);
+  const [result,       setResult]       = useState<SubmitResult | null>(null);
+  const [prevIQ,       setPrevIQ]       = useState(0);
+  const [showAuth,     setShowAuth]     = useState(false);
+  const [loadErr,      setLoadErr]      = useState('');
+  const [certificate,  setCertificate]  = useState<CertificateData | null>(null);
+  const [startIndex,   setStartIndex]   = useState(0);
+  const [savedAnswers, setSavedAnswers] = useState<(number | null)[]>([]);
+  const [initialScore, setInitialScore] = useState(0);
 
   // ── Start quiz ─────────────────────────────────────────────────────────────
   const handlePlay = useCallback(async () => {
@@ -46,6 +49,24 @@ export function MarketQuiz() {
       }
       setQuestions(data.questions);
       setPrevIQ(profile?.investor_iq ?? 0);
+
+      // Restore session if available (resume from where user stopped)
+      if (data.session) {
+        const sess = data.session;
+        setStartIndex(sess.current_q);
+        const filled: (number | null)[] = data.questions.map((_: SafeQuestion, i: number) =>
+          sess.answers[i] ? (sess.answers[i].selected as number) : null
+        );
+        setSavedAnswers(filled);
+        setInitialScore(
+          (sess.answers as any[]).filter((a: any) => a?.correct === true).length
+        );
+      } else {
+        setStartIndex(0);
+        setSavedAnswers([]);
+        setInitialScore(0);
+      }
+
       setView('playing');
     } catch {
       setLoadErr('Could not load quiz. Check your connection.');
@@ -101,6 +122,9 @@ export function MarketQuiz() {
       {view === 'playing' && questions.length > 0 && (
         <QuizGame
           questions={questions}
+          startIndex={startIndex}
+          savedAnswers={savedAnswers}
+          initialScore={initialScore}
           onComplete={handleGameComplete}
           onClose={goIdle}
         />
