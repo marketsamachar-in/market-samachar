@@ -19,6 +19,7 @@ import type { VirtualHolding, VirtualOrder } from "../../../pipeline/db.ts";
 import {
   fetchStockPrice,
   getPopularStocks,
+  isMarketOpen,
   POPULAR_SYMBOLS,
 } from "./stockPriceService.ts";
 import {
@@ -169,6 +170,10 @@ export async function buyStock(
   symbol:   string,
   quantity: number,
 ): Promise<BuyResult> {
+  if (!isMarketOpen()) {
+    throw new Error("Market is closed. Trading is allowed Mon-Fri, 9:15 AM – 3:30 PM IST.");
+  }
+
   // Fetch live price (falls back to stale cache, never throws)
   const priceData = await fetchStockPrice(symbol);
   const price     = priceData.currentPrice;
@@ -241,6 +246,10 @@ export async function sellStock(
   symbol:   string,
   quantity: number,
 ): Promise<SellResult> {
+  if (!isMarketOpen()) {
+    throw new Error("Market is closed. Trading is allowed Mon-Fri, 9:15 AM – 3:30 PM IST.");
+  }
+
   // Check holdings before the async price fetch to fail fast
   const holding = getHolding(userId, symbol);
   if (!holding) {
