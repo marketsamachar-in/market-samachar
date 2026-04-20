@@ -1,9 +1,27 @@
 import { Router } from "express";
-import { ensureUser, addCoins } from "../services/coinService.ts";
+import { ensureUser, addCoins, getVirtualBalance } from "../services/coinService.ts";
+import { requireAuth } from "../middleware/auth.ts";
 import { FIRST_LOGIN_COINS, DAILY_LOGIN_COINS } from "../services/rewardConfig.ts";
 import rawDb from "../../../pipeline/db.ts";
 
 const router = Router();
+
+/**
+ * GET /api/auth/balance
+ * Returns the authenticated user's current SQLite virtual coin balance.
+ * Used by the navbar to stay in sync after trades / reward events.
+ */
+router.get("/balance", requireAuth, (req, res) => {
+  const user = req.user!;
+  try {
+    ensureUser(user.id, user.name, user.email);
+    const virtualBalance = getVirtualBalance(user.id);
+    return res.json({ ok: true, virtualBalance });
+  } catch (err: any) {
+    console.error("[auth/balance]", err);
+    return res.status(500).json({ ok: false, error: "Balance fetch failed" });
+  }
+});
 
 /**
  * POST /api/auth/sync
