@@ -938,6 +938,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS stock_price_cache_symbol_idx ON stock_price_cache (symbol);
 `);
 
+// Migration: add `change` column (absolute ₹ change vs previous close)
+try { db.exec('ALTER TABLE stock_price_cache ADD COLUMN change REAL NOT NULL DEFAULT 0'); } catch {}
+
 // ── Virtual Portfolio System ───────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS virtual_portfolio (
@@ -1191,6 +1194,7 @@ export interface StockPriceCache {
   symbol:         string;
   company_name:   string;
   current_price:  number;
+  change:         number;   // absolute ₹ change vs previous close
   change_percent: number;
   last_updated:   number;
 }
@@ -1298,20 +1302,23 @@ export function upsertStockPrice(
   symbol: string,
   companyName: string,
   price: number,
+  change: number,
   changePct: number,
 ): void {
   db.prepare(`
-    INSERT INTO stock_price_cache (symbol, company_name, current_price, change_percent, last_updated)
-    VALUES (@symbol, @company_name, @current_price, @change_percent, @last_updated)
+    INSERT INTO stock_price_cache (symbol, company_name, current_price, change, change_percent, last_updated)
+    VALUES (@symbol, @company_name, @current_price, @change, @change_percent, @last_updated)
     ON CONFLICT(symbol) DO UPDATE SET
       company_name   = excluded.company_name,
       current_price  = excluded.current_price,
+      change         = excluded.change,
       change_percent = excluded.change_percent,
       last_updated   = excluded.last_updated
   `).run({
     symbol,
     company_name:   companyName,
     current_price:  price,
+    change,
     change_percent: changePct,
     last_updated:   Date.now(),
   });
