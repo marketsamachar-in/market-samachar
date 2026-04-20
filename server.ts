@@ -615,9 +615,10 @@ setInterval(checkAndFetch, 60 * 1000);
 async function generateArticleAiData(title: string, contentSnippet: string): Promise<AiArticleData> {
   if (!hasAvailableKey()) throw new Error('No Gemini API keys available');
 
+  // Translations are no longer pre-generated here — they are produced on-demand by
+  // /api/translate (using Google Cloud Translation API) when the user switches language.
+  // Removing them from this prompt reduces output tokens by ~70-80%.
   const prompt = `You are an expert Indian financial news analyst. Analyze this news article and return a JSON object.
-
-IMPORTANT: The top-level "ai_summary", "summary_bullets", "sentiment", "impact_sectors", and "key_numbers" fields MUST ALL be in ENGLISH only. Only the "translations" object contains non-English text.
 
 Title: ${title}
 Content: ${contentSnippet || title}
@@ -628,24 +629,17 @@ Return ONLY valid JSON with this exact structure, no markdown, no extra text:
   "summary_bullets": ["English key point 1", "English key point 2", "English key point 3"],
   "sentiment": "bullish",
   "impact_sectors": ["Banking", "IT"],
-  "key_numbers": [{"value": "₹500 Cr", "context": "deal size"}],
-  "translations": {
-    "te": {"title": "Telugu title", "summary": "Telugu summary", "bullets": ["Telugu bullet 1", "Telugu bullet 2", "Telugu bullet 3"]},
-    "hi": {"title": "Hindi title", "summary": "Hindi summary", "bullets": ["Hindi bullet 1", "Hindi bullet 2", "Hindi bullet 3"]},
-    "ta": {"title": "Tamil title", "summary": "Tamil summary", "bullets": ["Tamil bullet 1", "Tamil bullet 2", "Tamil bullet 3"]},
-    "mr": {"title": "Marathi title", "summary": "Marathi summary", "bullets": ["Marathi bullet 1", "Marathi bullet 2", "Marathi bullet 3"]},
-    "bn": {"title": "Bengali title", "summary": "Bengali summary", "bullets": ["Bengali bullet 1", "Bengali bullet 2", "Bengali bullet 3"]},
-    "kn": {"title": "Kannada title", "summary": "Kannada summary", "bullets": ["Kannada bullet 1", "Kannada bullet 2", "Kannada bullet 3"]}
-  }
+  "key_numbers": [{"value": "₹500 Cr", "context": "deal size"}]
 }
 
 Rules:
 - sentiment must be exactly "bullish", "bearish", or "neutral"
 - key_numbers: extract important numbers from the article (prices, percentages, amounts). If none, use empty array.
-- ai_summary, summary_bullets, impact_sectors, key_numbers MUST be in English. NEVER use Hindi, Telugu, or any other language for these fields.`;
+- All fields MUST be in English only.`;
 
   try {
-    const raw = await geminiCall(prompt);
+    // Flash-Lite is sufficient for news summarisation and significantly cheaper than Flash
+    const raw = await geminiCall(prompt, { model: "gemini-2.5-flash-lite" });
     // Strip markdown code fences if present
     const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const parsed = JSON.parse(cleaned) as AiArticleData;
@@ -2268,28 +2262,63 @@ async function startServer() {
       return res.status(400).json({ error: "items and lang are required" });
     }
 
+    // Strip HTML and cap length
+    const stripHtml = (html: string) =>
+      html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+    const itemsToTranslate = items.map((item: any) => ({
+      id: item.id,
+      title: item.title || "",
+      contentSnippet: (item.contentSnippet || "").slice(0, 400),
+      content: item.content ? stripHtml(item.content).slice(0, 400) : "",
+    }));
+
+    // ── Primary: Google Cloud Translation API (free 500k chars/month) ──────────
+    const googleKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+    if (googleKey) {
+      try {
+        // Collect all text strings to translate in order: [title0, snippet0, content0, title1, ...]
+        const texts = itemsToTranslate.flatMap((i: any) => [i.title, i.contentSnippet, i.content]);
+
+        const gtRes = await fetch(
+          `https://translation.googleapis.com/language/translate/v2?key=${googleKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ q: texts, target: lang, format: "text" }),
+          }
+        );
+
+        if (!gtRes.ok) throw new Error(`Google Translate HTTP ${gtRes.status}`);
+
+        const gtData: any = await gtRes.json();
+        const translations: string[] = gtData.data.translations.map((t: any) => t.translatedText);
+
+        const result = items.map((item: any, i: number) => ({
+          ...item,
+          title:          translations[i * 3]     || item.title,
+          contentSnippet: translations[i * 3 + 1] || item.contentSnippet,
+          content:        translations[i * 3 + 2] || item.content,
+        }));
+
+        console.log("[translate] Google Translate OK —", items.length, "items →", lang);
+        return res.json({ items: result });
+      } catch (gtErr: any) {
+        console.warn("[translate] Google Translate failed, falling back to Gemini:", gtErr.message);
+      }
+    }
+
+    // ── Fallback: Gemini ────────────────────────────────────────────────────────
     if (!hasAvailableKey()) {
-      console.log("[translate] No Gemini keys available — returning original items");
-      res.setHeader("X-Translate-Error", "no-gemini-key");
+      console.log("[translate] No translation service available — returning original items");
+      res.setHeader("X-Translate-Error", "no-translation-service");
       return res.status(503).json({ error: "translation_unavailable", items });
     }
 
     try {
       const langName = LANG_MAP[lang] || lang;
-
-      // Strip HTML and cap length to keep prompts within token limits.
-      const stripHtml = (html: string) =>
-        html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-
-      const itemsToTranslate = items.map((item: any) => ({
-        id: item.id,
-        title: item.title,
-        contentSnippet: (item.contentSnippet || "").slice(0, 400),
-        content: item.content ? stripHtml(item.content).slice(0, 400) : "",
-      }));
-
       const prompt = `Translate the following JSON array of news items to ${langName}. Return ONLY a valid JSON array with the exact same structure (id, title, contentSnippet, content). Do not add markdown formatting.\n\n${JSON.stringify(itemsToTranslate)}`;
-      console.log("[translate] Calling Gemini, prompt length:", prompt.length, "chars");
+      console.log("[translate] Calling Gemini fallback, prompt length:", prompt.length, "chars");
 
       const translatedText = await geminiStructuredCall(prompt, {
         responseMimeType: "application/json",
@@ -2308,9 +2337,8 @@ async function startServer() {
         },
       });
 
-      console.log("[translate] Gemini response length:", translatedText.length);
       const translatedItems = JSON.parse(translatedText);
-      console.log("[translate] Parsed", translatedItems.length, "translated items");
+      console.log("[translate] Gemini fallback OK —", translatedItems.length, "items");
 
       const result = items.map((item: any) => {
         const translated = translatedItems.find((t: any) => t.id === item.id);
@@ -2328,7 +2356,7 @@ async function startServer() {
       res.json({ items: result });
     } catch (error: any) {
       const msg = error?.message || String(error);
-      console.error("[translate] Gemini API error:", msg);
+      console.error("[translate] Gemini fallback error:", msg);
       res.setHeader("X-Translate-Error", msg.slice(0, 200));
       res.status(502).json({ error: "translation_failed", message: msg.slice(0, 200), items });
     }
