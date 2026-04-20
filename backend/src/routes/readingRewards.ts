@@ -15,6 +15,7 @@ import {
   AI_SUMMARY_READ_COINS,
   ARTICLE_LISTEN_COINS,
   DAILY_READING_STREAK_COINS,
+  DAILY_READING_STREAK_MIN_ARTICLES,
   READING_REWARD_DAILY_CAP,
 } from "../services/rewardConfig.ts";
 
@@ -75,15 +76,27 @@ router.post("/claim", (req, res) => {
     // Award coins
     addCoins(user.id, coins, rewardType as RewardType, articleId, `${rewardType === 'AI_SUMMARY_READ' ? 'AI Summary' : 'Listen'} reward`);
 
-    // Check & award daily reading streak bonus (first reading action of the day)
+    // Award daily reading streak bonus only after reading DAILY_READING_STREAK_MIN_ARTICLES unique articles
     let streakBonusEarned = 0;
-    const streakResult = rawDb.prepare(
-      "INSERT OR IGNORE INTO daily_reading_streak (user_id, streak_date, coins_awarded, created_at) VALUES (?, ?, ?, ?)"
-    ).run(user.id, today, DAILY_READING_STREAK_COINS, Date.now());
+    const alreadyStreaked = rawDb.prepare(
+      "SELECT 1 FROM daily_reading_streak WHERE user_id = ? AND streak_date = ?"
+    ).get(user.id, today);
 
-    if (streakResult.changes > 0) {
-      addCoins(user.id, DAILY_READING_STREAK_COINS, 'DAILY_READING_STREAK', null, 'Daily reading streak bonus');
-      streakBonusEarned = DAILY_READING_STREAK_COINS;
+    if (!alreadyStreaked) {
+      const uniqueAiReadsToday = (rawDb.prepare(
+        "SELECT COUNT(*) as cnt FROM reading_rewards WHERE user_id = ? AND reward_type = 'AI_SUMMARY_READ' AND reward_date = ?"
+      ).get(user.id, today) as { cnt: number }).cnt;
+
+      if (uniqueAiReadsToday >= DAILY_READING_STREAK_MIN_ARTICLES) {
+        const streakResult = rawDb.prepare(
+          "INSERT OR IGNORE INTO daily_reading_streak (user_id, streak_date, coins_awarded, created_at) VALUES (?, ?, ?, ?)"
+        ).run(user.id, today, DAILY_READING_STREAK_COINS, Date.now());
+
+        if (streakResult.changes > 0) {
+          addCoins(user.id, DAILY_READING_STREAK_COINS, 'DAILY_READING_STREAK', null, 'Daily reading streak bonus');
+          streakBonusEarned = DAILY_READING_STREAK_COINS;
+        }
+      }
     }
 
     const newBalance = getVirtualBalance(user.id);
