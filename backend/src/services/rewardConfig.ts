@@ -67,10 +67,11 @@ export const PROFIT_BONUS_COINS      = 5  * X;      //   500 for ≥5% profit on
 export const PROFIT_BONUS_THRESHOLD  = 0.05;         // 5% gain required
 
 // ─── Reading Rewards (News Engagement) ───────────────────────────────────────
-export const AI_SUMMARY_READ_COINS      = 5;           //   5 coins per unique AI summary view
-export const ARTICLE_LISTEN_COINS       = 10;          //  10 coins per unique article listen
-export const DAILY_READING_STREAK_COINS = 5 * X;       // 500 coins daily bonus for reading
-export const READING_REWARD_DAILY_CAP   = 100;         // max 100 unique articles per action per day
+export const AI_SUMMARY_READ_COINS         = 5;        //   5 coins per unique AI summary view
+export const ARTICLE_LISTEN_COINS          = 10;       //  10 coins per unique article listen
+export const DAILY_READING_STREAK_COINS    = 5 * X;    // 500 coins daily bonus for reading
+export const DAILY_READING_STREAK_MIN_ARTICLES = 5;    // must read 5 unique articles to unlock streak bonus
+export const READING_REWARD_DAILY_CAP      = 100;      // max 100 unique articles per action per day
 
 // ─── Starting balance ────────────────────────────────────────────────────────
 export const STARTING_BALANCE        = 10 * X;      // 1,000 coins for new users
