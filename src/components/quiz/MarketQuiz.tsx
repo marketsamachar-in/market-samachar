@@ -53,14 +53,14 @@ export function MarketQuiz() {
       // Restore session if available (resume from where user stopped)
       if (data.session) {
         const sess = data.session;
-        setStartIndex(sess.current_q);
         const filled: (number | null)[] = data.questions.map((_: SafeQuestion, i: number) =>
           sess.answers[i] ? (sess.answers[i].selected as number) : null
         );
+        const score = (sess.answers as any[]).filter((a: any) => a?.correct === true).length;
         setSavedAnswers(filled);
-        setInitialScore(
-          (sess.answers as any[]).filter((a: any) => a?.correct === true).length
-        );
+        setInitialScore(score);
+        // current_q >= questions.length means all questions answered — land on last Q so user can submit
+        setStartIndex(Math.min(sess.current_q, data.questions.length - 1));
       } else {
         setStartIndex(0);
         setSavedAnswers([]);
