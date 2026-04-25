@@ -322,13 +322,13 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
     if (!summary && !loadingSummary) {
       setLoadingSummary(true);
       try {
-        const res  = await fetch('/api/summarize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: item.link, lang: 'en' }),
-        });
+        const res  = await fetch(`/api/news/ai-summary/${item.id}`);
         const data = await res.json();
-        setSummary(data.summary ?? 'Could not generate summary.');
+        if (data.error) {
+          setSummary('Could not generate summary. Please try again.');
+        } else {
+          setSummary(data.aiSummary ?? 'Could not generate summary.');
+        }
       } catch {
         setSummary('Could not generate summary.');
       } finally {
