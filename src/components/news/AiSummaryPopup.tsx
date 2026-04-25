@@ -58,7 +58,46 @@ export function AiSummaryPopup({ item, isSignedIn, authToken }: Props) {
       .catch(() => {});
   }, [item.id, isSignedIn, authToken]);
 
-  const hasAiData = !!(item.aiSummary || (item.summaryBullets && item.summaryBullets.length > 0));
+  const [aiData, setAiData] = useState<{
+    aiSummary?: string;
+    summaryBullets?: string[];
+    sentiment?: string;
+    impactSectors?: string[];
+    keyNumbers?: any[];
+  } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError]     = useState(false);
+
+  useEffect(() => {
+    // If the article already has aiSummary from the news feed, no fetch needed
+    if (item.aiSummary) return;
+
+    // Otherwise fetch on-demand
+    setAiLoading(true);
+    fetch(`/api/news/ai-summary/${item.id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          setAiError(true);
+        } else {
+          setAiData(data);
+        }
+      })
+      .catch(() => setAiError(true))
+      .finally(() => setAiLoading(false));
+  }, [item.id, item.aiSummary]);
+
+  // Merge: prefer pre-loaded item data, fall back to on-demand fetched data
+  const resolvedItem = {
+    ...item,
+    aiSummary:      item.aiSummary      ?? aiData?.aiSummary,
+    summaryBullets: item.summaryBullets ?? aiData?.summaryBullets,
+    sentiment:      item.sentiment      ?? aiData?.sentiment as any,
+    impactSectors:  item.impactSectors  ?? aiData?.impactSectors,
+    keyNumbers:     item.keyNumbers     ?? aiData?.keyNumbers,
+  };
+
+  const hasAiData = !!(resolvedItem.aiSummary || (resolvedItem.summaryBullets && resolvedItem.summaryBullets.length > 0));
 
   return (
     <div>
@@ -89,7 +128,22 @@ export function AiSummaryPopup({ item, isSignedIn, authToken }: Props) {
 
       {/* AI Summary content */}
       {hasAiData ? (
-        <AiSummaryCard item={item} />
+        <AiSummaryCard item={resolvedItem} />
+      ) : aiLoading ? (
+        <div style={{ textAlign: 'center', padding: '30px 0' }}>
+          <div style={{ color: '#00ff88', fontFamily: "'DM Mono', monospace", fontSize: 11, marginBottom: 8 }}>
+            ✦ GENERATING AI SUMMARY…
+          </div>
+          <div style={{ color: '#444455', fontFamily: "'DM Sans', sans-serif", fontSize: 12 }}>
+            This takes a few seconds the first time
+          </div>
+        </div>
+      ) : aiError ? (
+        <div style={{ textAlign: 'center', padding: '30px 0' }}>
+          <p style={{ color: '#ff4444', fontFamily: "'DM Mono', monospace", fontSize: 11 }}>
+            Could not generate summary. Please try again.
+          </p>
+        </div>
       ) : (
         <div>
           {/* Snippet fallback while AI processes */}
