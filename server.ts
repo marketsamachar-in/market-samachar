@@ -2604,8 +2604,68 @@ async function startServer() {
         options: ["Trade settles the same day", "Trade settles 1 business day after execution", "Trade settles 2 days later", "Trade settles 1 week later"],
         correct_index: 1, explanation: "India moved to T+1 in 2023 — shares/funds move to buyer/seller one business day after the trade. Fastest retail settlement cycle globally.",
         news_source_url: "https://www.sebi.gov.in/", category: "sebi", difficulty: "hard" },
+
+      { question: "What is 'SEBI' and what does it regulate?",
+        options: ["State Electricity Board of India — power sector", "Securities and Exchange Board of India — stock markets", "Small Enterprises Business Initiative — SME loans", "State Export Bureau of India — exports"],
+        correct_index: 1, explanation: "SEBI is India's capital market regulator. It oversees stock exchanges, listed companies, brokers, mutual funds, and investor protection.",
+        news_source_url: "https://www.sebi.gov.in/", category: "sebi", difficulty: "easy" },
+
+      { question: "What does 'FII' stand for in Indian markets?",
+        options: ["Fixed Income Investment", "Foreign Institutional Investor", "Financial Inclusion Index", "Futures and Index Instrument"],
+        correct_index: 1, explanation: "FIIs are overseas institutions (hedge funds, pension funds, insurance companies) that invest in Indian stocks and bonds. Their buying/selling significantly moves the market.",
+        news_source_url: "https://www.sebi.gov.in/", category: "indian", difficulty: "easy" },
+
+      { question: "What is a 'stop-loss' order?",
+        options: ["An order to buy at market open", "An order that automatically sells if price falls below a set level", "A guaranteed profit target", "A block on further trading"],
+        correct_index: 1, explanation: "A stop-loss triggers a sell automatically when a stock falls to a predefined price, limiting your downside without constant monitoring.",
+        news_source_url: "https://www.nseindia.com/", category: "indian", difficulty: "medium" },
+
+      { question: "What does 'upper circuit' mean for a stock?",
+        options: ["Stock has reached its 52-week high", "Trading pauses because price rose by the daily limit", "The stock has been promoted to a higher index", "Broker margin requirement has increased"],
+        correct_index: 1, explanation: "When a stock hits its upper circuit (e.g. +10% or +20%), buying orders freeze temporarily. It signals very strong demand but also prevents runaway speculation.",
+        news_source_url: "https://www.nseindia.com/", category: "indian", difficulty: "medium" },
+
+      { question: "What is 'market capitalisation'?",
+        options: ["The total debt of a company", "Current share price × total shares outstanding", "Annual profit of the company", "Book value of all assets"],
+        correct_index: 1, explanation: "Market cap = Price × Shares Outstanding. It tells you the total market value of a company. Large-cap in India is typically above ₹20,000 crore.",
+        news_source_url: "https://www.bseindia.com/", category: "companies", difficulty: "easy" },
+
+      { question: "What is a 'rights issue'?",
+        options: ["Legal action by a shareholder", "Existing shareholders get the right to buy new shares at a discount", "Company buying back its own shares", "Merger with another company"],
+        correct_index: 1, explanation: "In a rights issue, a company offers new shares to existing shareholders at a discounted price proportional to their current holding, raising fresh capital.",
+        news_source_url: "https://www.sebi.gov.in/", category: "companies", difficulty: "medium" },
+
+      { question: "Which of these is a commodity traded on MCX?",
+        options: ["TCS shares", "Gold futures", "Government bonds", "Mutual fund units"],
+        correct_index: 1, explanation: "MCX (Multi Commodity Exchange) trades futures in gold, silver, crude oil, copper, and agricultural products — not equities or bonds.",
+        news_source_url: "https://www.mcxindia.com/", category: "commodity", difficulty: "easy" },
+
+      { question: "What does a 'hawkish' central bank stance mean?",
+        options: ["It plans to cut interest rates", "It leans toward raising rates to control inflation", "It will print more money", "It supports stock market growth"],
+        correct_index: 1, explanation: "Hawkish = inflation-fighting mode. The central bank prefers higher interest rates to cool inflation, even if it slows growth. Opposite of 'dovish'.",
+        news_source_url: "https://www.rbi.org.in/", category: "economy", difficulty: "hard" },
+
+      { question: "What is 'short selling'?",
+        options: ["Selling shares you own quickly", "Borrowing shares to sell, hoping to buy back cheaper later", "Selling fractional shares", "A type of futures contract"],
+        correct_index: 1, explanation: "Short sellers borrow shares and sell them, betting the price will fall. They profit if they can repurchase at a lower price before returning the borrowed shares.",
+        news_source_url: "https://www.sebi.gov.in/", category: "indian", difficulty: "hard" },
+
+      { question: "What is the 'Sensex' based on?",
+        options: ["100 BSE listed companies", "30 financially sound large-cap companies on BSE", "All companies on BSE", "Top 50 NSE companies"],
+        correct_index: 1, explanation: "Sensex (BSE Sensitive Index) tracks 30 large, established companies on the Bombay Stock Exchange. It is India's oldest stock market index, launched in 1986.",
+        news_source_url: "https://www.bseindia.com/", category: "indian", difficulty: "easy" },
     ];
-    const questions: QuizQuestion[] = FALLBACK.map((q, i) => ({
+    // Seed shuffle using today's date so order differs each day
+    // but stays consistent for all users on the same day
+    const dateNum = today.replace(/-/g, '');
+    const seed = parseInt(dateNum.slice(-4), 10);
+    const shuffled = [...FALLBACK].sort((a, b) => {
+      const hashA = (a.question.charCodeAt(0) * seed) % 97;
+      const hashB = (b.question.charCodeAt(0) * seed) % 97;
+      return hashA - hashB;
+    });
+
+    const questions: QuizQuestion[] = shuffled.map((q, i) => ({
       ...q,
       id: `${today}_fallback_q${i + 1}`,
     }));
@@ -2643,8 +2703,16 @@ async function startServer() {
       return fallback;
     }
 
+    // Fetch yesterday's question topics to avoid repeating them
+    const yesterday = new Date(Date.now() + 5.5 * 60 * 60 * 1000 - 86_400_000)
+      .toISOString().slice(0, 10);
+    const yesterdayQuiz = getQuizForDate(yesterday);
+    const usedTopics = yesterdayQuiz
+      ? yesterdayQuiz.slice(0, 5).map(q => `- ${q.question.slice(0, 80)}`).join('\n')
+      : 'None';
+
     const prompt = `Based on these financial news headlines from today:
-${headlines.map((h, i) => `${i + 1}. [${h.category.toUpperCase()}] ${h.title} (${h.url})`).join("\n")}
+${headlines.map((h, i) => `${i + 1}. [${h.category.toUpperCase()}] ${h.title} (${h.url})`).join('\n')}
 
 Generate exactly 20 multiple choice questions testing market knowledge. Mix difficulty (4 easy, 8 medium, 8 hard). Rules:
 - Each question must relate to one of the headlines above
@@ -2652,6 +2720,8 @@ Generate exactly 20 multiple choice questions testing market knowledge. Mix diff
 - Options must be plausible (no obviously wrong distractors)
 - Explanation should teach the reader something useful
 - Category must be one of: indian, global, companies, economy, banking, commodity, crypto, ipo
+- IMPORTANT: Do NOT repeat or closely rephrase these topics from yesterday's quiz:
+${usedTopics}
 
 Return a JSON array of exactly 20 objects.`;
 
