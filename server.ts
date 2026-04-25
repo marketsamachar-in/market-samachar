@@ -570,10 +570,9 @@ async function fetchNews() {
       // Kick off symbol extraction for articles that don't have it yet (non-blocking)
       setTimeout(() => extractPendingSymbols().catch(e => console.error('[impact] post-fetch symbols:', e)), 2000);
 
-      // INLINE AI processing — start immediately after fetch (non-blocking)
-      // Articles are processed one-by-one with 800ms gap so AI summaries
-      // are ready within seconds of an article appearing.
-      processUnprocessedArticles('inline', 800).catch(e => console.error('[ai-pipeline] inline error:', e));
+      // INLINE AI processing DISABLED — Gemini is now called on-demand only
+      // (see GET /api/news/ai-summary/:id). This prevents auto-generating
+      // summaries for articles no user reads, which was driving runaway costs.
 
       // ── Breaking news push notification ────────────────────────────────────
       // Detect headlines that start with "BREAKING" or contain "BREAKING NEWS"
@@ -893,8 +892,8 @@ async function processUnprocessedArticles(source: string = 'background', delayMs
   }
 }
 
-// Background safety-net: runs every 3 minutes, catches missed/failed articles
-setInterval(() => processUnprocessedArticles('background', 800).catch(e => console.error('[ai-pipeline] interval error:', e)), 3 * 60 * 1000);
+// Background safety-net DISABLED — Gemini summaries are now generated on-demand
+// only (see GET /api/news/ai-summary/:id) to prevent runaway API costs.
 
 // ─── Weekly AI Report Scheduler ───────────────────────────────────────────────
 
@@ -2277,6 +2276,64 @@ async function startServer() {
     } catch (error) {
       console.error(`Error summarizing article from ${url}:`, error);
       res.status(500).json({ error: "Failed to summarize article" });
+    }
+  });
+
+  // GET /api/news/ai-summary/:id
+  // On-demand AI summary: returns cached result if available, generates via Gemini if not.
+  // This is the cost-safe pattern: one Gemini call per article ever, only when a user requests it.
+  app.get('/api/news/ai-summary/:id', articleLimiter, async (req: Request, res: Response) => {
+    const { id } = req.params;
+    if (!id || typeof id !== 'string') {
+      return res.status(400).json({ error: 'Article id is required' });
+    }
+
+    try {
+      // Step 1: Check if already generated and stored
+      const existing = getArticleAiData(id);
+      if (existing?.ai_summary) {
+        return res.json({
+          cached: true,
+          aiSummary:      existing.ai_summary,
+          summaryBullets: existing.summary_bullets ? JSON.parse(existing.summary_bullets) : [],
+          sentiment:      existing.sentiment ?? 'neutral',
+          impactSectors:  existing.impact_sectors ? JSON.parse(existing.impact_sectors) : [],
+          keyNumbers:     existing.key_numbers ? JSON.parse(existing.key_numbers) : [],
+        });
+      }
+
+      // Step 2: Not cached — fetch article from DB to get title and snippet
+      const articleRow = (rawDb.prepare(
+        'SELECT id, title, content_snippet FROM news_items WHERE id = ? LIMIT 1'
+      ).get(id)) as { id: string; title: string; content_snippet: string | null } | undefined;
+
+      if (!articleRow) {
+        return res.status(404).json({ error: 'Article not found' });
+      }
+
+      // Step 3: Check Gemini key availability
+      if (!hasAvailableKey()) {
+        return res.status(503).json({ error: 'AI service temporarily unavailable. Please try again shortly.' });
+      }
+
+      // Step 4: Generate with Gemini and save to DB
+      const data = await generateArticleAiData(articleRow.title, articleRow.content_snippet ?? '');
+      saveArticleAiData(id, data);
+
+      console.log(`[ai-on-demand] Generated summary for: ${articleRow.title.slice(0, 60)}`);
+
+      return res.json({
+        cached: false,
+        aiSummary:      data.ai_summary,
+        summaryBullets: data.summary_bullets,
+        sentiment:      data.sentiment,
+        impactSectors:  data.impact_sectors,
+        keyNumbers:     data.key_numbers,
+      });
+
+    } catch (err) {
+      console.error('[ai-on-demand] Error:', err);
+      return res.status(500).json({ error: 'Failed to generate summary. Please try again.' });
     }
   });
 
