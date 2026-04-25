@@ -1,9 +1,23 @@
 import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 
 // ─── Connection ───────────────────────────────────────────────────────────────
 
-const db = new Database(path.resolve("pipeline.db"));
+// DB_PATH env var allows pointing to a Railway Persistent Volume.
+// Example: DB_PATH=/data/pipeline.db
+// Falls back to project-root pipeline.db for local development.
+const DB_PATH = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.resolve("pipeline.db");
+
+// Ensure the directory exists (important when DB_PATH is on a new volume mount)
+const DB_DIR = path.dirname(DB_PATH);
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+}
+
+const db = new Database(DB_PATH);
 
 // WAL mode for better concurrent read performance
 db.pragma("journal_mode = WAL");
