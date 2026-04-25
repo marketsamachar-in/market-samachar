@@ -316,6 +316,37 @@ try {
   console.error("Failed to load news cache from disk:", err);
 }
 
+// Seed newsCache from SQLite if still empty (handles Railway restarts where news-cache.json is gone)
+if (newsCache.length === 0) {
+  try {
+    const rows = rawDb.prepare(`
+      SELECT id, title, link, pub_date, source, category, content_snippet
+      FROM news_items
+      ORDER BY fetched_at DESC
+      LIMIT 500
+    `).all() as Array<{
+      id: string; title: string; link: string; pub_date: string;
+      source: string; category: string; content_snippet: string | null;
+    }>;
+
+    newsCache = rows.map(row => ({
+      id:             row.id,
+      title:          row.title,
+      link:           row.link,
+      pubDate:        row.pub_date,
+      source:         row.source,
+      category:       row.category as Category,
+      contentSnippet: row.content_snippet ?? undefined,
+    }));
+
+    if (newsCache.length > 0) {
+      console.log(`[startup] Seeded newsCache with ${newsCache.length} articles from SQLite (news-cache.json was missing)`);
+    }
+  } catch (err) {
+    console.error("[startup] Failed to seed newsCache from SQLite:", err);
+  }
+}
+
 // Helper to generate a unique ID based on title to deduplicate
 function generateId(title: string): string {
   return crypto.createHash("md5").update(title.trim().toLowerCase()).digest("hex");
@@ -487,16 +518,17 @@ async function fetchNews() {
     // Deduplicate new items
     const allUniqueItems = Array.from(new Map(newItems.map((item) => [item.id, item])).values());
 
-    // Filter: only keep articles published today (IST date)
-    const todayIST = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10); // "YYYY-MM-DD"
+    // Filter: keep articles from the last 3 days (IST) — prevents ancient backlog but keeps yesterday's news
+    const nowIST = Date.now() + 5.5 * 60 * 60 * 1000;
+    const threeDaysAgoMs = nowIST - 3 * 24 * 60 * 60 * 1000;
     const uniqueNewItems = allUniqueItems.filter(item => {
       try {
-        const articleDate = new Date(new Date(item.pubDate).getTime() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        return articleDate === todayIST;
+        const articleMs = new Date(item.pubDate).getTime() + 5.5 * 60 * 60 * 1000;
+        return articleMs >= threeDaysAgoMs;
       } catch { return true; } // keep if date can't be parsed
     });
     if (allUniqueItems.length !== uniqueNewItems.length) {
-      console.log(`[fetch] Filtered out ${allUniqueItems.length - uniqueNewItems.length} articles not from today (${todayIST} IST)`);
+      console.log(`[fetch] Filtered out ${allUniqueItems.length - uniqueNewItems.length} articles older than 3 days`);
     }
 
     // Merge with existing cache and deduplicate again
