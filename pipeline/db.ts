@@ -955,6 +955,11 @@ db.exec(`
 // Migration: add `change` column (absolute ₹ change vs previous close)
 try { db.exec('ALTER TABLE stock_price_cache ADD COLUMN change REAL NOT NULL DEFAULT 0'); } catch {}
 
+// Add UNIQUE constraint on article_id to prevent duplicate questions per article
+try {
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS news_impact_questions_article_unique ON news_impact_questions (article_id)');
+} catch {}
+
 // ── Virtual Portfolio System ───────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS virtual_portfolio (
