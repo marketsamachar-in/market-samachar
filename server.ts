@@ -451,7 +451,7 @@ async function fetchNews() {
               pubDate: n.providerPublishTime ? new Date(n.providerPublishTime).toISOString() : new Date().toISOString(),
               source: n.publisher || 'Yahoo Finance',
               category: symbols[i].category,
-              contentSnippet: n.relatedTickers?.join(', ') || '',
+              contentSnippet: n.summary || '',
             });
           }
         });
