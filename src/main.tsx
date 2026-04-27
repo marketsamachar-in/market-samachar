@@ -6,7 +6,6 @@ import './index.css';
 
 // Code-split: only load the page the user actually visits
 const App              = lazy(() => import('./App.tsx'));
-const LandingPage      = lazy(() => import('./pages/LandingPage.tsx').then(m => ({ default: m.LandingPage })));
 const IPOCalendarPage  = lazy(() => import('./pages/IPOCalendarPage.tsx').then(m => ({ default: m.IPOCalendarPage })));
 
 const path  = window.location.pathname;
