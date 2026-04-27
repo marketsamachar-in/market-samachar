@@ -1151,7 +1151,8 @@ export type CoinActionType =
   | 'NEWS_IMPACT_CORRECT' | 'IPO_PREDICTION'     | 'IPO_CORRECT'
   | 'VIRTUAL_TRADE'       | 'PORTFOLIO_PROFIT'   | 'REFERRAL'
   | 'FIRST_LOGIN'         | 'DAILY_LOGIN'
-  | 'AI_SUMMARY_READ'     | 'ARTICLE_LISTEN'     | 'DAILY_READING_STREAK';
+  | 'AI_SUMMARY_READ'     | 'ARTICLE_LISTEN'     | 'DAILY_READING_STREAK'
+  | 'POLL_VOTE'           | 'SHARE_ARTICLE';
 
 export interface UserRow {
   id:                   string;
