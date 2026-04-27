@@ -201,17 +201,17 @@ export function ShareCardPopup({
 
             {/* Row 2 — headline */}
             <div style={{
-              color:           GREEN,
-              fontSize:        14,
-              fontWeight:      700,
-              lineHeight:      1.4,
-              fontFamily:      TERM_FONT,
-              display:         '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow:        'hidden',
-              marginBottom:    10,
-            } as any}>
+              color:        GREEN,
+              fontSize:     14,
+              fontWeight:   700,
+              lineHeight:   1.4,
+              fontFamily:   TERM_FONT,
+              marginBottom: 12,
+              height:       42,
+              overflow:     'hidden',
+              wordBreak:    'break-word',
+              display:      'block',
+            }}>
               {articleTitle.toUpperCase()}
             </div>
 
@@ -220,6 +220,7 @@ export function ShareCardPopup({
               border:       '1px solid #0d2d0d',
               borderRadius: 4,
               padding:      '8px 10px',
+              marginTop:    4,
               marginBottom: 10,
             }}>
               <div style={{
@@ -281,6 +282,11 @@ export function ShareCardPopup({
                 color:         '#336633',
                 fontSize:      8,
                 letterSpacing: '0.06em',
+                whiteSpace:    'nowrap',
+                overflow:      'hidden',
+                textOverflow:  'ellipsis',
+                maxWidth:      '60%',
+                display:       'block',
               }}>
                 {`SRC: ${headerSrc}${timeStr ? ' · ' + timeStr : ''}`}
               </span>
@@ -289,6 +295,8 @@ export function ShareCardPopup({
                 fontSize:      10,
                 fontWeight:    700,
                 letterSpacing: '0.08em',
+                flexShrink:    0,
+                whiteSpace:    'nowrap',
               }}>
                 MARKETSAMACHAR.IN ↗
               </span>
