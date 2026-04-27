@@ -1059,8 +1059,7 @@ async function expandArt(id) {
         "<a class=\\"btn btn-gd\\" style=\\"margin-left:auto;padding:3px 8px\\" href=\\"" + esc(d.link || "#") + "\\" target=\\"_blank\\">Read Source ↗</a>" +
       "</div>" +
       "<div class=\\"detail-title\\">" + esc(d.title || "") + "</div>" +
-      ((d.contentSnippet || d.content_snippet) ? "<div style=\\"font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6\\">" + esc(((d.contentSnippet || d.content_snippet) || "").slice(0, 400)) + "</div>" : "") +
-;
+      ((d.contentSnippet || d.content_snippet) ? "<div style=\\"font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6\\">" + esc(((d.contentSnippet || d.content_snippet) || "").slice(0, 400)) + "</div>" : "");
   }
 }
 
