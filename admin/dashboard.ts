@@ -1060,6 +1060,8 @@ async function expandArt(id) {
       "</div>" +
       "<div class=\\"detail-title\\">" + esc(d.title || "") + "</div>" +
       ((d.contentSnippet || d.content_snippet) ? "<div style=\\"font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6\\">" + esc(((d.contentSnippet || d.content_snippet) || "").slice(0, 400)) + "</div>" : "");
+  } catch(e) {
+    panel.innerHTML = "<div style=\\"font-family:var(--mono);font-size:10px;color:var(--dim)\\">Detail unavailable: " + esc(e.message) + "</div>";
   }
 }
 
