@@ -2090,7 +2090,28 @@ async function startServer() {
   app.get("/api/admin/rewards", requireAdmin, (req, res) => {
     return res.json(getRewardLogs(200));
   });
-
+// GET /api/admin/news — paginated article browser
+  app.get('/api/admin/news', requireAdmin, (req, res) => {
+    const page     = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit    = Math.min(100, parseInt(req.query.limit as string) || 50);
+    const offset   = (page - 1) * limit;
+    const category = (req.query.category as string) || '';
+    const ai       = (req.query.ai as string) || 'all';
+    let where = '1=1';
+    const params: any[] = [];
+    if (category) { where += ' AND category = ?'; params.push(category); }
+    if (ai === 'processed') { where += ' AND ai_processed_at IS NOT NULL'; }
+    if (ai === 'pending')   { where += ' AND ai_processed_at IS NULL'; }
+    const total     = (rawDb.prepare('SELECT COUNT(*) as c FROM news_items WHERE ' + where).get(...params) as any).c;
+    const processed = (rawDb.prepare('SELECT COUNT(*) as c FROM news_items WHERE ai_processed_at IS NOT NULL').get() as any).c;
+    const articles  = rawDb.prepare(
+      'SELECT id,title,link,source,category,pub_date,fetched_at,content_snippet,' +
+      'ai_summary,summary_bullets,sentiment,impact_sectors,key_numbers,ai_processed_at ' +
+      'FROM news_items WHERE ' + where + ' ORDER BY fetched_at DESC LIMIT ? OFFSET ?'
+    ).all(...params, limit, offset);
+    res.json({ articles, total, processed, pending: total - processed, page, pages: Math.ceil(total / limit) });
+  });
+  
   // ── End admin dashboard routes ───────────────────────────────────────────────
 
   // API routes FIRST
