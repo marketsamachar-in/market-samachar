@@ -2,12 +2,7 @@ import React, { useState, useEffect } from "react";
 import { MarketQuiz } from "./components/quiz";
 import { AuthModal } from "./components/auth";
 import { WeeklyReportCard } from "./components/reports";
-import { VoicePlayerBar } from "./components/voice/VoicePlayerBar";
-import { NewsImpactPanel } from "./components/news/NewsImpactPanel";
-import { AiSummaryCard } from "./components/news/AiSummaryCard";
 import { ArticlePopupModal } from "./components/news/ArticlePopupModal";
-import { AiSummaryPopup } from "./components/news/AiSummaryPopup";
-import { ListenPopup } from "./components/news/ListenPopup";
 import { SourcePopup } from "./components/news/SourcePopup";
 import { StoryTimelinePopup } from "./components/news/StoryTimelinePopup";
 import { CommunityPollPopup } from "./components/news/CommunityPollPopup";
@@ -16,7 +11,6 @@ import { MysteryStockGame } from "./components/games/MysteryStockGame";
 import { CertificateModal, CertificateProfileCard } from "./components/certificate";
 import { AddToHomeScreen } from "./components/pwa/AddToHomeScreen";
 import type { CertificateData } from "./lib/certificate";
-import { useVoicePlayer } from "./hooks/useVoicePlayer";
 import { useAuth } from "./hooks/useAuth";
 import PaperTrading from "./pages/PaperTrading";
 import { MarketForecast } from "./components/MarketForecast";
@@ -36,11 +30,8 @@ import {
   TrendingDown,
   Zap,
   Radio,
-  BarChart2,
   Globe2,
   Wifi,
-  Volume2,
-  Headphones,
   Newspaper,
   TrendingUp as TradingIcon,
   Target,
@@ -48,7 +39,6 @@ import {
   Brain,
   ChevronRight,
   X,
-  Sparkles,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import DOMPurify from "dompurify";
@@ -204,12 +194,10 @@ const MarketCard: React.FC<{ card: typeof FALLBACK_MARKET_CARDS[0] }> = ({ card 
 
 const NewsCard: React.FC<{
   item: NewsItem;
-  lang: string;
   isSignedIn?: boolean;
   onSignIn?: () => void;
   authToken?: string | null;
-  voicePlayer?: any;
-}> = ({ item, lang, isSignedIn, onSignIn, authToken, voicePlayer }) => {
+}> = ({ item, isSignedIn, onSignIn, authToken }) => {
   const [activePopup, setActivePopup] = useState<'timeline' | 'poll' | 'share' | 'source' | null>(null);
 
   const catColor = getCatColor(item.category);
@@ -420,7 +408,6 @@ export default function App() {
   const [loadingMore,  setLoadingMore]  = useState(false);
   const [refreshing,   setRefreshing]   = useState(false);
   const [category,     setCategory]     = useState<string>("all");
-  const [lang,         setLang]         = useState<string>("en");
   const [offset,       setOffset]       = useState(0);
   const [total,        setTotal]        = useState(0);
   const [marketData,      setMarketData]      = useState<MarketQuote[]>([]);
@@ -429,9 +416,6 @@ export default function App() {
   const [showMysteryStock,    setShowMysteryStock]    = useState(false);
   const [certModalData,    setCertModalData]    = useState<CertificateData | null>(null);
   const PAGE_SIZE = 30;
-
-  const voicePlayer = useVoicePlayer(lang);
-
 
   // ── Market data polling ───────────────────────────────────────────────────
   useEffect(() => {
@@ -460,7 +444,7 @@ export default function App() {
   }, []);
 
   // ── News fetching (all existing logic preserved) ──────────────────────────
-  const fetchNews = async (cat = category, l = lang, off = 0, append = false) => {
+  const fetchNews = async (cat = category, off = 0, append = false) => {
     if (!append) setLoading(true);
     try {
       const res  = await fetch(`/api/news?category=${cat}&limit=${PAGE_SIZE}&offset=${off}`);
@@ -477,7 +461,7 @@ export default function App() {
     const next = offset + PAGE_SIZE;
     setLoadingMore(true);
     setOffset(next);
-    await fetchNews(category, lang, next, true);
+    await fetchNews(category, next, true);
     setLoadingMore(false);
   };
 
@@ -486,17 +470,17 @@ export default function App() {
     setOffset(0);
     try {
       await fetch("/api/news/refresh", { method: "POST" });
-      await fetchNews(category, lang, 0, false);
+      await fetchNews(category, 0, false);
     } catch { /* ignore */ }
     finally { setRefreshing(false); }
   };
 
   useEffect(() => {
     setOffset(0);
-    fetchNews(category, lang, 0, false);
-    const iv = setInterval(() => fetchNews(category, lang, 0, false), 60000);
+    fetchNews(category, 0, false);
+    const iv = setInterval(() => fetchNews(category, 0, false), 60000);
     return () => clearInterval(iv);
-  }, [category, lang]);
+  }, [category]);
 
   // ── Market status (IST-aware) ─────────────────────────────────────────────
   const getMarketStatus = () => {
@@ -550,8 +534,6 @@ export default function App() {
       <AppHeader
         showClock
         showMarketStatus
-        lang={lang}
-        onLangChange={setLang}
         onRefresh={forceRefresh}
         refreshing={refreshing || loading}
         onSignIn={() => setShowAuthModal(true)}
@@ -687,7 +669,7 @@ export default function App() {
       </div>
 
       {/* ══ MAIN LAYOUT ═════════════════════════════════════════════════════ */}
-      <div className={`flex gap-4 px-4 ${voicePlayer.playlist.length > 0 ? 'pb-40' : 'pb-24'}`}>
+      <div className="flex gap-4 px-4 pb-24">
 
         {/* ── LEFT: Category pills + News feed ─────────────────────────── */}
         <div className="flex-1 min-w-0">
@@ -724,36 +706,6 @@ export default function App() {
                   Updated {formatDistanceToNow(lastFetchTime, { addSuffix: true })}
                 </span>
               )}
-              {/* Listen to top 10 */}
-              {news.length > 0 && (
-                <button
-                  onClick={() => voicePlayer.play(
-                    news.slice(0, 10).map(n => ({
-                      id:             n.id,
-                      title:          n.title,
-                      contentSnippet: n.contentSnippet,
-                      translations:   n.translations,
-                    }))
-                  )}
-                  style={{
-                    background:   '#00ff8812',
-                    border:       '1px solid #00ff8830',
-                    color:        '#00ff88',
-                    ...MONO,
-                    borderRadius: 6,
-                    cursor:       'pointer',
-                    padding:      '4px 10px',
-                    display:      'flex',
-                    alignItems:   'center',
-                    gap:          5,
-                    transition:   'all 0.15s',
-                  }}
-                  className="text-[9px] uppercase tracking-wider hover:bg-[#00ff8820]"
-                  title="Listen to today's top 10 news"
-                >
-                  <Headphones className="w-3 h-3" /> Listen Top 10
-                </button>
-              )}
             </div>
           </div>
 
@@ -785,11 +737,9 @@ export default function App() {
                 <NewsCard
                   key={item.id}
                   item={item}
-                  lang={lang}
                   isSignedIn={!!session}
                   onSignIn={() => setShowAuthModal(true)}
                   authToken={session?.access_token}
-                  voicePlayer={voicePlayer}
                 />
               ))}
               {news.length < total && (
@@ -1031,9 +981,6 @@ export default function App() {
 
         </div>{/* end sidebar */}
       </div>
-
-      {/* Voice News floating player bar */}
-      <VoicePlayerBar player={voicePlayer} />
 
       </div></React.Fragment>}{/* end view === "news" */}
 
