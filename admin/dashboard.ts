@@ -402,7 +402,6 @@ select.inp{cursor:pointer}
     <div class="page-actions">
       <button class="btn btn-g" onclick="loadStats()">↻ Refresh</button>
       <button class="btn btn-b" onclick="triggerFetch()">⚡ Fetch News</button>
-      <button class="btn btn-p" onclick="triggerAI()">✦ Process AI</button>
     </div>
   </div>
 
@@ -445,7 +444,6 @@ select.inp{cursor:pointer}
       <div class="page-sub">SQLite news_items — 30-day rolling retention</div>
     </div>
     <div class="page-actions">
-      <button class="btn btn-p" onclick="triggerAI()">✦ Process Pending</button>
       <button class="btn btn-b" onclick="triggerFetch()">⚡ Fetch News</button>
     </div>
   </div>
@@ -464,11 +462,6 @@ select.inp{cursor:pointer}
       <option value="sebi">SEBI</option>
       <option value="rbi">RBI</option>
     </select>
-    <select class="inp" style="width:170px" id="nw-ai" onchange="loadNews(1)">
-      <option value="all">All Articles</option>
-      <option value="processed">AI Processed</option>
-      <option value="pending">Pending AI</option>
-    </select>
     <select class="inp" style="width:100px" id="nw-limit" onchange="loadNews(1)">
       <option value="25">25/page</option>
       <option value="50" selected>50/page</option>
@@ -477,7 +470,7 @@ select.inp{cursor:pointer}
     <button class="btn btn-gd" onclick="loadNews(1)">↻ Refresh</button>
   </div>
 
-  <div class="stat-grid" id="nw-stats" style="grid-template-columns:repeat(4,1fr)">
+  <div class="stat-grid" id="nw-stats" style="grid-template-columns:repeat(3,1fr)">
     <div class="loading" style="grid-column:1/-1">Loading…</div>
   </div>
 
@@ -986,11 +979,7 @@ async function triggerFetch() {
   try { await api("/api/news/refresh", { method:"POST" }); toast("News fetch triggered"); setTimeout(loadStats, 4000); }
   catch(e) { toast(e.message, "err"); }
 }
-async function triggerAI() {
-  toast("AI processing triggered…", "info");
-  try { await api("/api/news/impact/refresh", { method:"POST" }); toast("AI processing complete"); if (_section === "news") loadNews(_newsPage); }
-  catch(e) { toast("AI failed: " + e.message, "err"); }
-}
+
 
 // ═══════════════════════════════════════════════════════════════
 // 2. NEWS
@@ -998,24 +987,21 @@ async function triggerAI() {
 async function loadNews(page) {
   _newsPage = page || 1;
   var cat   = document.getElementById("nw-cat").value;
-  var ai    = document.getElementById("nw-ai").value;
   var limit = document.getElementById("nw-limit").value;
   document.getElementById("nw-table").innerHTML = "<div class=\\"loading\\">Loading articles…</div>";
   document.getElementById("nw-pg").style.display = "none";
   document.getElementById("nw-detail").classList.remove("open");
   _expandedArt = null;
   try {
-    var params = new URLSearchParams({ page:_newsPage, limit:limit, category:cat, ai:ai });
+    var params = new URLSearchParams({ page:_newsPage, limit:limit, category:cat });
     var d = await api("/api/admin/news?" + params.toString());
     _newsPages = d.pages; _newsTotal = d.total;
 
-    var pct = d.total > 0 ? Math.round(d.processed / d.total * 100) : 0;
     var sg = document.getElementById("nw-stats");
     sg.innerHTML =
-      sCard("TOTAL (30 DAYS)", fmt(d.total), "text", null, null) +
-      sCard("AI PROCESSED", fmt(d.processed), "green", null, null) +
-      sCard("PENDING", fmt(d.pending), "gold", null, "gold") +
-      "<div class=\\"stat-card\\"><div class=\\"stat-label\\">AI COVERAGE</div><div class=\\"stat-value green\\">" + pct + "%</div><div class=\\"prog-wrap\\"><div class=\\"prog-bar green\\" style=\\"width:" + pct + "%\\"></div></div></div>";
+      sCard("TOTAL (30 DAYS)", fmt(d.total), "text", "30-day rolling retention", null) +
+      sCard("THIS PAGE", fmt(d.articles.length), "blue", null, "blue") +
+      sCard("PAGES", fmt(d.pages), "text", null, null);
 
     document.getElementById("nw-count").textContent = d.total + " articles — page " + _newsPage + " of " + _newsPages;
 
@@ -1036,11 +1022,6 @@ async function loadNews(page) {
 }
 
 function newsRow(a) {
-  var hasAI = !!a.ai_processed_at;
-  var sent = a.sentiment === "positive" ? "<span class=\\"badge bg\\">POS</span>"
-           : a.sentiment === "negative" ? "<span class=\\"badge br\\">NEG</span>"
-           : a.sentiment ? "<span class=\\"badge bgd\\">NEU</span>" : "—";
-  var aiB = hasAI ? "<span class=\\"badge bg\\">DONE</span>" : "<span class=\\"badge bo\\">PENDING</span>";
   var cc  = CAT_COLORS[a.category] || "#888";
   return "<tr id=\\"ar-" + esc(a.id) + "\\">" +
     "<td><button class=\\"btn btn-gd\\" style=\\"padding:2px 6px;font-size:10px\\" onclick=\\"expandArt('" + esc(a.id) + "')\\" >▸</button></td>" +
@@ -1049,11 +1030,9 @@ function newsRow(a) {
     "<td><span class=\\"badge bb\\">" + esc((a.source || "").toUpperCase().slice(0, 12)) + "</span></td>" +
     "<td><span class=\\"badge bgd\\" style=\\"border-left:2px solid " + cc + "\\">" + esc((a.category || "").toUpperCase()) + "</span></td>" +
     "<td class=\\"mono fn\\" style=\\"white-space:nowrap\\">" + fmtAgo(a.pub_date) + "</td>" +
-    "<td>" + aiB + "</td>" +
-    "<td>" + sent + "</td>" +
+
     "<td style=\\"display:flex;gap:4px\\">" +
       "<a class=\\"btn btn-gd\\" style=\\"padding:3px 7px\\" href=\\"" + esc(a.link || "#") + "\\" target=\\"_blank\\" rel=\\"noopener\\">↗</a>" +
-      (!hasAI ? "<button class=\\"btn btn-p\\" style=\\"padding:3px 7px\\" onclick=\\"genAI('" + esc(a.id) + "',this)\\">✦</button>" : "") +
     "</td>" +
   "</tr>";
 }
@@ -1071,39 +1050,21 @@ async function expandArt(id) {
   if (row && row.parentNode) row.parentNode.insertBefore(panel, row.nextSibling);
   try {
     var d = await api("/api/news/article?id=" + encodeURIComponent(id));
-    var sectors = [];
-    try { sectors = JSON.parse(d.impactSectors || d.impact_sectors || "[]"); } catch(ex) {}
-    var bullets = [];
-    try { bullets = JSON.parse(d.summaryBullets || d.summary_bullets || "[]"); } catch(ex) {}
-    var sentC = d.sentiment === "positive" ? "bg" : d.sentiment === "negative" ? "br" : "bgd";
+
     panel.innerHTML =
       "<div class=\\"detail-meta\\">" +
         "<span class=\\"badge bb\\">" + esc((d.source || "").toUpperCase()) + "</span>" +
         (d.category ? "<span class=\\"badge bgd\\" style=\\"border-left:2px solid " + (CAT_COLORS[d.category] || "#888") + "\\">" + esc(d.category.toUpperCase()) + "</span>" : "") +
-        (d.sentiment ? "<span class=\\"badge " + sentC + "\\">" + esc(d.sentiment.toUpperCase()) + "</span>" : "") +
         "<span class=\\"fn\\" style=\\"color:var(--dim);font-family:var(--mono)\\">" + fmtAgo(d.pubDate || d.pub_date) + "</span>" +
         "<a class=\\"btn btn-gd\\" style=\\"margin-left:auto;padding:3px 8px\\" href=\\"" + esc(d.link || "#") + "\\" target=\\"_blank\\">Read Source ↗</a>" +
       "</div>" +
       "<div class=\\"detail-title\\">" + esc(d.title || "") + "</div>" +
       ((d.contentSnippet || d.content_snippet) ? "<div style=\\"font-size:12px;color:var(--sub);margin-bottom:10px;line-height:1.6\\">" + esc(((d.contentSnippet || d.content_snippet) || "").slice(0, 400)) + "</div>" : "") +
-      ((d.aiSummary || d.ai_summary) ?
-        "<div class=\\"detail-ai\\">" +
-          "<div class=\\"detail-ai-label\\">AI SUMMARY</div>" +
-          "<div class=\\"detail-ai-text\\">" + esc(d.aiSummary || d.ai_summary || "") + "</div>" +
-          (bullets.length ? "<ul style=\\"margin-top:8px;padding-left:16px\\">" + bullets.map(function(b) { return "<li style=\\"font-size:11px;color:var(--sub);margin-bottom:2px\\">" + esc(b) + "</li>"; }).join("") + "</ul>" : "") +
-          (sectors.length ? "<div class=\\"detail-sectors\\">" + sectors.map(function(s) { return "<span class=\\"badge bp\\">" + esc(s) + "</span>"; }).join("") + "</div>" : "") +
-        "</div>"
-      : "<div style=\\"font-family:var(--mono);font-size:10px;color:var(--dim);padding:8px 0\\">No AI summary yet.</div>");
-  } catch(e) {
-    panel.innerHTML = "<div style=\\"font-family:var(--mono);font-size:10px;color:var(--dim)\\">Detail unavailable: " + esc(e.message) + "</div>";
+;
   }
 }
 
-async function genAI(id, btn) {
-  btn.disabled = true; btn.textContent = "…";
-  try { await api("/api/news/ai-summary/" + encodeURIComponent(id)); toast("AI summary generated"); loadNews(_newsPage); }
-  catch(e) { toast("AI failed: " + e.message, "err"); btn.disabled = false; btn.textContent = "✦"; }
-}
+
 
 function renderNewsPg() {
   if (_newsPages <= 1) return;
