@@ -1834,6 +1834,65 @@ async function startServer() {
     return res.json(getRewardLogs(200));
   });
 
+
+  // ── Admin API — news browser ─────────────────────────────────────────────────
+
+  app.get('/api/admin/news', requireAdmin, (req: Request, res: Response) => {
+    const page     = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit    = Math.min(100, parseInt(req.query.limit as string) || 50);
+    const offset   = (page - 1) * limit;
+    const category = (req.query.category as string) || '';
+
+    let where = '1=1';
+    const params: any[] = [];
+    if (category) { where += ' AND category = ?'; params.push(category); }
+
+    const total    = (rawDb.prepare('SELECT COUNT(*) as c FROM news_items WHERE ' + where).get(...params) as any).c;
+    const articles = rawDb.prepare(
+      'SELECT id, title, link, source, category, pub_date, fetched_at, content_snippet ' +
+      'FROM news_items WHERE ' + where + ' ORDER BY fetched_at DESC LIMIT ? OFFSET ?'
+    ).all(...params, limit, offset);
+
+    res.json({ articles, total, page, pages: Math.ceil(total / limit) });
+  });
+
+  // ── Admin API — virtual trading overview ─────────────────────────────────────
+
+  app.get('/api/admin/trading', requireAdmin, (req: Request, res: Response) => {
+    const totalOrders  = (rawDb.prepare('SELECT COUNT(*) as c FROM virtual_orders').get() as any).c;
+    const totalBuys    = (rawDb.prepare('SELECT COUNT(*) as c FROM virtual_orders WHERE order_type="BUY"').get() as any).c;
+    const totalSells   = (rawDb.prepare('SELECT COUNT(*) as c FROM virtual_orders WHERE order_type="SELL"').get() as any).c;
+    const totalTraders = (rawDb.prepare('SELECT COUNT(DISTINCT user_id) as c FROM virtual_orders').get() as any).c;
+    const leaderboard  = rawDb.prepare(
+      'SELECT user_id, total_invested_coins, current_value_coins, realised_pnl_coins, updated_at ' +
+      'FROM virtual_portfolio ORDER BY current_value_coins DESC LIMIT 20'
+    ).all();
+    const recentOrders = rawDb.prepare(
+      'SELECT * FROM virtual_orders ORDER BY created_at DESC LIMIT 30'
+    ).all();
+    res.json({ totalOrders, totalBuys, totalSells, totalTraders, leaderboard, recentOrders });
+  });
+
+  // ── Admin API — daily predictions overview ───────────────────────────────────
+
+  app.get('/api/admin/predictions', requireAdmin, (req: Request, res: Response) => {
+    const predictions  = rawDb.prepare('SELECT * FROM daily_predictions ORDER BY created_at DESC LIMIT 30').all();
+    const totalVotes   = (rawDb.prepare('SELECT COUNT(*) as c FROM user_predictions').get() as any).c;
+    const correctVotes = (rawDb.prepare('SELECT COUNT(*) as c FROM user_predictions WHERE is_correct=1').get() as any).c;
+    res.json({ predictions, totalVotes, correctVotes });
+  });
+
+  // ── Admin API — samachar coins ledger ────────────────────────────────────────
+
+  app.get('/api/admin/coins', requireAdmin, (req: Request, res: Response) => {
+    const limit  = Math.min(100, parseInt(req.query.limit as string) || 50);
+    const offset = parseInt(req.query.offset as string) || 0;
+    const total  = (rawDb.prepare('SELECT COUNT(*) as c FROM samachar_coins').get() as any).c;
+    const totalCoinsIssued = (rawDb.prepare('SELECT COALESCE(SUM(amount),0) as s FROM samachar_coins WHERE amount > 0').get() as any).s;
+    const ledger = rawDb.prepare('SELECT * FROM samachar_coins ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
+    res.json({ ledger, total, totalCoinsIssued });
+  });
+
   // ── End admin dashboard routes ───────────────────────────────────────────────
 
   // API routes FIRST
