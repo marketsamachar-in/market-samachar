@@ -590,7 +590,6 @@ async function fetchNews() {
       setTimeout(() => extractPendingSymbols().catch(e => console.error('[impact] post-fetch symbols:', e)), 2000);
 
       // INLINE AI processing DISABLED — Gemini is now called on-demand only
-      // (see GET /api/news/ai-summary/:id). This prevents auto-generating
       // summaries for articles no user reads, which was driving runaway costs.
 
       // ── Breaking news push notification ────────────────────────────────────
@@ -657,262 +656,6 @@ checkAndFetch();
 setInterval(checkAndFetch, 60 * 1000);
 
 // ─── Article AI Pre-processing ────────────────────────────────────────────────
-
-/**
- * Calls Gemini once per article and returns summary, sentiment, translations, etc.
- * Falls back gracefully if parsing fails.
- */
-async function generateArticleAiData(title: string, contentSnippet: string): Promise<AiArticleData> {
-  if (!hasAvailableKey()) throw new Error('No Gemini API keys available');
-
-  // Translations are no longer pre-generated here — they are produced on-demand by
-  // /api/translate (using Google Cloud Translation API) when the user switches language.
-  // Removing them from this prompt reduces output tokens by ~70-80%.
-  const prompt = `You are an expert Indian financial news analyst. Analyze this news article and return a JSON object.
-
-Title: ${title}
-Content: ${contentSnippet || title}
-
-Return ONLY valid JSON with this exact structure, no markdown, no extra text:
-{
-  "ai_summary": "2-3 sentence summary in ENGLISH for Indian retail investors. Simple language, no jargon. Use ₹ for Indian currency amounts.",
-  "summary_bullets": ["English key point 1", "English key point 2", "English key point 3"],
-  "sentiment": "bullish",
-  "impact_sectors": ["Banking", "IT"],
-  "key_numbers": [{"value": "₹500 Cr", "context": "deal size"}]
-}
-
-Rules:
-- sentiment must be exactly "bullish", "bearish", or "neutral"
-- key_numbers: extract important numbers from the article (prices, percentages, amounts). If none, use empty array.
-- All fields MUST be in English only.`;
-
-  try {
-    // Flash-Lite is sufficient for news summarisation and significantly cheaper than Flash
-    const raw = await geminiCall(prompt, { model: "gemini-2.5-flash-lite" });
-    // Strip markdown code fences if present
-    const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const parsed = JSON.parse(cleaned) as AiArticleData;
-
-    // Validate: ai_summary must be meaningfully different from the title
-    const summaryOk = typeof parsed.ai_summary === 'string'
-      && parsed.ai_summary.length > 10
-      && parsed.ai_summary.toLowerCase() !== title.toLowerCase();
-
-    // Validate required fields and normalise sentiment
-    const validSentiments = ['bullish', 'bearish', 'neutral'];
-    return {
-      ai_summary:      summaryOk ? parsed.ai_summary : '',
-      summary_bullets: Array.isArray(parsed.summary_bullets) ? parsed.summary_bullets : [],
-      sentiment:       validSentiments.includes(parsed.sentiment) ? parsed.sentiment : 'neutral',
-      impact_sectors:  Array.isArray(parsed.impact_sectors) ? parsed.impact_sectors : [],
-      key_numbers:     Array.isArray(parsed.key_numbers) ? parsed.key_numbers : [],
-      translations:    parsed.translations && typeof parsed.translations === 'object' ? parsed.translations : {},
-    };
-  } catch (err) {
-    console.warn(`[ai-pipeline] Failed for "${title.slice(0, 50)}":`, err);
-    return {
-      ai_summary:      '',
-      summary_bullets: [],
-      sentiment:       'neutral',
-      impact_sectors:  [],
-      key_numbers:     [],
-      translations:    {},
-    };
-  }
-}
-
-// ─── News Impact Question Generator ─────────────────────────────────────────
-/**
- * Generate a news impact quiz question from a processed article.
- * Called after AI data is saved for an article. Non-blocking — failures are logged.
- */
-async function generateNewsImpactQuestion(articleId: string, title: string, snippet: string): Promise<void> {
-  if (!hasAvailableKey()) return;
-
-  // Check if question already exists for this article
-  const existing = rawDb.prepare(
-    "SELECT id FROM news_impact_questions WHERE article_id = ? LIMIT 1"
-  ).get(articleId);
-  if (existing) return;
-
-  const prompt = `You are a financial quiz master for Indian retail investors.
-Given this market news, create a multiple-choice question that tests the reader's understanding of the news impact on stocks/sectors.
-
-News: ${title}
-${snippet ? `Details: ${snippet.slice(0, 300)}` : ''}
-
-Return ONLY valid JSON, no markdown:
-{
-  "question": "How will this news likely impact [relevant sector/stock]?",
-  "option_a": "Most likely correct impact",
-  "option_b": "Plausible but incorrect impact",
-  "option_c": "Another plausible but incorrect impact",
-  "option_d": "Clearly unlikely impact",
-  "correct": "A",
-  "symbol": "SYMBOL_OR_NULL"
-}
-Rules:
-- Question must be about the MARKET IMPACT, not facts from the article
-- Options should be plausible — not obviously wrong
-- correct must be "A", "B", "C", or "D"
-- symbol: NSE stock ticker if specific to a company, null otherwise
-- Keep language simple for retail investors`;
-
-  try {
-    const raw = await geminiCall(prompt);
-    const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const parsed = JSON.parse(cleaned);
-
-    if (!parsed.question || !parsed.option_a || !parsed.correct) return;
-    if (!['A', 'B', 'C', 'D'].includes(parsed.correct)) return;
-
-    saveNewsImpactQuestion({
-      article_id:     articleId,
-      question_text:  parsed.question,
-      option_a:       parsed.option_a,
-      option_b:       parsed.option_b,
-      option_c:       parsed.option_c ?? "No significant impact expected",
-      option_d:       parsed.option_d ?? "Too early to determine",
-      correct_option: parsed.correct as 'A' | 'B' | 'C' | 'D',
-      symbol:         parsed.symbol && parsed.symbol !== "null" ? parsed.symbol.toUpperCase() : null,
-      expires_at:     Date.now() + 48 * 60 * 60 * 1000,  // expires in 48 hours
-      created_at:     Date.now(),
-    });
-    console.log(`[news-impact] ✓ Created quiz for: "${title.slice(0, 50)}"`);
-  } catch (err) {
-    // Non-critical — silently skip
-    console.warn(`[news-impact] ✗ Failed for "${title.slice(0, 40)}":`, (err as Error).message?.slice(0, 80));
-  }
-}
-
-// ─── IPO Prediction Auto-Creator ────────────────────────────────────────────
-/**
- * Check for IPOs with listing dates within the next 3 days and create
- * prediction questions automatically. Called by cron.
- */
-import {
-  IPO_PREDICTION_CORRECT_COINS,
-} from "./backend/src/services/rewardConfig.ts";
-
-function createIPOPredictionQuestions(): void {
-  try {
-    const now = Date.now();
-    const threeDaysLater = new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const today = new Date(now + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-    // Find IPOs listing in the next 3 days
-    const upcomingIPOs = rawDb.prepare(`
-      SELECT * FROM ipos
-      WHERE listing_date IS NOT NULL
-        AND listing_date >= ?
-        AND listing_date <= ?
-    `).all(today, threeDaysLater) as IPORecord[];
-
-    if (upcomingIPOs.length === 0) return;
-
-    // Check which already have predictions
-    const existingPredictions = getOpenIpoPredictions();
-    const existingNames = new Set(existingPredictions.map(p => p.ipo_name));
-
-    for (const ipo of upcomingIPOs) {
-      if (existingNames.has(ipo.company_name)) continue;
-
-      // Create LISTING_PRICE prediction question
-      const priceHigh = ipo.price_band_high ?? 0;
-      const gmp = ipo.gmp ?? 0;
-
-      createIpoPrediction({
-        ipo_name:       ipo.company_name,
-        symbol:         ipo.symbol ?? null,
-        open_date:      ipo.open_date ?? null,
-        listing_date:   ipo.listing_date ?? null,
-        question_type:  'LISTING_PRICE',
-        correct_answer: null,
-        created_at:     Date.now(),
-      });
-      console.log(`[ipo-predictions] ✓ Created listing prediction for: ${ipo.company_name} (listing: ${ipo.listing_date})`);
-    }
-  } catch (err) {
-    console.error("[ipo-predictions] Auto-create failed:", err);
-  }
-}
-
-// ─── Hybrid AI Pipeline ──────────────────────────────────────────────────────
-// 1. INLINE: process articles immediately after fetchNews() — zero delay
-// 2. BACKGROUND: safety-net interval catches any missed/failed articles
-// A lock prevents both from running simultaneously.
-
-let aiPipelineBusy = false;
-
-/**
- * Process a single article: generate AI summary, translations, social captions.
- * Also generates a News Impact quiz question (non-blocking).
- * Returns true if successful, false on failure.
- */
-async function processOneArticle(article: { id: string; title: string; content_snippet: string | null }): Promise<boolean> {
-  try {
-    const data = await generateArticleAiData(article.title, article.content_snippet ?? '');
-    saveArticleAiData(article.id, data);
-    console.log(`[ai-pipeline] ✓ ${article.title.slice(0, 55)}`);
-
-    // Generate News Impact quiz question in background (non-blocking)
-    generateNewsImpactQuestion(article.id, article.title, article.content_snippet ?? '').catch(() => {});
-
-    return true;
-  } catch (err) {
-    console.error(`[ai-pipeline] ✗ "${article.title.slice(0, 50)}":`, err);
-    return false;
-  }
-}
-
-/**
- * Process all unprocessed articles one-by-one with a gap between each.
- * Used by both inline (after fetch) and background interval.
- * @param source - label for logging ("inline" or "background")
- * @param delayMs - gap between articles (default 800ms)
- */
-async function processUnprocessedArticles(source: string = 'background', delayMs: number = 800) {
-  if (!hasAvailableKey()) return;
-  if (aiPipelineBusy) {
-    console.log(`[ai-pipeline] Skipping ${source} run — already processing`);
-    return;
-  }
-
-  aiPipelineBusy = true;
-  try {
-    const articles = getArticlesNeedingAiProcessing();
-    if (articles.length === 0) return;
-
-    console.log(`[ai-pipeline] [${source}] Processing ${articles.length} article(s)…`);
-    let success = 0, failed = 0;
-    const CONCURRENCY = 3;
-
-    for (let i = 0; i < articles.length; i += CONCURRENCY) {
-      if (!hasAvailableKey()) {
-        console.warn(`[ai-pipeline] [${source}] No keys available — pausing. ${success} done, ${articles.length - success - failed} remaining.`);
-        break;
-      }
-      const batch = articles.slice(i, i + CONCURRENCY);
-      const results = await Promise.allSettled(batch.map(a => processOneArticle(a)));
-      for (const r of results) {
-        if (r.status === 'fulfilled' && r.value) success++; else failed++;
-      }
-      if (i + CONCURRENCY < articles.length) {
-        await new Promise(r => setTimeout(r, delayMs));
-      }
-    }
-
-    if (success > 0 || failed > 0) {
-      console.log(`[ai-pipeline] [${source}] Done — ${success} succeeded, ${failed} failed`);
-    }
-  } finally {
-    aiPipelineBusy = false;
-  }
-}
-
-// Background safety-net DISABLED — Gemini summaries are now generated on-demand
-// only (see GET /api/news/ai-summary/:id) to prevent runaway API costs.
 
 // ─── Weekly AI Report Scheduler ───────────────────────────────────────────────
 
@@ -1473,7 +1216,6 @@ async function startServer() {
     console.error("[FATAL] SESSION_SECRET env var is required in production");
     process.exit(1);
   }
-  app.set("trust proxy", 1);
   app.use(
     session({
       secret:            process.env.SESSION_SECRET ?? "dev-only-fallback-secret",
@@ -1482,7 +1224,7 @@ async function startServer() {
       cookie: {
         secure:   process.env.NODE_ENV === "production",
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "strict",
         maxAge:   24 * 60 * 60 * 1000, // 24 hours
       },
     })
@@ -1581,7 +1323,7 @@ async function startServer() {
   app.use("/api/auth", authSyncRouter);
 
   // Stricter limiter for Gemini-powered routes (cost-bearing)
-  app.use(["/api/summarize", "/api/translate", "/api/news/article"], articleLimiter);
+  app.use("/api/news/article", articleLimiter);
 
   // ── Admin auth routes (public — no requireAdmin) ──────────────────────────
 
@@ -2090,28 +1832,7 @@ async function startServer() {
   app.get("/api/admin/rewards", requireAdmin, (req, res) => {
     return res.json(getRewardLogs(200));
   });
-// GET /api/admin/news — paginated article browser
-  app.get('/api/admin/news', requireAdmin, (req, res) => {
-    const page     = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit    = Math.min(100, parseInt(req.query.limit as string) || 50);
-    const offset   = (page - 1) * limit;
-    const category = (req.query.category as string) || '';
-    const ai       = (req.query.ai as string) || 'all';
-    let where = '1=1';
-    const params: any[] = [];
-    if (category) { where += ' AND category = ?'; params.push(category); }
-    if (ai === 'processed') { where += ' AND ai_processed_at IS NOT NULL'; }
-    if (ai === 'pending')   { where += ' AND ai_processed_at IS NULL'; }
-    const total     = (rawDb.prepare('SELECT COUNT(*) as c FROM news_items WHERE ' + where).get(...params) as any).c;
-    const processed = (rawDb.prepare('SELECT COUNT(*) as c FROM news_items WHERE ai_processed_at IS NOT NULL').get() as any).c;
-    const articles  = rawDb.prepare(
-      'SELECT id,title,link,source,category,pub_date,fetched_at,content_snippet,' +
-      'ai_summary,summary_bullets,sentiment,impact_sectors,key_numbers,ai_processed_at ' +
-      'FROM news_items WHERE ' + where + ' ORDER BY fetched_at DESC LIMIT ? OFFSET ?'
-    ).all(...params, limit, offset);
-    res.json({ articles, total, processed, pending: total - processed, page, pages: Math.ceil(total / limit) });
-  });
-  
+
   // ── End admin dashboard routes ───────────────────────────────────────────────
 
   // API routes FIRST
@@ -2273,222 +1994,6 @@ async function startServer() {
       res.json({ count: articles.length, articles });
     } catch (err) {
       res.status(500).json({ error: 'DB query failed', detail: (err as Error).message });
-    }
-  });
-
-  app.post("/api/summarize", async (req, res) => {
-    const { url, lang } = req.body;
-    if (!url || typeof url !== "string") {
-      return res.status(400).json({ error: "url is required" });
-    }
-
-    try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.5",
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-      const html = await response.text();
-      const dom = new JSDOM(html, { url });
-      const reader = new Readability(dom.window.document);
-      const article = reader.parse();
-
-      if (!article) {
-        return res.status(404).json({ error: "Could not parse article content" });
-      }
-
-      const langName = LANG_MAP[lang] || lang || "English";
-
-      if (!hasAvailableKey()) {
-        return res.json({ summary: article.excerpt || "Could not generate summary." });
-      }
-
-      const summaryText = await geminiCall(
-        `Summarize the following article in 5 to 10 lines, capturing the entire meaning and key points. Write the summary in ${langName}:\n\n${article.textContent || article.content}`
-      );
-
-      res.json({ summary: summaryText || article.excerpt || "Could not generate summary." });
-    } catch (error) {
-      console.error(`Error summarizing article from ${url}:`, error);
-      res.status(500).json({ error: "Failed to summarize article" });
-    }
-  });
-
-  // GET /api/news/ai-summary/:id
-  // On-demand AI summary: returns cached result if available, generates via Gemini if not.
-  // This is the cost-safe pattern: one Gemini call per article ever, only when a user requests it.
-  app.get('/api/news/ai-summary/:id', articleLimiter, async (req: Request, res: Response) => {
-    const { id } = req.params;
-    if (!id || typeof id !== 'string') {
-      return res.status(400).json({ error: 'Article id is required' });
-    }
-
-    try {
-      // Step 1: Check if already generated and stored
-      const existing = getArticleAiData(id);
-      if (existing?.ai_summary) {
-        return res.json({
-          cached: true,
-          aiSummary:      existing.ai_summary,
-          summaryBullets: existing.summary_bullets ? JSON.parse(existing.summary_bullets) : [],
-          sentiment:      existing.sentiment ?? 'neutral',
-          impactSectors:  existing.impact_sectors ? JSON.parse(existing.impact_sectors) : [],
-          keyNumbers:     existing.key_numbers ? JSON.parse(existing.key_numbers) : [],
-        });
-      }
-
-      // Step 2: Not cached — fetch article from DB to get title and snippet
-      const articleRow = (rawDb.prepare(
-        'SELECT id, title, content_snippet FROM news_items WHERE id = ? LIMIT 1'
-      ).get(id)) as { id: string; title: string; content_snippet: string | null } | undefined;
-
-      if (!articleRow) {
-        return res.status(404).json({ error: 'Article not found' });
-      }
-
-      // Step 3: Check Gemini key availability
-      if (!hasAvailableKey()) {
-        return res.status(503).json({ error: 'AI service temporarily unavailable. Please try again shortly.' });
-      }
-
-      // Step 4: Generate with Gemini and save to DB
-      const data = await generateArticleAiData(articleRow.title, articleRow.content_snippet ?? '');
-      saveArticleAiData(id, data);
-
-      console.log(`[ai-on-demand] Generated summary for: ${articleRow.title.slice(0, 60)}`);
-
-      return res.json({
-        cached: false,
-        aiSummary:      data.ai_summary,
-        summaryBullets: data.summary_bullets,
-        sentiment:      data.sentiment,
-        impactSectors:  data.impact_sectors,
-        keyNumbers:     data.key_numbers,
-      });
-
-    } catch (err) {
-      console.error('[ai-on-demand] Error:', err);
-      return res.status(500).json({ error: 'Failed to generate summary. Please try again.' });
-    }
-  });
-
-  app.post("/api/translate", async (req, res) => {
-    console.log("[translate] Route called");
-
-    const { items, lang } = req.body;
-    console.log("[translate] Body received:", {
-      itemCount: Array.isArray(items) ? items.length : items,
-      lang,
-      firstItemId: items?.[0]?.id,
-    });
-
-    if (!items || !lang) {
-      return res.status(400).json({ error: "items and lang are required" });
-    }
-
-    // Strip HTML and cap length
-    const stripHtml = (html: string) =>
-      html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-
-    const itemsToTranslate = items.map((item: any) => ({
-      id: item.id,
-      title: item.title || "",
-      contentSnippet: (item.contentSnippet || "").slice(0, 400),
-      content: item.content ? stripHtml(item.content).slice(0, 400) : "",
-    }));
-
-    // ── Primary: Google Cloud Translation API (free 500k chars/month) ──────────
-    const googleKey = process.env.GOOGLE_TRANSLATE_API_KEY;
-    if (googleKey) {
-      try {
-        // Collect all text strings to translate in order: [title0, snippet0, content0, title1, ...]
-        const texts = itemsToTranslate.flatMap((i: any) => [i.title, i.contentSnippet, i.content]);
-
-        const gtRes = await fetch(
-          `https://translation.googleapis.com/language/translate/v2?key=${googleKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ q: texts, target: lang, format: "text" }),
-          }
-        );
-
-        if (!gtRes.ok) throw new Error(`Google Translate HTTP ${gtRes.status}`);
-
-        const gtData: any = await gtRes.json();
-        const translations: string[] = gtData.data.translations.map((t: any) => t.translatedText);
-
-        const result = items.map((item: any, i: number) => ({
-          ...item,
-          title:          translations[i * 3]     || item.title,
-          contentSnippet: translations[i * 3 + 1] || item.contentSnippet,
-          content:        translations[i * 3 + 2] || item.content,
-        }));
-
-        console.log("[translate] Google Translate OK —", items.length, "items →", lang);
-        return res.json({ items: result });
-      } catch (gtErr: any) {
-        console.warn("[translate] Google Translate failed, falling back to Gemini:", gtErr.message);
-      }
-    }
-
-    // ── Fallback: Gemini ────────────────────────────────────────────────────────
-    if (!hasAvailableKey()) {
-      console.log("[translate] No translation service available — returning original items");
-      res.setHeader("X-Translate-Error", "no-translation-service");
-      return res.status(503).json({ error: "translation_unavailable", items });
-    }
-
-    try {
-      const langName = LANG_MAP[lang] || lang;
-      const prompt = `Translate the following JSON array of news items to ${langName}. Return ONLY a valid JSON array with the exact same structure (id, title, contentSnippet, content). Do not add markdown formatting.\n\n${JSON.stringify(itemsToTranslate)}`;
-      console.log("[translate] Calling Gemini fallback, prompt length:", prompt.length, "chars");
-
-      const translatedText = await geminiStructuredCall(prompt, {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              id:             { type: Type.STRING },
-              title:          { type: Type.STRING },
-              contentSnippet: { type: Type.STRING },
-              content:        { type: Type.STRING },
-            },
-            required: ["id", "title", "contentSnippet", "content"],
-          },
-        },
-      });
-
-      const translatedItems = JSON.parse(translatedText);
-      console.log("[translate] Gemini fallback OK —", translatedItems.length, "items");
-
-      const result = items.map((item: any) => {
-        const translated = translatedItems.find((t: any) => t.id === item.id);
-        if (translated) {
-          return {
-            ...item,
-            title:          translated.title          || item.title,
-            contentSnippet: translated.contentSnippet || item.contentSnippet,
-            content:        translated.content        || item.content,
-          };
-        }
-        return item;
-      });
-
-      res.json({ items: result });
-    } catch (error: any) {
-      const msg = error?.message || String(error);
-      console.error("[translate] Gemini fallback error:", msg);
-      res.setHeader("X-Translate-Error", msg.slice(0, 200));
-      res.status(502).json({ error: "translation_failed", message: msg.slice(0, 200), items });
     }
   });
 
@@ -3834,16 +3339,6 @@ body{background:#07070e;color:#e8eaf0;font-family:'DM Sans',sans-serif;min-heigh
     const impact: Record<string, any> = row.price_impact_json ? JSON.parse(row.price_impact_json) : {};
 
     res.json({ symbols, impact });
-  });
-
-  // POST /api/news/impact/refresh — admin only; immediately recalculate impacts
-  app.post('/api/news/impact/refresh', requireAdmin, async (_req: Request, res: Response) => {
-    try {
-      await updatePriceImpacts();
-      res.json({ success: true });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
   });
 
   // ── Story Timeline / Polls / Share Reward ──────────────────────────────────
