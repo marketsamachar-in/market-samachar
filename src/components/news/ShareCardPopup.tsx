@@ -1,56 +1,57 @@
 /**
- * ShareCardPopup — generates a 400×400 shareable image card for an article
- * using html2canvas, with download + native-share buttons. Awards +2 coins
- * (SHARE_ARTICLE) on first download per article per day for signed-in users.
+ * ShareCardPopup — Style F (Terminal + Bullets) shareable image card.
+ * Uses html2canvas to capture a 400px-wide terminal-style card with key
+ * points extracted from the article snippet. Awards +2 coins (SHARE_ARTICLE)
+ * on first download per article per day for signed-in users.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 
-const MONO  = "'DM Mono', monospace";
-const SANS  = "'DM Sans', sans-serif";
-const GREEN = '#00ff88';
-const CARD  = '#0d0d1e';
-const TEXT  = '#e8eaf0';
-const DIM   = '#556677';
-const BORDER = '#1e1e2e';
-
-const CATEGORY_COLORS: Record<string, string> = {
-  indian:    '#00ff88',
-  companies: '#ffdd3b',
-  global:    '#3bffee',
-  commodity: '#ff6b3b',
-  crypto:    '#b366ff',
-  ipo:       '#ff3bff',
-  economy:   '#3b9eff',
-  banking:   '#3b9eff',
-  sebi:      '#ff9f3b',
-  rbi:       '#3b9eff',
-  all:       GREEN,
-};
+const MONO_DM   = "'DM Mono', monospace";
+const TERM_FONT = "'Courier New', monospace";
+const SANS      = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const GREEN     = '#00ff88';
 
 interface Props {
-  articleId:    string;
-  articleTitle: string;
-  source:       string;
-  category:     string;
-  pubDate:      string;
-  isSignedIn:   boolean;
-  authToken:    string | null;
+  articleId:       string;
+  articleTitle:    string;
+  source:          string;
+  category:        string;
+  pubDate:         string;
+  contentSnippet?: string;
+  isSignedIn:      boolean;
+  authToken:       string | null;
 }
 
-function formatPubDate(raw: string): string {
-  if (!raw) return '';
+function generateBullets(snippet: string): string[] {
+  if (!snippet || snippet.trim().length === 0) return [];
+  return snippet
+    .split(/(?<=[.!?])\s+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 25)
+    .slice(0, 3);
+}
+
+function formatDate(raw: string): string {
   const d = new Date(raw);
-  if (isNaN(d.getTime())) return raw;
-  return d.toLocaleString('en-IN', {
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  });
+  }).toUpperCase().replace(/ /g, '-');
+}
+
+function formatISTTime(raw: string): string {
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-IN', {
+    hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata',
+  }) + ' IST';
 }
 
 export function ShareCardPopup({
-  articleId, articleTitle, source, category, pubDate, isSignedIn, authToken,
+  articleId, articleTitle, source, category, pubDate, contentSnippet,
+  isSignedIn, authToken,
 }: Props) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating]   = useState(false);
@@ -59,17 +60,26 @@ export function ShareCardPopup({
   const [canShare, setCanShare]       = useState(false);
 
   useEffect(() => {
-    setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function');
+    setCanShare(
+      typeof navigator !== 'undefined' &&
+      typeof navigator.share === 'function' &&
+      typeof (navigator as any).canShare === 'function'
+    );
   }, []);
 
-  const accent = CATEGORY_COLORS[category?.toLowerCase()] || GREEN;
+  const bullets    = generateBullets(contentSnippet ?? '');
+  const dateStr    = formatDate(pubDate);
+  const timeStr    = formatISTTime(pubDate);
+  const headerCat  = (category || 'NEWS').toUpperCase();
+  const headerSrc  = (source   || '').toUpperCase();
 
   async function captureCanvas(): Promise<HTMLCanvasElement | null> {
     if (!cardRef.current) return null;
     return html2canvas(cardRef.current, {
-      useCORS:    true,
-      scale:      2,
-      background: CARD,
+      useCORS:         true,
+      scale:           2,
+      backgroundColor: '#020208',
+      logging:         false,
     } as any);
   }
 
@@ -85,7 +95,7 @@ export function ShareCardPopup({
         setCoinsEarned(data.coinsEarned);
       }
     } catch {
-      // Silent — coin reward is a bonus, not the primary action
+      // Silent — bonus, not primary action
     }
   }
 
@@ -122,10 +132,13 @@ export function ShareCardPopup({
       );
       if (!blob) throw new Error('Failed to encode image');
       const file = new File([blob], 'market-samachar-news.png', { type: 'image/png' });
-      await navigator.share({ files: [file], title: articleTitle });
+      const shareData: any = { files: [file], title: articleTitle };
+      if ((navigator as any).canShare && !(navigator as any).canShare(shareData)) {
+        throw new Error('Cannot share this content on this device');
+      }
+      await navigator.share(shareData);
       await claimShareCoins();
     } catch (e: any) {
-      // User cancelling share throws AbortError — don't surface as error
       if (e?.name !== 'AbortError') {
         setError(e?.message || 'Failed to share');
       }
@@ -135,172 +148,204 @@ export function ShareCardPopup({
   }
 
   return (
-    <div style={{ fontFamily: SANS }}>
-      {/* ── Captured card preview ─────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+    <div>
+      {/* ── Captured terminal-style card ────────────────────────────── */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
         <div
+          id="share-card-capture"
           ref={cardRef}
           style={{
-            width:           400,
-            height:          400,
-            background:      CARD,
-            border:          `2px solid ${GREEN}`,
-            boxShadow:       '0 0 20px rgba(0,255,136,0.3)',
-            borderRadius:    12,
-            padding:         24,
-            display:         'flex',
-            flexDirection:   'column',
-            justifyContent:  'space-between',
-            boxSizing:       'border-box',
-            overflow:        'hidden',
+            width:        400,
+            background:   '#020208',
+            borderRadius: 8,
+            overflow:     'hidden',
+            border:       `1px solid ${GREEN}`,
+            fontFamily:   TERM_FONT,
           }}
         >
-          {/* Top: brand */}
-          <div>
-            <div style={{
-              fontFamily:    MONO,
-              color:         GREEN,
-              fontSize:      12,
-              letterSpacing: '0.15em',
-              fontWeight:    500,
-            }}>
-              MARKET SAMACHAR
-            </div>
-            <div style={{
-              height:     1,
-              background: BORDER,
-              margin:     '12px 0 16px',
-            }} />
-
-            {/* Category pill */}
-            <div style={{
-              display:        'inline-block',
-              fontFamily:     MONO,
-              fontSize:       10,
-              letterSpacing:  '0.08em',
-              textTransform:  'uppercase',
-              color:          accent,
-              background:     `${accent}1a`,
-              border:         `1px solid ${accent}55`,
-              borderRadius:   999,
-              padding:        '3px 10px',
-              marginBottom:   14,
-            }}>
-              {category || 'NEWS'}
-            </div>
-
-            {/* Headline — clamped to 3 lines */}
-            <div style={{
-              fontFamily: SANS,
-              color:      TEXT,
-              fontSize:   16,
-              fontWeight: 700,
-              lineHeight: 1.45,
-              display:           '-webkit-box',
-              WebkitLineClamp:   3,
-              WebkitBoxOrient:   'vertical',
-              overflow:          'hidden',
-              textOverflow:      'ellipsis',
-            }}>
-              {articleTitle}
-            </div>
-          </div>
-
-          {/* Mid: source + date */}
+          {/* Section 1 — Green header bar */}
           <div style={{
-            fontFamily:    MONO,
-            color:         DIM,
-            fontSize:      10,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            display:       'flex',
-            justifyContent:'space-between',
-            gap:           8,
+            background:     GREEN,
+            padding:        '6px 14px',
+            display:        'flex',
+            justifyContent: 'space-between',
+            alignItems:     'center',
           }}>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {source}
+            <span style={{
+              color:         '#000',
+              fontSize:      9,
+              fontWeight:    700,
+              letterSpacing: '0.12em',
+            }}>
+              MARKET SAMACHAR TERMINAL
             </span>
-            <span style={{ flexShrink: 0 }}>
-              {formatPubDate(pubDate)}
+            <span style={{ color: '#000', fontSize: 9 }}>
+              {dateStr}
             </span>
           </div>
 
-          {/* Bottom watermark */}
-          <div style={{
-            borderTop:  `1px solid ${BORDER}`,
-            paddingTop: 12,
-            textAlign:  'center',
-            fontFamily: MONO,
-            color:      GREEN,
-            fontSize:   11,
-            letterSpacing: '0.1em',
-          }}>
-            marketsamachar.in
+          {/* Section 2 — Content */}
+          <div style={{ padding: '12px 14px' }}>
+            {/* Row 1 — category + source label */}
+            <div style={{
+              color:         '#556677',
+              fontSize:      9,
+              letterSpacing: '0.1em',
+              marginBottom:  4,
+            }}>
+              {`NEWS ALERT / ${headerCat} / ${headerSrc}`}
+            </div>
+
+            {/* Row 2 — headline */}
+            <div style={{
+              color:           GREEN,
+              fontSize:        14,
+              fontWeight:      700,
+              lineHeight:      1.4,
+              fontFamily:      TERM_FONT,
+              display:         '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow:        'hidden',
+              marginBottom:    10,
+            } as any}>
+              {articleTitle.toUpperCase()}
+            </div>
+
+            {/* Row 3 — Key Points box */}
+            <div style={{
+              border:       '1px solid #0d2d0d',
+              borderRadius: 4,
+              padding:      '8px 10px',
+              marginBottom: 10,
+            }}>
+              <div style={{
+                color:         '#336633',
+                fontSize:      8,
+                letterSpacing: '0.08em',
+                marginBottom:  6,
+              }}>
+                // KEY POINTS
+              </div>
+
+              {bullets.length > 0 ? (
+                bullets.map((b, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display:      'flex',
+                      gap:          8,
+                      marginBottom: i === bullets.length - 1 ? 0 : 4,
+                    }}
+                  >
+                    <span style={{ color: GREEN, fontSize: 9, flexShrink: 0 }}>
+                      [{i + 1}]
+                    </span>
+                    <span style={{
+                      color:      '#88aa88',
+                      fontSize:   11,
+                      lineHeight: 1.5,
+                      fontFamily: SANS,
+                    }}>
+                      {b}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div style={{
+                  color:      '#556677',
+                  fontSize:   10,
+                  fontFamily: SANS,
+                }}>
+                  Full story available at marketsamachar.in
+                </div>
+              )}
+            </div>
+
+            {/* Row 4 — footer inside content */}
+            <div style={{
+              borderTop:      '1px solid #0d2d0d',
+              paddingTop:     8,
+              marginTop:      2,
+              display:        'flex',
+              justifyContent: 'space-between',
+              alignItems:     'center',
+            }}>
+              <span style={{
+                color:         '#336633',
+                fontSize:      8,
+                letterSpacing: '0.06em',
+              }}>
+                {`SRC: ${headerSrc}${timeStr ? ' · ' + timeStr : ''}`}
+              </span>
+              <span style={{
+                color:         GREEN,
+                fontSize:      10,
+                fontWeight:    700,
+                letterSpacing: '0.08em',
+              }}>
+                MARKETSAMACHAR.IN ↗
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Action buttons ─────────────────────────────────────────────── */}
-      <div style={{
-        display:        'flex',
-        flexDirection:  'column',
-        gap:            10,
-        alignItems:     'center',
-      }}>
+      {/* ── Action buttons ──────────────────────────────────────────── */}
+      <button
+        onClick={handleDownload}
+        disabled={generating}
+        style={{
+          background:    GREEN,
+          color:         '#000',
+          fontFamily:    MONO_DM,
+          fontSize:      12,
+          fontWeight:    700,
+          letterSpacing: '0.08em',
+          borderRadius:  8,
+          padding:       '12px 24px',
+          border:        'none',
+          cursor:        generating ? 'not-allowed' : 'pointer',
+          width:         '100%',
+          marginTop:     14,
+          opacity:       generating ? 0.6 : 1,
+        }}
+      >
+        {generating ? 'GENERATING...' : '⬇ DOWNLOAD CARD'}
+      </button>
+
+      {canShare && (
         <button
-          onClick={handleDownload}
+          onClick={handleNativeShare}
           disabled={generating}
           style={{
-            background:    GREEN,
-            color:         '#000',
-            fontFamily:    MONO,
-            fontWeight:    700,
+            background:    'none',
+            border:        `1px solid ${GREEN}`,
+            color:         GREEN,
+            fontFamily:    MONO_DM,
             fontSize:      12,
+            fontWeight:    700,
             letterSpacing: '0.08em',
-            border:        'none',
             borderRadius:  8,
             padding:       '12px 24px',
-            cursor:        generating ? 'wait' : 'pointer',
-            opacity:       generating ? 0.7 : 1,
-            minWidth:      200,
+            cursor:        generating ? 'not-allowed' : 'pointer',
+            width:         '100%',
+            marginTop:     8,
+            opacity:       generating ? 0.6 : 1,
           }}
         >
-          {generating ? 'GENERATING...' : 'DOWNLOAD'}
+          {generating ? 'GENERATING...' : '↗ SHARE'}
         </button>
+      )}
 
-        {canShare && (
-          <button
-            onClick={handleNativeShare}
-            disabled={generating}
-            style={{
-              background:    'none',
-              color:         GREEN,
-              fontFamily:    MONO,
-              fontWeight:    700,
-              fontSize:      12,
-              letterSpacing: '0.08em',
-              border:        `1px solid ${GREEN}`,
-              borderRadius:  8,
-              padding:       '12px 24px',
-              cursor:        generating ? 'wait' : 'pointer',
-              opacity:       generating ? 0.7 : 1,
-              minWidth:      200,
-            }}
-          >
-            {generating ? 'GENERATING...' : 'SHARE'}
-          </button>
-        )}
-      </div>
-
-      {/* ── Coin reward / error ───────────────────────────────────────── */}
+      {/* ── Coin reward / error ────────────────────────────────────── */}
       {coinsEarned > 0 && (
         <div style={{
-          marginTop:  12,
+          color:      GREEN,
+          fontFamily: MONO_DM,
+          fontSize:   11,
           textAlign:  'center',
-          fontFamily: MONO,
-          fontSize:   12,
-          color:      '#ffdd3b',
-          letterSpacing: '0.06em',
+          marginTop:  8,
         }}>
           +{coinsEarned} coins earned! 🪙
         </div>
@@ -308,11 +353,11 @@ export function ShareCardPopup({
 
       {error && (
         <div style={{
-          marginTop:  12,
-          textAlign:  'center',
+          color:      '#ff4466',
           fontFamily: SANS,
           fontSize:   12,
-          color:      '#ff4466',
+          textAlign:  'center',
+          marginTop:  10,
         }}>
           {error}
         </div>
@@ -320,12 +365,12 @@ export function ShareCardPopup({
 
       {!isSignedIn && (
         <div style={{
-          marginTop:     12,
-          textAlign:     'center',
-          fontFamily:    MONO,
+          color:         '#556677',
+          fontFamily:    MONO_DM,
           fontSize:      10,
-          color:         DIM,
           letterSpacing: '0.06em',
+          textAlign:     'center',
+          marginTop:     10,
         }}>
           Sign in to earn +2 coins per share
         </div>
