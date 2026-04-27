@@ -287,11 +287,15 @@ const NewsCard: React.FC<{
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.content) }}
         />
       )}
-      {!item.content && item.contentSnippet && (
-        <p style={{ color: DIM }} className="text-xs leading-relaxed mb-3 line-clamp-2">
-          {item.contentSnippet}
-        </p>
-      )}
+      {!item.content && (() => {
+        const snip = (item.contentSnippet ?? '').trim();
+        if (snip.length < 40) return null;
+        return (
+          <p style={{ color: DIM }} className="text-xs leading-relaxed mb-3 line-clamp-2">
+            {snip}
+          </p>
+        );
+      })()}
 
       {/* 4-button action row */}
       <div
