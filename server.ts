@@ -1473,6 +1473,7 @@ async function startServer() {
     console.error("[FATAL] SESSION_SECRET env var is required in production");
     process.exit(1);
   }
+  app.set("trust proxy", 1);
   app.use(
     session({
       secret:            process.env.SESSION_SECRET ?? "dev-only-fallback-secret",
@@ -1481,7 +1482,7 @@ async function startServer() {
       cookie: {
         secure:   process.env.NODE_ENV === "production",
         httpOnly: true,
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge:   24 * 60 * 60 * 1000, // 24 hours
       },
     })
