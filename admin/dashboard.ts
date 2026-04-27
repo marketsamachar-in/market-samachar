@@ -1638,18 +1638,18 @@ function buildCard(a, fmt) {
   var cc      = CAT_COLORS[cat] || "#00ff88";
   var ce      = CAT_EMOJI[cat]  || "📊";
   var cl      = CAT_LABEL[cat]  || cat.toUpperCase();
-  var maxC    = fmt==="9x16" ? 90 : 72;
+  var maxC    = 75;
   var sTitle  = title.length > maxC ? title.slice(0, maxC)+"…" : title;
+  var summary = snippet.length > 160 ? snippet.slice(0,157)+"…" : snippet;
 
-  var bullets = [];
-  if (snippet) {
-    bullets = snippet.split(/[.!?]+/).map(function(s){ return s.trim(); })
-      .filter(function(s){ return s.length > 15; }).slice(0, 4);
-  }
-  if (!bullets.length) bullets = [snippet.slice(0,80) || sTitle.slice(0,80)];
+  // Better bullet extraction - split by sentence
+  var rawSents = snippet.replace(/([.!?])\s+/g,'$1|').split('|')
+    .map(function(s){return s.trim().replace(/[.!?]+$/,'');})
+    .filter(function(s){return s.length > 20 && s.length < 120;});
+  var bullets = rawSents.slice(0, fmt==="1x1" ? 3 : 4);
+  if (!bullets.length) bullets = [snippet.slice(0,100)].filter(Boolean);
 
   var bIcons = ["📌","📊","💡","🔍"];
-  var bNums  = ["01","02","03","04"];
 
   var dateStr = "—";
   try {
@@ -1658,106 +1658,172 @@ function buildCard(a, fmt) {
     dateStr = ("0"+dd.getDate()).slice(-2)+"-"+MM[dd.getMonth()]+"-"+dd.getFullYear();
   } catch(ex) {}
 
-  // Build HTML using single-quoted attribute values to avoid escaping issues
-  function d(tag, style, content) {
-    return '<'+tag+' style="'+style+'">'+content+'</'+tag+'>';
-  }
-  function sp(style, content) { return d('span', style, content); }
-  function dv(style, content) { return d('div',  style, content); }
+  var catBadge = '<span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;display:inline-flex;align-items:center;gap:2px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:#00ff88">'+ce+' '+cl+'</span>';
+  var hotBadge = (cat==='ipo') ?
+    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,70,102,.1);border:1px solid rgba(255,70,102,.25);color:#ff4466">🔥 TRENDING</span>' :
+    (cat==='companies') ?
+    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,204,68,.1);border:1px solid rgba(255,204,68,.25);color:#ffcc44">📋 Q4 RESULTS</span>' :
+    (cat==='economy'||cat==='rbi'||cat==='sebi') ?
+    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.25);color:#3b9eff">📢 POLICY</span>' : '';
 
-  var PAD = '9px';
-  var FS_HD  = '5.5px'; var FS_CAT = '5px'; var FS_HL = '10.5px';
-  var FS_SL  = '5px';   var FS_BT  = '7px'; var FS_DL = '5px';
-  var FS_DV  = '10.5px';var FS_DS  = '5.5px';
-  var FS_FT  = '4.5px'; var FS_SITE= '6px'; var FS_DISC='4px';
-
-  // Category badge
-  var catBadge = sp(
-    'font-size:'+FS_CAT+';padding:2px 6px;border-radius:2px;letter-spacing:.6px;display:inline-flex;align-items:center;gap:2px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:#00ff88',
-    ce+' '+cl
-  );
-  var hotBadge = (cat==='ipo')
-    ? ' '+sp('font-size:'+FS_CAT+';padding:2px 6px;border-radius:2px;letter-spacing:.6px;display:inline-flex;align-items:center;gap:2px;background:rgba(255,70,102,.08);border:1px solid rgba(255,70,102,.2);color:#ff4466','🔥 TRENDING')
-    : (cat==='companies')
-    ? ' '+sp('font-size:'+FS_CAT+';padding:2px 6px;border-radius:2px;letter-spacing:.6px;display:inline-flex;align-items:center;gap:2px;background:rgba(255,204,68,.08);border:1px solid rgba(255,204,68,.2);color:#ffcc44','📋 Q4 RESULTS')
-    : '';
-
-  // Bullets
   var bHtml = bullets.map(function(b,i) {
-    return dv('display:flex;gap:4px;margin-bottom:4px;align-items:flex-start',
-      sp('font-size:'+FS_BT+';color:#00ff88;flex-shrink:0;line-height:1.45;min-width:14px', bNums[i])+
-      sp('font-size:'+FS_BT+';color:#8899aa;line-height:1.45', bIcons[i]+' '+esc(b.slice(0,90)))
-    );
+    return '<div style="display:flex;gap:5px;margin-bottom:5px;align-items:flex-start">'+
+      '<span style="font-size:6.5px;color:#00ff88;flex-shrink:0;min-width:14px;line-height:1.5;font-weight:600">'+('0'+(i+1)).slice(-2)+'</span>'+
+      '<span style="font-size:6.5px;color:#8899aa;line-height:1.5">'+bIcons[i]+' '+esc(b)+'</span>'+
+    '</div>';
   }).join('');
 
-  // IPO snapshot grid
-  var ipoGrid = (cat==='ipo') ? dv(
-    'background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:6px;margin-bottom:4px;flex-shrink:0',
-    dv('font-size:'+FS_SL+';color:#334466;letter-spacing:1px;margin-bottom:5px','📋 IPO SNAPSHOT')+
-    dv('display:grid;grid-template-columns:1fr 1fr;gap:4px',
-      dv('',dv('font-size:'+FS_SL+';color:#334466;margin-bottom:2px','💰 PRICE BAND')+sp('font-size:'+FS_BT+';color:#e8eaf0','₹120–₹135'))+
-      dv('',dv('font-size:'+FS_SL+';color:#334466;margin-bottom:2px','📦 LOT SIZE')+sp('font-size:'+FS_BT+';color:#e8eaf0','111 shares'))
-    )
-  ) : '';
+  // Market strip (row 1 - always present)
+  function mktCell(l,v,s,vc,sc) {
+    return '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px;text-align:center">'+
+      '<div style="font-size:5px;color:#334466;letter-spacing:.7px;margin-bottom:2px">'+l+'</div>'+
+      '<div style="font-size:11px;color:'+vc+';font-weight:600;line-height:1">'+v+'</div>'+
+      '<div style="font-size:5.5px;color:'+sc+';margin-top:2px">'+s+'</div>'+
+    '</div>';
+  }
+  var mktRow1 = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px">'+
+    mktCell('📈 NIFTY 50','24,200','▲0.91%','#00ff88','#00ff88')+
+    mktCell('📊 SENSEX','79,600','▲0.87%','#00ff88','#00ff88')+
+    mktCell('💱 ₹/USD','84.21','▼0.12%','#3b9eff','#ff4466')+
+  '</div>';
+  var mktRow2 = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-top:3px">'+
+    mktCell('🏦 BANK NIFTY','51,200','▲1.12%','#00ff88','#00ff88')+
+    mktCell('🥇 GOLD','₹92,400','▲0.31%','#ffcc44','#00ff88')+
+    mktCell('🛢️ CRUDE','$82.4','▼0.65%','#ff9f3b','#ff4466')+
+  '</div>';
 
-  // Market data grid
-  var mktItems = [
-    {l:'📈 NIFTY',  v:'24,200', s:'▲0.91%', vc:'#00ff88', sc:'#00ff88'},
-    {l:'📊 SENSEX', v:'79,600', s:'▲0.87%', vc:'#00ff88', sc:'#00ff88'},
-    {l:'💱 ₹/USD',  v:'84.21',  s:'▼0.12%', vc:'#3b9eff', sc:'#ff4466'}
-  ];
-  var mktHtml = dv('display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;flex-shrink:0',
-    mktItems.map(function(m) {
-      return dv('background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px;text-align:center',
-        dv('font-size:'+FS_DL+';color:#334466;letter-spacing:.7px;margin-bottom:2px', m.l)+
-        dv('font-size:'+FS_DV+';color:'+m.vc+';font-weight:500;line-height:1', m.v)+
-        dv('font-size:'+FS_DS+';color:'+m.sc+';line-height:1;margin-top:2px', m.s)
-      );
-    }).join('')
-  );
+  // IPO snapshot
+  var ipoExtra = (cat==='ipo') ?
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px">'+
+      '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">💰 PRICE BAND</div>'+
+        '<div style="font-size:9px;color:#e8eaf0">₹120 – ₹135</div>'+
+      '</div>'+
+      '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">📦 LOT SIZE</div>'+
+        '<div style="font-size:9px;color:#e8eaf0">111 shares</div>'+
+      '</div>'+
+    '</div>' : '';
 
-  // Assemble card
-  var card =
-    // Header
-    dv('background:linear-gradient(90deg,rgba(0,255,136,.09),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.14);padding:6px '+PAD+';display:flex;justify-content:space-between;align-items:center;flex-shrink:0',
-      dv('display:flex;align-items:center;gap:5px',
-        dv('style','')+ // placeholder - we inline the dot below
-        '<div style="width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0;margin-right:5px"></div>'+
-        sp('font-size:'+FS_HD+';color:#00ff88;letter-spacing:1.5px','📊 MARKET SAMACHAR')
-      )+
-      dv('display:flex;align-items:center;gap:4px',
-        '<span style="font-size:9px">🇮🇳</span>'+
-        sp('font-size:'+FS_HD+';color:#334466', dateStr+' · IST')
-      )
-    )+
-    // Fix: rebuild header properly
-    '';
+  // Common elements
+  var header = '<div style="background:linear-gradient(90deg,rgba(0,255,136,.1),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.15);padding:6px 10px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
+    '<div style="display:flex;align-items:center;gap:5px">'+
+      '<div style="width:7px;height:7px;border-radius:50%;background:#00ff88"></div>'+
+      '<span style="font-size:6px;color:#00ff88;letter-spacing:1.5px;font-weight:600">📊 MARKET SAMACHAR</span>'+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:4px">'+
+      '<span style="font-size:9px">🇮🇳</span>'+
+      '<span style="font-size:5.5px;color:#334466">'+dateStr+' · IST</span>'+
+    '</div>'+
+  '</div>';
 
-  // Actually build it cleanly
-  var h_left = '<div style="display:flex;align-items:center;gap:5px"><div style="width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0"></div><span style="font-size:'+FS_HD+';color:#00ff88;letter-spacing:1.5px">📊 MARKET SAMACHAR</span></div>';
-  var h_right= '<div style="display:flex;align-items:center;gap:4px"><span style="font-size:9px">🇮🇳</span><span style="font-size:'+FS_HD+';color:#334466">'+dateStr+' · IST</span></div>';
-  var header = '<div style="background:linear-gradient(90deg,rgba(0,255,136,.09),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.14);padding:6px '+PAD+';display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+h_left+h_right+'</div>';
+  var wm = '<div style="display:flex;align-items:center;gap:4px;padding:2px 10px">'+
+    '<div style="flex:1;height:1px;background:rgba(0,255,136,.15)"></div>'+
+    '<div style="font-size:4.5px;color:rgba(0,255,136,.3);letter-spacing:1.5px">◈ MARKETSAMACHAR.IN</div>'+
+    '<div style="flex:1;height:1px;background:rgba(0,255,136,.15)"></div>'+
+  '</div>';
 
-  var catRow = '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px">'+catBadge+hotBadge+'</div>';
-  var headline = '<div style="font-size:'+FS_HL+';color:#00ff88;line-height:1.35;font-weight:500;letter-spacing:.3px">'+esc(sTitle)+'</div>';
-  var divider  = '<div style="width:22px;height:1px;background:rgba(0,255,136,.25);margin:5px 0"></div>';
-  var headSection = '<div style="padding:7px '+PAD+' 4px '+PAD+';flex-shrink:0">'+catRow+headline+divider+'</div>';
+  var footer = '<div style="background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);padding:5px 10px;flex-shrink:0">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'+
+      '<span style="font-size:4.5px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;padding:1px 5px">ℹ️ NOT INVESTMENT ADVICE · FOR INFO ONLY</span>'+
+      '<span style="font-size:6px;color:#00ff88;letter-spacing:.8px;font-weight:600">marketsamachar.in</span>'+
+    '</div>'+
+    '<div style="font-size:4px;color:#1a3040;line-height:1.4">⚠ Investment in securities market are subject to market risks. Read all related documents carefully before investing.</div>'+
+  '</div>';
 
-  var bulletsBox = '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:7px;flex:1"><div style="font-size:'+FS_SL+';color:#334466;letter-spacing:1px;margin-bottom:6px">💡 KEY HIGHLIGHTS</div>'+bHtml+'</div>';
-  var body = '<div style="padding:0 '+PAD+';flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+ipoGrid+bulletsBox+mktHtml+'</div>';
+  // ─── 1:1 SQUARE LAYOUT ────────────────────────────────────────────────
+  if (fmt === "1x1") {
+    var hl1 = '<div style="font-size:13.5px;color:#00ff88;line-height:1.3;font-weight:600;letter-spacing:.3px">'+esc(sTitle)+'</div>';
+    var summ1 = summary ? '<div style="font-size:7px;color:#5580aa;line-height:1.5;margin-top:5px;padding:5px 7px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.3);border-radius:0 3px 3px 0">'+esc(summary.slice(0,120))+'</div>' : '';
+    return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
+      header+
+      '<div style="padding:8px 10px 4px;flex-shrink:0">'+
+        '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+hotBadge+'</div>'+
+        hl1+summ1+
+        '<div style="width:24px;height:2px;background:rgba(0,255,136,.4);margin:6px 0 0;border-radius:1px"></div>'+
+      '</div>'+
+      '<div style="padding:0 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
+        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:7px;flex:1">'+
+          '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:3px">💡 KEY HIGHLIGHTS</div>'+
+          bHtml+
+        '</div>'+
+        '<div style="flex-shrink:0">'+mktRow1+'</div>'+
+      '</div>'+
+      wm+footer+
+    '</div>';
+  }
 
-  var wmLine = '<div style="flex:1;height:1px;background:rgba(0,255,136,.18)"></div>';
-  var wmTxt  = '<div style="font-size:4.5px;color:rgba(0,255,136,.35);letter-spacing:1.5px;white-space:nowrap">◈ MARKETSAMACHAR.IN</div>';
-  var wm = '<div style="display:flex;align-items:center;gap:4px;padding:3px '+PAD+' 0">'+wmLine+wmTxt+wmLine+'</div>';
+  // ─── 4:5 PORTRAIT LAYOUT ──────────────────────────────────────────────
+  if (fmt === "4x5") {
+    var hl45 = '<div style="font-size:14.5px;color:#00ff88;line-height:1.3;font-weight:600;letter-spacing:.3px">'+esc(sTitle)+'</div>';
+    var summ45 = summary ? '<div style="font-size:7.5px;color:#5580aa;line-height:1.55;margin-top:6px;padding:6px 8px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.3);border-radius:0 3px 3px 0">'+esc(summary.slice(0,150))+'</div>' : '';
+    return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
+      header+
+      '<div style="padding:9px 10px 5px;flex-shrink:0">'+
+        '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+hotBadge+'</div>'+
+        hl45+summ45+
+        '<div style="width:24px;height:2px;background:rgba(0,255,136,.4);margin:7px 0 0;border-radius:1px"></div>'+
+      '</div>'+
+      '<div style="padding:5px 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
+        ipoExtra+
+        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex:1">'+
+          '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
+          bHtml+
+        '</div>'+
+        '<div style="flex-shrink:0">'+mktRow1+mktRow2+'</div>'+
+      '</div>'+
+      wm+footer+
+    '</div>';
+  }
 
-  var ftBadge = '<span style="font-size:'+FS_FT+';background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;padding:1px 5px;letter-spacing:.4px">ℹ️ NOT INVESTMENT ADVICE · FOR INFO ONLY</span>';
-  var ftSite  = '<span style="font-size:'+FS_SITE+';color:#00ff88;letter-spacing:.8px">marketsamachar.in</span>';
-  var ftRow   = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'+ftBadge+ftSite+'</div>';
-  var ftDisc  = '<div style="font-size:'+FS_DISC+';color:#1a3040;line-height:1.45">⚠ Investment in securities market are subject to market risks. Read all related documents carefully before investing.</div>';
-  var footer  = '<div style="background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);padding:5px '+PAD+';flex-shrink:0">'+ftRow+ftDisc+'</div>';
+  // ─── 9:16 STORY LAYOUT ────────────────────────────────────────────────
+  var hl9 = '<div style="font-size:15px;color:#00ff88;line-height:1.3;font-weight:600;letter-spacing:.3px">'+esc(sTitle)+'</div>';
+  var summ9 = summary ? '<div style="font-size:7.5px;color:#5580aa;line-height:1.55;margin-top:6px;padding:6px 8px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.3);border-radius:0 3px 3px 0">'+esc(summary.slice(0,160))+'</div>' : '';
 
-  return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border:1px solid #1a1a2e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
-    header + headSection + body + wm + footer +
+  // Extra context section for 9:16
+  var contextBox = '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex-shrink:0">'+
+    '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:6px">📌 MARKET CONTEXT — 27 APR 2026</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">🕐 TRADING SESSION</div>'+
+        '<div style="font-size:8px;color:#00ff88">NSE/BSE CLOSED</div>'+
+        '<div style="font-size:5.5px;color:#334466">Market Hours: 9:15–15:30</div>'+
+      '</div>'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">📅 NEXT SESSION</div>'+
+        '<div style="font-size:8px;color:#ffcc44">28 APR 2026</div>'+
+        '<div style="font-size:5.5px;color:#334466">Monday — Market Opens</div>'+
+      '</div>'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">🥇 MCX GOLD</div>'+
+        '<div style="font-size:8px;color:#ffcc44">₹92,400</div>'+
+        '<div style="font-size:5.5px;color:#00ff88">▲ 0.31% today</div>'+
+      '</div>'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">🛢️ CRUDE OIL</div>'+
+        '<div style="font-size:8px;color:#ff9f3b">$82.40</div>'+
+        '<div style="font-size:5.5px;color:#ff4466">▼ 0.65% today</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+
+  return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
+    header+
+    '<div style="padding:9px 10px 5px;flex-shrink:0">'+
+      '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+hotBadge+'</div>'+
+      hl9+summ9+
+      '<div style="width:24px;height:2px;background:rgba(0,255,136,.4);margin:7px 0 0;border-radius:1px"></div>'+
+    '</div>'+
+    '<div style="padding:5px 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
+      ipoExtra+
+      '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex-shrink:0">'+
+        '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
+        bHtml+
+      '</div>'+
+      contextBox+
+      '<div style="flex-shrink:0">'+mktRow1+mktRow2+'</div>'+
+    '</div>'+
+    wm+footer+
   '</div>';
 }
 
