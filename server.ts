@@ -70,6 +70,8 @@ import authSyncRouter       from "./backend/src/routes/authSync.ts";
 import { startStockPriceCron } from "./backend/src/services/stockPriceService.ts";
 import { createDailyPredictions, resolvePredictions } from "./backend/src/services/predictionService.ts";
 import { addCoins, ensureUser as ensureSqliteUser } from "./backend/src/services/coinService.ts";
+import { requireAuth } from "./backend/src/middleware/auth.ts";
+import { POLL_VOTE_COINS, SHARE_ARTICLE_COINS } from "./backend/src/services/rewardConfig.ts";
 import {
   QUIZ_CORRECT_COINS,
   QUIZ_PERFECT_BONUS,
@@ -3802,6 +3804,157 @@ body{background:#07070e;color:#e8eaf0;font-family:'DM Sans',sans-serif;min-heigh
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ── Story Timeline / Polls / Share Reward ──────────────────────────────────
+
+  const TIMELINE_STOPWORDS = new Set([
+    'the','a','an','is','in','of','to','and','for','with','by',
+    'on','at','as','it','be','or','from','that','this','was','are',
+  ]);
+
+  function extractTimelineKeywords(title: string): string[] {
+    return title
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .split(/\s+/)
+      .filter(w => w.length >= 3 && !TIMELINE_STOPWORDS.has(w))
+      .slice(0, 3);
+  }
+
+  // GET /api/news/timeline/:id — related articles in chronological order
+  app.get('/api/news/timeline/:id', (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const article = getNewsById(id);
+      if (!article) return res.status(404).json({ ok: false, error: 'Article not found' });
+
+      const keywords = extractTimelineKeywords(article.title || '');
+      const cutoffMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+      // Build dynamic LIKE clauses for keyword matches
+      const likeClauses = keywords.map(() => 'LOWER(title) LIKE ?').join(' OR ');
+      const matchClause = likeClauses
+        ? `(category = ? OR ${likeClauses})`
+        : `category = ?`;
+
+      const sql = `
+        SELECT id, title, link, source, pub_date, category
+        FROM news_items
+        WHERE ${matchClause}
+          AND fetched_at >= ?
+          AND id != ?
+        ORDER BY pub_date ASC
+        LIMIT 8
+      `;
+      const params: any[] = [article.category, ...keywords.map(k => `%${k}%`), cutoffMs, id];
+
+      const rows = rawDb.prepare(sql).all(...params) as Array<{
+        id: string; title: string; link: string; source: string; pub_date: string; category: string;
+      }>;
+
+      res.json({ ok: true, articles: rows });
+    } catch (err: any) {
+      console.error('[news/timeline] error:', err);
+      res.status(500).json({ ok: false, error: 'Internal error' });
+    }
+  });
+
+  async function getPollCounts(articleId: string): Promise<{ bullish: number; bearish: number; neutral: number; total: number }> {
+    const counts = { bullish: 0, bearish: 0, neutral: 0, total: 0 };
+    if (!supabaseAdmin) return counts;
+    const { data, error } = await supabaseAdmin
+      .from('article_polls')
+      .select('vote')
+      .eq('article_id', articleId);
+    if (error || !data) return counts;
+    for (const row of data as Array<{ vote: string }>) {
+      if (row.vote === 'bullish') counts.bullish++;
+      else if (row.vote === 'bearish') counts.bearish++;
+      else if (row.vote === 'neutral') counts.neutral++;
+    }
+    counts.total = counts.bullish + counts.bearish + counts.neutral;
+    return counts;
+  }
+
+  // GET /api/news/poll/:id — public poll counts
+  app.get('/api/news/poll/:id', async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) return res.status(503).json({ ok: false, error: 'Auth service not configured' });
+      const counts = await getPollCounts(req.params.id);
+      res.json({ ok: true, ...counts });
+    } catch (err: any) {
+      console.error('[news/poll GET] error:', err);
+      res.status(500).json({ ok: false, error: 'Internal error' });
+    }
+  });
+
+  // POST /api/news/poll/:id/vote — authenticated; bullish/bearish/neutral
+  app.post('/api/news/poll/:id/vote', requireAuth, async (req: Request, res: Response) => {
+    try {
+      if (!supabaseAdmin) return res.status(503).json({ ok: false, error: 'Auth service not configured' });
+      const user = req.user!;
+      const { id: articleId } = req.params;
+      const { vote } = (req.body ?? {}) as { vote?: string };
+
+      if (!vote || !['bullish', 'bearish', 'neutral'].includes(vote)) {
+        return res.status(400).json({ ok: false, error: "vote must be 'bullish', 'bearish', or 'neutral'" });
+      }
+
+      const { error: upsertErr } = await supabaseAdmin
+        .from('article_polls')
+        .upsert(
+          { article_id: articleId, user_id: user.id, vote },
+          { onConflict: 'article_id,user_id' },
+        );
+      if (upsertErr) {
+        console.error('[news/poll POST] upsert error:', upsertErr);
+        return res.status(500).json({ ok: false, error: 'Failed to record vote' });
+      }
+
+      // Award POLL_VOTE coins once per (user, article) — INSERT OR IGNORE on reading_rewards
+      ensureSqliteUser(user.id, user.name, user.email);
+      const today = getISTDate();
+      let coinsEarned = 0;
+      const ins = rawDb.prepare(
+        "INSERT OR IGNORE INTO reading_rewards (user_id, article_id, reward_type, coins_awarded, reward_date, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+      ).run(user.id, articleId, 'POLL_VOTE', POLL_VOTE_COINS, today, Date.now());
+      if (ins.changes > 0) {
+        addCoins(user.id, POLL_VOTE_COINS, 'POLL_VOTE', articleId, 'Community poll vote');
+        coinsEarned = POLL_VOTE_COINS;
+      }
+
+      const counts = await getPollCounts(articleId);
+      res.json({ ok: true, ...counts, coinsEarned });
+    } catch (err: any) {
+      console.error('[news/poll POST] error:', err);
+      res.status(500).json({ ok: false, error: 'Internal error' });
+    }
+  });
+
+  // POST /api/news/share/:id/reward — authenticated; one-time SHARE_ARTICLE coins per article per day
+  app.post('/api/news/share/:id/reward', requireAuth, (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { id: articleId } = req.params;
+
+      ensureSqliteUser(user.id, user.name, user.email);
+      const today = getISTDate();
+
+      const ins = rawDb.prepare(
+        "INSERT OR IGNORE INTO reading_rewards (user_id, article_id, reward_type, coins_awarded, reward_date, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+      ).run(user.id, articleId, 'SHARE_ARTICLE', SHARE_ARTICLE_COINS, today, Date.now());
+
+      if (ins.changes === 0) {
+        return res.json({ ok: true, alreadyClaimed: true, coinsEarned: 0 });
+      }
+
+      addCoins(user.id, SHARE_ARTICLE_COINS, 'SHARE_ARTICLE', articleId, 'Article share reward');
+      res.json({ ok: true, coinsEarned: SHARE_ARTICLE_COINS });
+    } catch (err: any) {
+      console.error('[news/share] error:', err);
+      res.status(500).json({ ok: false, error: 'Internal error' });
     }
   });
 
