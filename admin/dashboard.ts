@@ -781,11 +781,11 @@ async function loadQuiz(){
 }
 async function regenerateQuiz(){
   const btn=document.getElementById('regen-btn');
-  if(!confirm('Regenerate today\\'s quiz? This overwrites existing questions.'))return;
+  if(!confirm('Regenerate quiz? This overwrites existing questions.'))return;
   btn.disabled=true;btn.textContent='↻ Regenerating…';
   try{await api('/api/admin/quiz/regenerate',{method:'POST'});toast('Quiz regenerated!');loadQuiz();}
   catch(e){toast(e.message,true);}
-  finally{btn.disabled=false;btn.textContent='↻ Regenerate Today\\'s Quiz';}
+  finally{btn.disabled=false;btn.textContent='↻ Regenerate Quiz';}
 }
 
 // ── 6. IPOs ───────────────────────────────────────────────────────────
