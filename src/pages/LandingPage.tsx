@@ -3,6 +3,11 @@ import { AuthModal } from '../components/auth/AuthModal';
 import { useAuth } from '../hooks/useAuth';
 import { AppHeader } from '../components/AppHeader';
 import { BottomNav, getHrefNavTabs } from '../components/BottomNav';
+import { ArticlePopupModal } from '../components/news/ArticlePopupModal';
+import { StoryTimelinePopup } from '../components/news/StoryTimelinePopup';
+import { CommunityPollPopup } from '../components/news/CommunityPollPopup';
+import { ShareCardPopup } from '../components/news/ShareCardPopup';
+import { SourcePopup } from '../components/news/SourcePopup';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────── */
 const GREEN   = '#00ff88';
@@ -309,32 +314,15 @@ function FeatureStrip() {
 
 /* ─── News Card ──────────────────────────────────────────────────────────────── */
 function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void }) {
-  const [showSummary,   setShowSummary]   = useState(false);
-  const [summary,       setSummary]       = useState<string | null>(null);
-  const [loadingSummary,setLoadingSummary]= useState(false);
+  const { user, session } = useAuth();
+  const [activePopup, setActivePopup] = useState<null | 'timeline' | 'poll' | 'share' | 'source'>(null);
 
   const catColor = CAT_COLOR[item.category] ?? GREEN;
   const hot      = isHot(item.pubDate ?? item.pub_date ?? '');
 
-  const handleAISummary = async () => {
-    if (showSummary) { setShowSummary(false); return; }
-    setShowSummary(true);
-    if (!summary && !loadingSummary) {
-      setLoadingSummary(true);
-      try {
-        const res  = await fetch(`/api/news/ai-summary/${item.id}`);
-        const data = await res.json();
-        if (data.error) {
-          setSummary('Could not generate summary. Please try again.');
-        } else {
-          setSummary(data.aiSummary ?? 'Could not generate summary.');
-        }
-      } catch {
-        setSummary('Could not generate summary.');
-      } finally {
-        setLoadingSummary(false);
-      }
-    }
+  const handlePollClick = () => {
+    if (!user) { onSignIn?.(); return; }
+    setActivePopup('poll');
   };
 
   return (
@@ -396,88 +384,128 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
         </p>
       )}
 
-      {/* AI Summary panel */}
-      {showSummary && (
-        <div style={{
-          background: 'rgba(0,255,136,0.04)', border: `1px solid rgba(0,255,136,0.13)`,
-          borderRadius: 6, padding: '0.6rem 0.75rem', margin: '6px 0',
-          color: MUTED, ...SANS, fontSize: '0.78rem', lineHeight: 1.55,
-        }}>
-          {loadingSummary
-            ? <span style={{ color: GREEN, ...MONO, fontSize: '0.63rem' }}>🤖 GENERATING SUMMARY…</span>
-            : summary
-          }
-        </div>
-      )}
-
       {/* 4-button action row */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6,
         marginTop: 8, paddingTop: 8, borderTop: `1px solid ${BORDER}`,
       }}>
-        {/* Market Impact — prompts sign-in on landing page */}
+        {/* Story Timeline */}
         <button
-          onClick={onSignIn}
+          onClick={() => setActivePopup('timeline')}
           className="hp-action-btn"
           style={{
-            background: 'none', border: `1px solid rgba(59,158,255,0.35)`, borderRadius: 4,
-            color: INFO, ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            background: 'none', border: `1px solid rgba(59,255,238,0.35)`, borderRadius: 4,
+            color: '#3bffee', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
             padding: '4px 6px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
           }}
         >
-          📊 Impact
+          📖 Timeline
         </button>
 
-        {/* AI Summary */}
+        {/* Community Poll */}
         <button
-          onClick={handleAISummary}
+          onClick={handlePollClick}
           className="hp-action-btn"
           style={{
-            background: 'none', border: `1px solid rgba(0,255,136,0.35)`, borderRadius: 4,
-            color: GREEN, ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            background: 'none', border: `1px solid rgba(255,159,59,0.35)`, borderRadius: 4,
+            color: '#ff9f3b', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
             padding: '4px 6px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
           }}
         >
-          🤖 AI +5
+          🗳️ Poll +3
         </button>
 
-        {/* Listen — prompts sign-in on landing page */}
+        {/* Share Card */}
         <button
-          onClick={onSignIn}
+          onClick={() => setActivePopup('share')}
           className="hp-action-btn"
           style={{
-            background: 'none', border: `1px solid rgba(179,102,255,0.35)`, borderRadius: 4,
-            color: '#b366ff', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            background: 'none', border: `1px solid rgba(255,107,255,0.35)`, borderRadius: 4,
+            color: '#ff6bff', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
             padding: '4px 6px', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
           }}
         >
-          🔊 +10
+          🔗 Share +2
         </button>
 
         {/* Source */}
-        {item.link ? (
-          <a
-            href={item.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hp-action-btn"
-            style={{
-              background: 'none', border: `1px solid rgba(255,221,59,0.35)`, borderRadius: 4,
-              color: '#ffdd3b', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
-              padding: '4px 6px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-              textDecoration: 'none',
-            }}
-          >
-            ↗ Source
-          </a>
-        ) : (
-          <span style={{ visibility: 'hidden' }} />
-        )}
+        <button
+          onClick={() => setActivePopup('source')}
+          className="hp-action-btn"
+          style={{
+            background: 'none', border: `1px solid rgba(255,221,59,0.35)`, borderRadius: 4,
+            color: '#ffdd3b', ...MONO, fontSize: '0.58rem', letterSpacing: '0.04em',
+            padding: '4px 6px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+          }}
+        >
+          ↗ Source
+        </button>
       </div>
+
+      {/* Popup modals */}
+      <ArticlePopupModal
+        isOpen={activePopup === 'timeline'}
+        onClose={() => setActivePopup(null)}
+        title="STORY TIMELINE"
+        type="story-timeline"
+      >
+        <StoryTimelinePopup
+          currentId={item.id}
+          currentTitle={item.title}
+          category={item.category}
+        />
+      </ArticlePopupModal>
+
+      <ArticlePopupModal
+        isOpen={activePopup === 'poll'}
+        onClose={() => setActivePopup(null)}
+        title="COMMUNITY POLL"
+        type="community-poll"
+      >
+        <CommunityPollPopup
+          articleId={item.id}
+          articleTitle={item.title}
+          isSignedIn={!!user}
+          authToken={session?.access_token ?? null}
+        />
+      </ArticlePopupModal>
+
+      <ArticlePopupModal
+        isOpen={activePopup === 'share'}
+        onClose={() => setActivePopup(null)}
+        title="SHARE ARTICLE"
+        type="share-card"
+      >
+        <ShareCardPopup
+          articleId={item.id}
+          articleTitle={item.title}
+          source={item.source}
+          category={item.category}
+          pubDate={item.pubDate ?? item.pub_date ?? ''}
+          isSignedIn={!!user}
+          authToken={session?.access_token ?? null}
+        />
+      </ArticlePopupModal>
+
+      <ArticlePopupModal
+        isOpen={activePopup === 'source'}
+        onClose={() => setActivePopup(null)}
+        title="SOURCE ARTICLE"
+        type="source"
+      >
+        <SourcePopup
+          item={{
+            id:     item.id,
+            title:  item.title,
+            link:   item.link ?? '',
+            source: item.source,
+          }}
+        />
+      </ArticlePopupModal>
     </article>
   );
 }
