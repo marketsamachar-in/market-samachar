@@ -65,18 +65,7 @@ interface NewsItem {
   category: string;
   contentSnippet?: string;
   content?: string;
-  aiSummary?: string;
-  summaryBullets?: string[];
-  sentiment?: 'bullish' | 'bearish' | 'neutral';
-  impactSectors?: string[];
-  keyNumbers?: { value: string; context: string }[];
-  translations?: {
-    [lang: string]: {
-      title: string;
-      summary: string;
-      bullets: string[];
-    };
-  };
+
 }
 
 interface RegulatoryItem {
