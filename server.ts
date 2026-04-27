@@ -109,6 +109,23 @@ async function instamojoRequest(
   return res.data;
 }
 
+// ── RSS snippet cleaner ───────────────────────────────────────────────────────
+// Strip HTML, raw URLs, and HTML entities from RSS contentSnippet fields, and
+// reject anything too short or that's just a domain stub. Applied before
+// inserting items into the news_items SQLite table.
+function cleanSnippet(raw: string | undefined): string {
+  if (!raw || typeof raw !== 'string') return '';
+  const cleaned = raw
+    .replace(/<[^>]*>/g, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/&[a-z]+;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (cleaned.length < 40) return '';
+  if (/^[A-Z0-9\-.]+\.[A-Z]{2,4}$/i.test(cleaned)) return '';
+  return cleaned;
+}
+
 // ── Server-side Supabase client (service role — NEVER expose to frontend) ─────
 const supabaseAdmin = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
   ? createSupabaseClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -564,7 +581,7 @@ async function fetchNews() {
         pub_date:        item.pubDate,
         source:          item.source,
         category:        item.category,
-        content_snippet: item.contentSnippet,
+        content_snippet: cleanSnippet(item.contentSnippet),
       }));
 
       const newCount = saveBatch(batchId, dbItems);
