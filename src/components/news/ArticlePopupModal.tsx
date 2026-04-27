@@ -10,17 +10,20 @@ const MONO: React.CSSProperties = { fontFamily: "'DM Mono', monospace" };
 const SANS: React.CSSProperties = { fontFamily: "'DM Sans', sans-serif" };
 
 const TYPE_COLORS: Record<string, string> = {
-  'market-impact': '#3b9eff',
-  'ai-summary':    '#00ff88',
-  listen:          '#b366ff',
-  source:          '#ffdd3b',
+  'market-impact':  '#3b9eff',
+  'ai-summary':     '#00ff88',
+  listen:           '#b366ff',
+  source:           '#ffdd3b',
+  'story-timeline': '#3bffee',
+  'community-poll': '#ff9f3b',
+  'share-card':     '#ff6bff',
 };
 
 interface Props {
   isOpen:   boolean;
   onClose:  () => void;
   title:    string;
-  type:     'market-impact' | 'ai-summary' | 'listen' | 'source';
+  type:     'market-impact' | 'ai-summary' | 'listen' | 'source' | 'story-timeline' | 'community-poll' | 'share-card';
   badge?:   React.ReactNode;
   children: React.ReactNode;
 }
