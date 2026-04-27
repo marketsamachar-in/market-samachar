@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 
 const MONO_DM   = "'DM Mono', monospace";
-const TERM_FONT = "'Courier New', monospace";
+const TERM_FONT = "'DM Mono', 'Courier New', monospace";
 const SANS      = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const GREEN     = '#00ff88';
 
@@ -80,6 +80,9 @@ export function ShareCardPopup({
       scale:           2,
       backgroundColor: '#020208',
       logging:         false,
+      onclone: (clonedDoc: Document) => {
+        return (clonedDoc as any).fonts?.ready;
+      },
     } as any);
   }
 
@@ -254,10 +257,13 @@ export function ShareCardPopup({
               ) : (
                 <div style={{
                   color:      '#556677',
-                  fontSize:   10,
-                  fontFamily: SANS,
+                  fontSize:   11,
+                  fontFamily: "'DM Sans', sans-serif",
+                  lineHeight: 1.6,
+                  fontStyle:  'italic',
+                  padding:    '2px 0',
                 }}>
-                  Full story available at marketsamachar.in
+                  Visit marketsamachar.in for the full story.
                 </div>
               )}
             </div>
