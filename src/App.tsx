@@ -9,6 +9,9 @@ import { ArticlePopupModal } from "./components/news/ArticlePopupModal";
 import { AiSummaryPopup } from "./components/news/AiSummaryPopup";
 import { ListenPopup } from "./components/news/ListenPopup";
 import { SourcePopup } from "./components/news/SourcePopup";
+import { StoryTimelinePopup } from "./components/news/StoryTimelinePopup";
+import { CommunityPollPopup } from "./components/news/CommunityPollPopup";
+import { ShareCardPopup } from "./components/news/ShareCardPopup";
 import { MysteryStockGame } from "./components/games/MysteryStockGame";
 import { CertificateModal, CertificateProfileCard } from "./components/certificate";
 import { AddToHomeScreen } from "./components/pwa/AddToHomeScreen";
@@ -207,7 +210,7 @@ const NewsCard: React.FC<{
   authToken?: string | null;
   voicePlayer?: any;
 }> = ({ item, lang, isSignedIn, onSignIn, authToken, voicePlayer }) => {
-  const [activePopup, setActivePopup] = useState<'market-impact' | 'ai-summary' | 'listen' | 'source' | null>(null);
+  const [activePopup, setActivePopup] = useState<'timeline' | 'poll' | 'share' | 'source' | null>(null);
 
   const catColor = getCatColor(item.category);
   const catLabel = getCatLabel(item.category);
@@ -295,14 +298,14 @@ const NewsCard: React.FC<{
         className="grid gap-2 pt-2 mt-2"
         style={{ borderTop: "1px solid #1a1a2e", gridTemplateColumns: 'repeat(4, 1fr)' }}
       >
-        <button onClick={() => isSignedIn ? setActivePopup('market-impact') : onSignIn?.()} style={btnStyle('#3b9eff')} className="hover:brightness-125 justify-center">
-          <BarChart2 className="w-3 h-3" /> Impact
+        <button onClick={() => setActivePopup('timeline')} style={btnStyle('#3bffee')} className="hover:brightness-125 justify-center">
+          📖 Timeline
         </button>
-        <button onClick={() => isSignedIn ? setActivePopup('ai-summary') : onSignIn?.()} style={btnStyle('#00ff88')} className="hover:brightness-125 justify-center">
-          <Sparkles className="w-3 h-3" /> AI +5
+        <button onClick={() => isSignedIn ? setActivePopup('poll') : onSignIn?.()} style={btnStyle('#ff9f3b')} className="hover:brightness-125 justify-center">
+          🗳️ Poll +3
         </button>
-        <button onClick={() => isSignedIn ? setActivePopup('listen') : onSignIn?.()} style={btnStyle('#b366ff')} className="hover:brightness-125 justify-center">
-          <Volume2 className="w-3 h-3" /> Listen +10
+        <button onClick={() => setActivePopup('share')} style={btnStyle('#ff6bff')} className="hover:brightness-125 justify-center">
+          🔗 Share +2
         </button>
         <button onClick={() => setActivePopup('source')} style={btnStyle('#ffdd3b')} className="hover:brightness-125 justify-center">
           <ExternalLink className="w-3 h-3" /> Source
@@ -310,21 +313,32 @@ const NewsCard: React.FC<{
       </div>
 
       {/* Popup modals */}
-      <ArticlePopupModal isOpen={activePopup === 'market-impact'} onClose={() => setActivePopup(null)} title="Market Impact" type="market-impact">
-        <NewsImpactPanel articleId={item.id} isSignedIn={isSignedIn} onSignIn={onSignIn} />
+      <ArticlePopupModal isOpen={activePopup === 'timeline'} onClose={() => setActivePopup(null)} title="STORY TIMELINE" type="story-timeline">
+        <StoryTimelinePopup currentId={item.id} currentTitle={item.title} category={item.category} />
       </ArticlePopupModal>
 
-      <ArticlePopupModal isOpen={activePopup === 'ai-summary'} onClose={() => setActivePopup(null)} title="AI Summary" type="ai-summary">
-        <AiSummaryPopup item={item} isSignedIn={isSignedIn} authToken={authToken} />
+      <ArticlePopupModal isOpen={activePopup === 'poll'} onClose={() => setActivePopup(null)} title="COMMUNITY POLL" type="community-poll">
+        <CommunityPollPopup
+          articleId={item.id}
+          articleTitle={item.title}
+          isSignedIn={!!isSignedIn}
+          authToken={authToken ?? null}
+        />
       </ArticlePopupModal>
 
-      {voicePlayer && (
-        <ArticlePopupModal isOpen={activePopup === 'listen'} onClose={() => { setActivePopup(null); voicePlayer.stop(); }} title="Listen" type="listen">
-          <ListenPopup item={item} voicePlayer={voicePlayer} isSignedIn={isSignedIn} authToken={authToken} />
-        </ArticlePopupModal>
-      )}
+      <ArticlePopupModal isOpen={activePopup === 'share'} onClose={() => setActivePopup(null)} title="SHARE ARTICLE" type="share-card">
+        <ShareCardPopup
+          articleId={item.id}
+          articleTitle={item.title}
+          source={item.source}
+          category={item.category}
+          pubDate={item.pubDate ?? ''}
+          isSignedIn={!!isSignedIn}
+          authToken={authToken ?? null}
+        />
+      </ArticlePopupModal>
 
-      <ArticlePopupModal isOpen={activePopup === 'source'} onClose={() => setActivePopup(null)} title="Source Article" type="source">
+      <ArticlePopupModal isOpen={activePopup === 'source'} onClose={() => setActivePopup(null)} title="SOURCE ARTICLE" type="source">
         <SourcePopup item={item} />
       </ArticlePopupModal>
     </div>
