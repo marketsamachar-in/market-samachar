@@ -333,6 +333,7 @@ const NewsCard: React.FC<{
           source={item.source}
           category={item.category}
           pubDate={item.pubDate ?? ''}
+          contentSnippet={item.contentSnippet ?? (item as any).content_snippet ?? ''}
           isSignedIn={!!isSignedIn}
           authToken={authToken ?? null}
         />
