@@ -328,7 +328,62 @@ select.inp{cursor:pointer}
 .col-half{flex:1;min-width:280px}
 .divider{height:1px;background:var(--border);margin:20px 0}
 .fn{font-size:10px}.sub{color:var(--sub)}
+/* ─── CARD GENERATOR ───────────────────────────────────────────── */
+.card-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(6px)}
+.card-overlay.open{display:flex}
+.card-shell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;width:min(500px,95vw);max-height:95vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.card-shell-title{font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}
+.card-format-tabs{display:flex;gap:6px}
+.fmt-btn{font-family:var(--mono);font-size:9px;padding:5px 12px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .12s}
+.fmt-btn.active{background:#00ff8818;border-color:#00ff8840;color:var(--green)}
+.fmt-btn:not(.active){background:#0a0a18;border-color:var(--border);color:var(--dim)}
+.fmt-btn:not(.active):hover{border-color:#334466;color:var(--sub)}
+.card-preview-wrap{display:flex;justify-content:center;align-items:flex-start;background:#04040a;border:1px solid var(--border);border-radius:6px;padding:16px;min-height:200px}
+.card-actions{display:flex;gap:8px;justify-content:flex-end}
+/* inline card design */
+.ms-c{background:#07070e;display:flex;flex-direction:column;overflow:hidden;font-family:"DM Mono",monospace;border:1px solid #1a1a2e;border-radius:4px}
+.ms-c *{box-sizing:border-box}
+.ms-hd{background:linear-gradient(90deg,rgba(0,255,136,.09),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.14);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.ms-cat{display:flex;gap:3px;flex-wrap:wrap}
+.ms-badge{display:inline-flex;align-items:center;gap:2px;border-radius:2px;letter-spacing:.6px;font-weight:500;white-space:nowrap}
+.ms-hl{color:#00ff88;line-height:1.35;font-weight:500;letter-spacing:.3px}
+.ms-div{background:rgba(0,255,136,.25);border-radius:1px}
+.ms-sec{background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;display:flex;flex-direction:column}
+.ms-slbl{color:#334466;letter-spacing:1px;display:flex;align-items:center;gap:3px;font-weight:400}
+.ms-blt{display:flex;gap:4px;align-items:flex-start}
+.ms-arr{color:#00ff88;flex-shrink:0;line-height:1.45}
+.ms-bt{color:#8899aa;line-height:1.45}
+.ms-num{color:#00ff88;flex-shrink:0;min-width:14px;line-height:1.45}
+.ms-dg3{display:grid;grid-template-columns:1fr 1fr 1fr}
+.ms-dg2{display:grid;grid-template-columns:1fr 1fr}
+.ms-dc{background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ms-dl{color:#334466;letter-spacing:.7px;display:flex;align-items:center;justify-content:center;gap:2px}
+.ms-dv{color:#00ff88;font-weight:500;line-height:1}
+.ms-dv.b{color:#3b9eff}.ms-dv.o{color:#ff9f3b}.ms-dv.gd{color:#ffcc44}
+.ms-ds{color:#334466;line-height:1}
+.ms-ds.up{color:#00ff88}.ms-ds.dn{color:#ff4466}.ms-ds.ne{color:#8899aa}
+.ms-irow{background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;display:flex;align-items:center}
+.ms-itxt{color:#8899aa;line-height:1.4}
+.ms-wm{display:flex;align-items:center}
+.ms-wml{flex:1;height:1px;background:rgba(0,255,136,.18)}
+.ms-wmt{color:rgba(0,255,136,.35);letter-spacing:1.5px;white-space:nowrap}
+.ms-ft{background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);flex-shrink:0}
+.ms-ftrow{display:flex;justify-content:space-between;align-items:center}
+.ms-ftb{background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;letter-spacing:.4px}
+.ms-fts{color:#00ff88;letter-spacing:.8px}
+.ms-disc{color:#1a3040;line-height:1.45}
+.ms-dg2-info{display:grid;grid-template-columns:1fr 1fr}
+.ms-dval{color:#e8eaf0}
+.btn-gen{font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid;transition:all .12s;white-space:nowrap}
+.btn-11{background:#00ff8810;border-color:#00ff8835;color:var(--green)}
+.btn-11:hover{background:#00ff8820}
+.btn-45{background:#3b9eff10;border-color:#3b9eff35;color:#3b9eff}
+.btn-45:hover{background:#3b9eff20}
+.btn-916{background:#b57dff10;border-color:#b57dff35;color:#b57dff}
+.btn-916:hover{background:#b57dff20}
+
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -763,6 +818,30 @@ select.inp{cursor:pointer}
   </div>
 </div>
 
+
+<!-- ─── CARD GENERATOR MODAL ──────────────────────────────────── -->
+<div class="card-overlay" id="card-overlay">
+  <div class="card-shell">
+    <div class="card-shell-title">
+      <span>◈ CARD GENERATOR</span>
+      <button class="btn btn-gd" style="padding:3px 9px" onclick="closeCardModal()">✕ Close</button>
+    </div>
+    <div id="card-article-title" style="font-size:11px;color:var(--sub);line-height:1.4;max-height:40px;overflow:hidden;text-overflow:ellipsis;font-family:var(--sans)"></div>
+    <div class="card-format-tabs">
+      <button class="fmt-btn active" id="fmt-1x1" onclick="switchFmt('1x1')">📐 1:1 Square</button>
+      <button class="fmt-btn" id="fmt-4x5" onclick="switchFmt('4x5')">📱 4:5 Portrait</button>
+      <button class="fmt-btn" id="fmt-9x16" onclick="switchFmt('9x16')">🎬 9:16 Story</button>
+    </div>
+    <div class="card-preview-wrap">
+      <div id="card-preview-inner"></div>
+    </div>
+    <div class="card-actions">
+      <button class="btn btn-gd" onclick="closeCardModal()">Cancel</button>
+      <button class="btn btn-g" id="dl-btn" onclick="downloadCard()">⬇ Download PNG</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
@@ -772,6 +851,9 @@ select.inp{cursor:pointer}
 // ═══════════════════════════════════════════════════════════════
 var _section = "overview";
 var _ipos = [];
+var _articles = {};
+var _cardArticle = null;
+var _cardFmt = "1x1";
 var _searchTimer = null;
 var _newsPage = 1, _newsPages = 0, _newsTotal = 0;
 var _coinPage = 1, _coinPages = 0, _coinTotal = 0;
@@ -1009,7 +1091,7 @@ async function loadNews(page) {
     if (!d.articles.length) { el.innerHTML = "<div class=\\"empty\\">No articles found</div>"; return; }
 
     el.innerHTML = "<table class=\\"tbl\\"><thead><tr>" +
-      "<th style=\\"width:32px\\"></th><th>TITLE</th><th>SOURCE</th><th>CATEGORY</th><th>AGE</th><th>AI</th><th>SENTIMENT</th><th>ACTIONS</th>" +
+      "<th style=\\"width:32px\\"></th><th>TITLE</th><th>SOURCE</th><th>CATEGORY</th><th>AGE</th><th>↗</th><th>GENERATE CARD</th>" +
       "</tr></thead><tbody id=\\"nw-tbody\\">" +
       d.articles.map(function(a) { return newsRow(a); }).join("") +
       "</tbody></table>";
@@ -1022,20 +1104,24 @@ async function loadNews(page) {
 }
 
 function newsRow(a) {
-  var cc  = CAT_COLORS[a.category] || "#888";
-  return "<tr id=\\"ar-" + esc(a.id) + "\\">" +
-    "<td><button class=\\"btn btn-gd\\" style=\\"padding:2px 6px;font-size:10px\\" onclick=\\"expandArt('" + esc(a.id) + "')\\" >▸</button></td>" +
-    "<td class=\\"art-cell\\"><strong title=\\"" + esc(a.title) + "\\">" + esc(a.title.slice(0,72)) + (a.title.length > 72 ? "…" : "") + "</strong>" +
-      (a.content_snippet ? "<div class=\\"art-snip\\">" + esc((a.content_snippet || "").slice(0, 88)) + "</div>" : "") + "</td>" +
-    "<td><span class=\\"badge bb\\">" + esc((a.source || "").toUpperCase().slice(0, 12)) + "</span></td>" +
-    "<td><span class=\\"badge bgd\\" style=\\"border-left:2px solid " + cc + "\\">" + esc((a.category || "").toUpperCase()) + "</span></td>" +
-    "<td class=\\"mono fn\\" style=\\"white-space:nowrap\\">" + fmtAgo(a.pub_date) + "</td>" +
-
-    "<td style=\\"display:flex;gap:4px\\">" +
-      "<a class=\\"btn btn-gd\\" style=\\"padding:3px 7px\\" href=\\"" + esc(a.link || "#") + "\\" target=\\"_blank\\" rel=\\"noopener\\">↗</a>" +
-    "</td>" +
+  _articles[a.id] = a;
+  var cc = CAT_COLORS[a.category] || "#888";
+  return "<tr id=\\"ar-"+esc(a.id)+"\\">"+
+    "<td><button class=\\"btn btn-gd\\" style=\\"padding:2px 6px;font-size:10px\\" onclick=\\"expandArt('"+esc(a.id)+"')\\" >▸</button></td>"+
+    "<td class=\\"art-cell\\"><strong title=\\""+esc(a.title)+"\\">"+esc(a.title.slice(0,72))+(a.title.length>72?"…":"")+"</strong>"+
+      (a.content_snippet?"<div class=\\"art-snip\\">"+esc((a.content_snippet||"").slice(0,88))+"</div>":"")+"</td>"+
+    "<td><span class=\\"badge bb\\">"+esc((a.source||"").toUpperCase().slice(0,12))+"</span></td>"+
+    "<td><span class=\\"badge bgd\\" style=\\"border-left:2px solid "+cc+"\\">"+esc((a.category||"").toUpperCase())+"</span></td>"+
+    "<td class=\\"mono fn\\" style=\\"white-space:nowrap\\">"+fmtAgo(a.pub_date)+"</td>"+
+    "<td><a class=\\"btn btn-gd\\" style=\\"padding:3px 7px\\" href=\\""+esc(a.link||"#")+"\\" target=\\"_blank\\" rel=\\"noopener\\">↗</a></td>"+
+    "<td style=\\"display:flex;gap:3px;align-items:center\\">"+
+      "<button class=\\"btn-gen btn-11\\" onclick=\\"genCard('"+esc(a.id)+"','1x1')\\" title=\\"Generate 1:1 square card\\">1:1</button>"+
+      "<button class=\\"btn-gen btn-45\\" onclick=\\"genCard('"+esc(a.id)+"','4x5')\\" title=\\"Generate 4:5 portrait card\\">4:5</button>"+
+      "<button class=\\"btn-gen btn-916\\" onclick=\\"genCard('"+esc(a.id)+"','9x16')\\" title=\\"Generate 9:16 story card\\">9:16</button>"+
+    "</td>"+
   "</tr>";
 }
+
 
 async function expandArt(id) {
   var panel = document.getElementById("nw-detail");
@@ -1497,6 +1583,212 @@ async function submitCoin() {
 // ═══════════════════════════════════════════════════════════════
 document.querySelectorAll(".overlay").forEach(function(o) {
   o.addEventListener("click", function(e) { if (e.target === o) o.classList.remove("open"); });
+});
+
+
+
+// ═══════════════ CARD GENERATOR ═══════════════
+var CAT_EMOJI = {
+  indian:"📈", companies:"🏢", global:"🌍", commodity:"⛽",
+  crypto:"₿", ipo:"🚀", economy:"🏦", banking:"🏛️", sebi:"⚖️", rbi:"🏦"
+};
+var CAT_LABEL = {
+  indian:"INDIAN MARKET", companies:"COMPANIES", global:"GLOBAL",
+  commodity:"COMMODITY", crypto:"CRYPTO", ipo:"IPO",
+  economy:"ECONOMY", banking:"BANKING", sebi:"SEBI", rbi:"RBI"
+};
+
+function genCard(id, fmt) {
+  var a = _articles[id];
+  if (!a) { toast("Article not found", "err"); return; }
+  _cardArticle = a;
+  _cardFmt = fmt;
+  document.getElementById("card-article-title").textContent = a.title || "";
+  ["1x1","4x5","9x16"].forEach(function(f) {
+    document.getElementById("fmt-"+f).className = "fmt-btn"+(f===fmt?" active":"");
+  });
+  renderCardPreview(a, fmt);
+  document.getElementById("card-overlay").classList.add("open");
+}
+
+function switchFmt(fmt) {
+  if (!_cardArticle) return;
+  _cardFmt = fmt;
+  ["1x1","4x5","9x16"].forEach(function(f) {
+    document.getElementById("fmt-"+f).className = "fmt-btn"+(f===fmt?" active":"");
+  });
+  renderCardPreview(_cardArticle, fmt);
+}
+
+function closeCardModal() {
+  document.getElementById("card-overlay").classList.remove("open");
+  _cardArticle = null;
+}
+
+function renderCardPreview(a, fmt) {
+  document.getElementById("card-preview-inner").innerHTML = buildCard(a, fmt);
+}
+
+function buildCard(a, fmt) {
+  var W = 360;
+  var AR = fmt==="1x1"?1 : fmt==="4x5"?1.25 : (16/9);
+  var H = Math.round(W*AR);
+  var S = 1;
+
+  function px(n){ return Math.round(n*S)+"px"; }
+
+  var title   = (a.title||"").toUpperCase();
+  var snippet = a.content_snippet || a.contentSnippet || "";
+  var cat     = a.category || "indian";
+  var cc      = CAT_COLORS[cat]||"#00ff88";
+  var ce      = CAT_EMOJI[cat]||"📊";
+  var cl      = CAT_LABEL[cat]||cat.toUpperCase();
+
+  var maxC = fmt==="9x16"?90:72;
+  var sTitle = title.length>maxC ? title.slice(0,maxC)+"…" : title;
+
+  // bullets from snippet
+  var bullets = [];
+  if (snippet) {
+    var raw = snippet.split(/[.!?]+/).map(function(s){return s.trim();}).filter(function(s){return s.length>15;});
+    bullets = raw.slice(0,4);
+  }
+  if (!bullets.length) bullets = [snippet.slice(0,80)||sTitle.slice(0,80)];
+
+  var bIcons = ["📌","📊","💡","🔍"];
+  var bNums  = ["01","02","03","04"];
+
+  var dateStr = "—";
+  try {
+    var dd = new Date((a.pub_date||a.pubDate||Date.now()));
+    var MM = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    dateStr = ("0"+dd.getDate()).slice(-2)+"-"+MM[dd.getMonth()]+"-"+dd.getFullYear();
+  } catch(ex){}
+
+  var pad = "9px";
+
+  // build bullets html
+  var bHtml = bullets.map(function(b,i){
+    return "<div style=\"display:flex;gap:4px;margin-bottom:4px;align-items:flex-start\">"+
+      "<span style=\"font-size:7px;color:#00ff88;flex-shrink:0;line-height:1.45;min-width:14px\">"+bNums[i]+"</span>"+
+      "<span style=\"font-size:7px;color:#8899aa;line-height:1.45\">"+bIcons[i]+" "+esc(b.slice(0,90))+"</span>"+
+    "</div>";
+  }).join("");
+
+  // IPO extra grid
+  var ipoHtml = "";
+  if (cat==="ipo") {
+    ipoHtml = "<div style=\"background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:6px;margin-bottom:4px;flex-shrink:0\">"+
+      "<div style=\"font-size:5px;color:#334466;letter-spacing:1px;margin-bottom:5px\">📋 IPO SNAPSHOT</div>"+
+      "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px\">"+
+        "<div><div style=\"font-size:5px;color:#334466;margin-bottom:2px\">💰 PRICE BAND</div><div style=\"font-size:7px;color:#e8eaf0\">₹120–₹135</div></div>"+
+        "<div><div style=\"font-size:5px;color:#334466;margin-bottom:2px\">📦 LOT SIZE</div><div style=\"font-size:7px;color:#e8eaf0\">111 shares</div></div>"+
+      "</div>"+
+    "</div>";
+  }
+
+  // market strip
+  var mktData = [
+    {l:"📈 NIFTY",v:"24,200",s:"▲0.91%",sc:"#00ff88"},
+    {l:"📊 SENSEX",v:"79,600",s:"▲0.87%",sc:"#00ff88"},
+    {l:"💱 ₹/USD",v:"84.21",s:"▼0.12%",sc:"#ff4466",vc:"#3b9eff"}
+  ];
+  var mktHtml = "<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;flex-shrink:0\">"+
+    mktData.map(function(m){
+      return "<div style=\"background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px;text-align:center\">"+
+        "<div style=\"font-size:5px;color:#334466;letter-spacing:.7px;margin-bottom:2px\">"+m.l+"</div>"+
+        "<div style=\"font-size:10.5px;color:"+(m.vc||"#00ff88")+";font-weight:500;line-height:1\">"+m.v+"</div>"+
+        "<div style=\"font-size:5.5px;color:"+m.sc+";line-height:1;margin-top:2px\">"+m.s+"</div>"+
+      "</div>";
+    }).join("")+
+  "</div>";
+
+  return "<div style=\"width:"+W+"px;height:"+H+"px;background:#07070e;border:1px solid #1a1a2e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace\">"+
+
+    // header
+    "<div style=\"background:linear-gradient(90deg,rgba(0,255,136,.09),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.14);padding:6px "+pad+";display:flex;justify-content:space-between;align-items:center;flex-shrink:0\">"+
+      "<div style=\"display:flex;align-items:center;gap:5px\">"+
+        "<div style=\"width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0\"></div>"+
+        "<span style=\"font-size:5.5px;color:#00ff88;letter-spacing:1.5px\">📊 MARKET SAMACHAR</span>"+
+      "</div>"+
+      "<div style=\"display:flex;align-items:center;gap:4px\">"+
+        "<span style=\"font-size:9px\">🇮🇳</span>"+
+        "<span style=\"font-size:5.5px;color:#334466\">"+dateStr+" · IST</span>"+
+      "</div>"+
+    "</div>"+
+
+    // category + headline
+    "<div style=\"padding:7px "+pad+" 4px "+pad+";flex-shrink:0\">"+
+      "<div style=\"display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px\">"+
+        "<span style=\"font-size:5px;padding:2px 6px;border-radius:2px;letter-spacing:.6px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:#00ff88;display:inline-flex;align-items:center;gap:2px\">"+ce+" "+cl+"</span>"+
+        (cat==="ipo"?"<span style=\"font-size:5px;padding:2px 6px;border-radius:2px;letter-spacing:.6px;background:rgba(255,70,102,.08);border:1px solid rgba(255,70,102,.2);color:#ff4466;display:inline-flex;align-items:center;gap:2px\">🔥 TRENDING</span>":"")+
+        (cat==="companies"?"<span style=\"font-size:5px;padding:2px 6px;border-radius:2px;letter-spacing:.6px;background:rgba(255,204,68,.08);border:1px solid rgba(255,204,68,.2);color:#ffcc44;display:inline-flex;align-items:center;gap:2px\">📋 Q4 RESULTS</span>":"")+
+      "</div>"+
+      "<div style=\"font-size:10.5px;color:#00ff88;line-height:1.35;font-weight:500;letter-spacing:.3px\">"+esc(sTitle)+"</div>"+
+      "<div style=\"width:22px;height:1px;background:rgba(0,255,136,.25);margin:5px 0\"></div>"+
+    "</div>"+
+
+    // body
+    "<div style=\"padding:0 "+pad+";flex:1;display:flex;flex-direction:column;gap:4px;min-height:0\">"+
+      ipoHtml+
+      "<div style=\"background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:7px;flex:1\">"+
+        "<div style=\"font-size:5px;color:#334466;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:3px\">💡 KEY HIGHLIGHTS</div>"+
+        bHtml+
+      "</div>"+
+      mktHtml+
+    "</div>"+
+
+    // watermark
+    "<div style=\"display:flex;align-items:center;gap:4px;padding:3px "+pad+" 0\">"+
+      "<div style=\"flex:1;height:1px;background:rgba(0,255,136,.18)\"></div>"+
+      "<div style=\"font-size:4.5px;color:rgba(0,255,136,.35);letter-spacing:1.5px;white-space:nowrap\">◈ MARKETSAMACHAR.IN</div>"+
+      "<div style=\"flex:1;height:1px;background:rgba(0,255,136,.18)\"></div>"+
+    "</div>"+
+
+    // footer
+    "<div style=\"background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);padding:5px "+pad+";flex-shrink:0\">"+
+      "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:2px\">"+
+        "<span style=\"font-size:4.5px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;padding:1px 5px;letter-spacing:.4px\">ℹ️ NOT INVESTMENT ADVICE · FOR INFO ONLY</span>"+
+        "<span style=\"font-size:6px;color:#00ff88;letter-spacing:.8px\">marketsamachar.in</span>"+
+      "</div>"+
+      "<div style=\"font-size:4px;color:#1a3040;line-height:1.45\">⚠ Investment in securities market are subject to market risks. Read all related documents carefully before investing.</div>"+
+    "</div>"+
+
+  "</div>";
+}
+
+async function downloadCard() {
+  if (!_cardArticle) return;
+  var btn = document.getElementById("dl-btn");
+  btn.disabled = true;
+  btn.textContent = "⏳ Rendering…";
+  var wrapper = document.createElement("div");
+  wrapper.style.cssText = "position:fixed;top:-9999px;left:-9999px;z-index:-1;";
+  wrapper.innerHTML = buildCard(_cardArticle, _cardFmt);
+  document.body.appendChild(wrapper);
+  try {
+    var cardEl = wrapper.firstElementChild;
+    var canvas = await html2canvas(cardEl, {
+      scale:3, useCORS:true, allowTaint:true,
+      backgroundColor:"#07070e", logging:false
+    });
+    var link = document.createElement("a");
+    var safe = (_cardArticle.title||"card").slice(0,30).replace(/[^a-z0-9]/gi,"-").toLowerCase();
+    link.download = "ms-"+_cardFmt+"-"+safe+".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    toast("Card downloaded at 1080px wide!");
+  } catch(ex) {
+    toast("Download failed: "+ex.message, "err");
+  } finally {
+    document.body.removeChild(wrapper);
+    btn.disabled = false;
+    btn.textContent = "⬇ Download PNG";
+  }
+}
+
+document.getElementById("card-overlay").addEventListener("click", function(e) {
+  if (e.target===this) closeCardModal();
 });
 
 loadSection("overview");
