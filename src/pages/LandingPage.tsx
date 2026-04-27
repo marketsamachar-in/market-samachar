@@ -486,6 +486,7 @@ function NewsCard({ item, onSignIn }: { item: NewsItem; onSignIn?: () => void })
           source={item.source}
           category={item.category}
           pubDate={item.pubDate ?? item.pub_date ?? ''}
+          contentSnippet={item.contentSnippet ?? item.content_snippet ?? ''}
           isSignedIn={!!user}
           authToken={session?.access_token ?? null}
         />
