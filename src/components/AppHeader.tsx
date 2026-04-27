@@ -25,10 +25,6 @@ export interface AppHeaderProps {
   /** Show MARKET OPEN/CLOSED badge */
   showMarketStatus?: boolean;
 
-  /* Language selector */
-  lang?: string;
-  onLangChange?: (l: string) => void;
-
   /* Refresh button */
   onRefresh?: () => void;
   refreshing?: boolean;
@@ -102,8 +98,6 @@ const HEADER_CSS = `
 export function AppHeader({
   showClock        = false,
   showMarketStatus = false,
-  lang,
-  onLangChange,
   onRefresh,
   refreshing       = false,
   onSignIn,
@@ -239,28 +233,6 @@ export function AppHeader({
                 {mStatus.label}
               </span>
             </div>
-          )}
-
-          {/* Language selector */}
-          {onLangChange && (
-            <select
-              value={lang ?? 'en'}
-              onChange={e => onLangChange(e.target.value)}
-              style={{
-                background: '#0d0d1e', border: `1px solid ${BORDER}`,
-                color: MUTED, ...MONO, fontSize: '0.68rem',
-                padding: '4px 6px', borderRadius: 6,
-                outline: 'none', cursor: 'pointer',
-              }}
-            >
-              <option value="en">EN</option>
-              <option value="hi">HI</option>
-              <option value="mr">MR</option>
-              <option value="ta">TA</option>
-              <option value="te">TE</option>
-              <option value="bn">BN</option>
-              <option value="kn">KN</option>
-            </select>
           )}
 
           {/* Refresh */}
