@@ -1587,6 +1587,7 @@ document.querySelectorAll(".overlay").forEach(function(o) {
 
 
 
+
 // ═══════════════ CARD GENERATOR ═══════════════
 var CAT_EMOJI = {
   indian:"📈", companies:"🏢", global:"🌍", commodity:"⛽",
@@ -1610,7 +1611,6 @@ function genCard(id, fmt) {
   renderCardPreview(a, fmt);
   document.getElementById("card-overlay").classList.add("open");
 }
-
 function switchFmt(fmt) {
   if (!_cardArticle) return;
   _cardFmt = fmt;
@@ -1619,142 +1619,146 @@ function switchFmt(fmt) {
   });
   renderCardPreview(_cardArticle, fmt);
 }
-
 function closeCardModal() {
   document.getElementById("card-overlay").classList.remove("open");
   _cardArticle = null;
 }
-
 function renderCardPreview(a, fmt) {
   document.getElementById("card-preview-inner").innerHTML = buildCard(a, fmt);
 }
 
 function buildCard(a, fmt) {
-  var W = 360;
-  var AR = fmt==="1x1"?1 : fmt==="4x5"?1.25 : (16/9);
-  var H = Math.round(W*AR);
-  var S = 1;
+  var W  = 360;
+  var AR = fmt==="1x1" ? 1 : fmt==="4x5" ? 1.25 : 1.778;
+  var H  = Math.round(W * AR);
 
-  function px(n){ return Math.round(n*S)+"px"; }
-
-  var title   = (a.title||"").toUpperCase();
+  var title   = (a.title || "").toUpperCase();
   var snippet = a.content_snippet || a.contentSnippet || "";
   var cat     = a.category || "indian";
-  var cc      = CAT_COLORS[cat]||"#00ff88";
-  var ce      = CAT_EMOJI[cat]||"📊";
-  var cl      = CAT_LABEL[cat]||cat.toUpperCase();
+  var cc      = CAT_COLORS[cat] || "#00ff88";
+  var ce      = CAT_EMOJI[cat]  || "📊";
+  var cl      = CAT_LABEL[cat]  || cat.toUpperCase();
+  var maxC    = fmt==="9x16" ? 90 : 72;
+  var sTitle  = title.length > maxC ? title.slice(0, maxC)+"…" : title;
 
-  var maxC = fmt==="9x16"?90:72;
-  var sTitle = title.length>maxC ? title.slice(0,maxC)+"…" : title;
-
-  // bullets from snippet
   var bullets = [];
   if (snippet) {
-    var raw = snippet.split(/[.!?]+/).map(function(s){return s.trim();}).filter(function(s){return s.length>15;});
-    bullets = raw.slice(0,4);
+    bullets = snippet.split(/[.!?]+/).map(function(s){ return s.trim(); })
+      .filter(function(s){ return s.length > 15; }).slice(0, 4);
   }
-  if (!bullets.length) bullets = [snippet.slice(0,80)||sTitle.slice(0,80)];
+  if (!bullets.length) bullets = [snippet.slice(0,80) || sTitle.slice(0,80)];
 
   var bIcons = ["📌","📊","💡","🔍"];
   var bNums  = ["01","02","03","04"];
 
   var dateStr = "—";
   try {
-    var dd = new Date((a.pub_date||a.pubDate||Date.now()));
+    var dd = new Date(a.pub_date || a.pubDate || Date.now());
     var MM = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
     dateStr = ("0"+dd.getDate()).slice(-2)+"-"+MM[dd.getMonth()]+"-"+dd.getFullYear();
-  } catch(ex){}
+  } catch(ex) {}
 
-  var pad = "9px";
-
-  // build bullets html
-  var bHtml = bullets.map(function(b,i){
-    return "<div style=\"display:flex;gap:4px;margin-bottom:4px;align-items:flex-start\">"+
-      "<span style=\"font-size:7px;color:#00ff88;flex-shrink:0;line-height:1.45;min-width:14px\">"+bNums[i]+"</span>"+
-      "<span style=\"font-size:7px;color:#8899aa;line-height:1.45\">"+bIcons[i]+" "+esc(b.slice(0,90))+"</span>"+
-    "</div>";
-  }).join("");
-
-  // IPO extra grid
-  var ipoHtml = "";
-  if (cat==="ipo") {
-    ipoHtml = "<div style=\"background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:6px;margin-bottom:4px;flex-shrink:0\">"+
-      "<div style=\"font-size:5px;color:#334466;letter-spacing:1px;margin-bottom:5px\">📋 IPO SNAPSHOT</div>"+
-      "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:4px\">"+
-        "<div><div style=\"font-size:5px;color:#334466;margin-bottom:2px\">💰 PRICE BAND</div><div style=\"font-size:7px;color:#e8eaf0\">₹120–₹135</div></div>"+
-        "<div><div style=\"font-size:5px;color:#334466;margin-bottom:2px\">📦 LOT SIZE</div><div style=\"font-size:7px;color:#e8eaf0\">111 shares</div></div>"+
-      "</div>"+
-    "</div>";
+  // Build HTML using single-quoted attribute values to avoid escaping issues
+  function d(tag, style, content) {
+    return '<'+tag+' style="'+style+'">'+content+'</'+tag+'>';
   }
+  function sp(style, content) { return d('span', style, content); }
+  function dv(style, content) { return d('div',  style, content); }
 
-  // market strip
-  var mktData = [
-    {l:"📈 NIFTY",v:"24,200",s:"▲0.91%",sc:"#00ff88"},
-    {l:"📊 SENSEX",v:"79,600",s:"▲0.87%",sc:"#00ff88"},
-    {l:"💱 ₹/USD",v:"84.21",s:"▼0.12%",sc:"#ff4466",vc:"#3b9eff"}
+  var PAD = '9px';
+  var FS_HD  = '5.5px'; var FS_CAT = '5px'; var FS_HL = '10.5px';
+  var FS_SL  = '5px';   var FS_BT  = '7px'; var FS_DL = '5px';
+  var FS_DV  = '10.5px';var FS_DS  = '5.5px';
+  var FS_FT  = '4.5px'; var FS_SITE= '6px'; var FS_DISC='4px';
+
+  // Category badge
+  var catBadge = sp(
+    'font-size:'+FS_CAT+';padding:2px 6px;border-radius:2px;letter-spacing:.6px;display:inline-flex;align-items:center;gap:2px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:#00ff88',
+    ce+' '+cl
+  );
+  var hotBadge = (cat==='ipo')
+    ? ' '+sp('font-size:'+FS_CAT+';padding:2px 6px;border-radius:2px;letter-spacing:.6px;display:inline-flex;align-items:center;gap:2px;background:rgba(255,70,102,.08);border:1px solid rgba(255,70,102,.2);color:#ff4466','🔥 TRENDING')
+    : (cat==='companies')
+    ? ' '+sp('font-size:'+FS_CAT+';padding:2px 6px;border-radius:2px;letter-spacing:.6px;display:inline-flex;align-items:center;gap:2px;background:rgba(255,204,68,.08);border:1px solid rgba(255,204,68,.2);color:#ffcc44','📋 Q4 RESULTS')
+    : '';
+
+  // Bullets
+  var bHtml = bullets.map(function(b,i) {
+    return dv('display:flex;gap:4px;margin-bottom:4px;align-items:flex-start',
+      sp('font-size:'+FS_BT+';color:#00ff88;flex-shrink:0;line-height:1.45;min-width:14px', bNums[i])+
+      sp('font-size:'+FS_BT+';color:#8899aa;line-height:1.45', bIcons[i]+' '+esc(b.slice(0,90)))
+    );
+  }).join('');
+
+  // IPO snapshot grid
+  var ipoGrid = (cat==='ipo') ? dv(
+    'background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:6px;margin-bottom:4px;flex-shrink:0',
+    dv('font-size:'+FS_SL+';color:#334466;letter-spacing:1px;margin-bottom:5px','📋 IPO SNAPSHOT')+
+    dv('display:grid;grid-template-columns:1fr 1fr;gap:4px',
+      dv('',dv('font-size:'+FS_SL+';color:#334466;margin-bottom:2px','💰 PRICE BAND')+sp('font-size:'+FS_BT+';color:#e8eaf0','₹120–₹135'))+
+      dv('',dv('font-size:'+FS_SL+';color:#334466;margin-bottom:2px','📦 LOT SIZE')+sp('font-size:'+FS_BT+';color:#e8eaf0','111 shares'))
+    )
+  ) : '';
+
+  // Market data grid
+  var mktItems = [
+    {l:'📈 NIFTY',  v:'24,200', s:'▲0.91%', vc:'#00ff88', sc:'#00ff88'},
+    {l:'📊 SENSEX', v:'79,600', s:'▲0.87%', vc:'#00ff88', sc:'#00ff88'},
+    {l:'💱 ₹/USD',  v:'84.21',  s:'▼0.12%', vc:'#3b9eff', sc:'#ff4466'}
   ];
-  var mktHtml = "<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;flex-shrink:0\">"+
-    mktData.map(function(m){
-      return "<div style=\"background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px;text-align:center\">"+
-        "<div style=\"font-size:5px;color:#334466;letter-spacing:.7px;margin-bottom:2px\">"+m.l+"</div>"+
-        "<div style=\"font-size:10.5px;color:"+(m.vc||"#00ff88")+";font-weight:500;line-height:1\">"+m.v+"</div>"+
-        "<div style=\"font-size:5.5px;color:"+m.sc+";line-height:1;margin-top:2px\">"+m.s+"</div>"+
-      "</div>";
-    }).join("")+
-  "</div>";
+  var mktHtml = dv('display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;flex-shrink:0',
+    mktItems.map(function(m) {
+      return dv('background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px;text-align:center',
+        dv('font-size:'+FS_DL+';color:#334466;letter-spacing:.7px;margin-bottom:2px', m.l)+
+        dv('font-size:'+FS_DV+';color:'+m.vc+';font-weight:500;line-height:1', m.v)+
+        dv('font-size:'+FS_DS+';color:'+m.sc+';line-height:1;margin-top:2px', m.s)
+      );
+    }).join('')
+  );
 
-  return "<div style=\"width:"+W+"px;height:"+H+"px;background:#07070e;border:1px solid #1a1a2e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace\">"+
+  // Assemble card
+  var card =
+    // Header
+    dv('background:linear-gradient(90deg,rgba(0,255,136,.09),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.14);padding:6px '+PAD+';display:flex;justify-content:space-between;align-items:center;flex-shrink:0',
+      dv('display:flex;align-items:center;gap:5px',
+        dv('style','')+ // placeholder - we inline the dot below
+        '<div style="width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0;margin-right:5px"></div>'+
+        sp('font-size:'+FS_HD+';color:#00ff88;letter-spacing:1.5px','📊 MARKET SAMACHAR')
+      )+
+      dv('display:flex;align-items:center;gap:4px',
+        '<span style="font-size:9px">🇮🇳</span>'+
+        sp('font-size:'+FS_HD+';color:#334466', dateStr+' · IST')
+      )
+    )+
+    // Fix: rebuild header properly
+    '';
 
-    // header
-    "<div style=\"background:linear-gradient(90deg,rgba(0,255,136,.09),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.14);padding:6px "+pad+";display:flex;justify-content:space-between;align-items:center;flex-shrink:0\">"+
-      "<div style=\"display:flex;align-items:center;gap:5px\">"+
-        "<div style=\"width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0\"></div>"+
-        "<span style=\"font-size:5.5px;color:#00ff88;letter-spacing:1.5px\">📊 MARKET SAMACHAR</span>"+
-      "</div>"+
-      "<div style=\"display:flex;align-items:center;gap:4px\">"+
-        "<span style=\"font-size:9px\">🇮🇳</span>"+
-        "<span style=\"font-size:5.5px;color:#334466\">"+dateStr+" · IST</span>"+
-      "</div>"+
-    "</div>"+
+  // Actually build it cleanly
+  var h_left = '<div style="display:flex;align-items:center;gap:5px"><div style="width:6px;height:6px;border-radius:50%;background:#00ff88;flex-shrink:0"></div><span style="font-size:'+FS_HD+';color:#00ff88;letter-spacing:1.5px">📊 MARKET SAMACHAR</span></div>';
+  var h_right= '<div style="display:flex;align-items:center;gap:4px"><span style="font-size:9px">🇮🇳</span><span style="font-size:'+FS_HD+';color:#334466">'+dateStr+' · IST</span></div>';
+  var header = '<div style="background:linear-gradient(90deg,rgba(0,255,136,.09),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.14);padding:6px '+PAD+';display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+h_left+h_right+'</div>';
 
-    // category + headline
-    "<div style=\"padding:7px "+pad+" 4px "+pad+";flex-shrink:0\">"+
-      "<div style=\"display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px\">"+
-        "<span style=\"font-size:5px;padding:2px 6px;border-radius:2px;letter-spacing:.6px;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);color:#00ff88;display:inline-flex;align-items:center;gap:2px\">"+ce+" "+cl+"</span>"+
-        (cat==="ipo"?"<span style=\"font-size:5px;padding:2px 6px;border-radius:2px;letter-spacing:.6px;background:rgba(255,70,102,.08);border:1px solid rgba(255,70,102,.2);color:#ff4466;display:inline-flex;align-items:center;gap:2px\">🔥 TRENDING</span>":"")+
-        (cat==="companies"?"<span style=\"font-size:5px;padding:2px 6px;border-radius:2px;letter-spacing:.6px;background:rgba(255,204,68,.08);border:1px solid rgba(255,204,68,.2);color:#ffcc44;display:inline-flex;align-items:center;gap:2px\">📋 Q4 RESULTS</span>":"")+
-      "</div>"+
-      "<div style=\"font-size:10.5px;color:#00ff88;line-height:1.35;font-weight:500;letter-spacing:.3px\">"+esc(sTitle)+"</div>"+
-      "<div style=\"width:22px;height:1px;background:rgba(0,255,136,.25);margin:5px 0\"></div>"+
-    "</div>"+
+  var catRow = '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px">'+catBadge+hotBadge+'</div>';
+  var headline = '<div style="font-size:'+FS_HL+';color:#00ff88;line-height:1.35;font-weight:500;letter-spacing:.3px">'+esc(sTitle)+'</div>';
+  var divider  = '<div style="width:22px;height:1px;background:rgba(0,255,136,.25);margin:5px 0"></div>';
+  var headSection = '<div style="padding:7px '+PAD+' 4px '+PAD+';flex-shrink:0">'+catRow+headline+divider+'</div>';
 
-    // body
-    "<div style=\"padding:0 "+pad+";flex:1;display:flex;flex-direction:column;gap:4px;min-height:0\">"+
-      ipoHtml+
-      "<div style=\"background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:7px;flex:1\">"+
-        "<div style=\"font-size:5px;color:#334466;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:3px\">💡 KEY HIGHLIGHTS</div>"+
-        bHtml+
-      "</div>"+
-      mktHtml+
-    "</div>"+
+  var bulletsBox = '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:7px;flex:1"><div style="font-size:'+FS_SL+';color:#334466;letter-spacing:1px;margin-bottom:6px">💡 KEY HIGHLIGHTS</div>'+bHtml+'</div>';
+  var body = '<div style="padding:0 '+PAD+';flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+ipoGrid+bulletsBox+mktHtml+'</div>';
 
-    // watermark
-    "<div style=\"display:flex;align-items:center;gap:4px;padding:3px "+pad+" 0\">"+
-      "<div style=\"flex:1;height:1px;background:rgba(0,255,136,.18)\"></div>"+
-      "<div style=\"font-size:4.5px;color:rgba(0,255,136,.35);letter-spacing:1.5px;white-space:nowrap\">◈ MARKETSAMACHAR.IN</div>"+
-      "<div style=\"flex:1;height:1px;background:rgba(0,255,136,.18)\"></div>"+
-    "</div>"+
+  var wmLine = '<div style="flex:1;height:1px;background:rgba(0,255,136,.18)"></div>';
+  var wmTxt  = '<div style="font-size:4.5px;color:rgba(0,255,136,.35);letter-spacing:1.5px;white-space:nowrap">◈ MARKETSAMACHAR.IN</div>';
+  var wm = '<div style="display:flex;align-items:center;gap:4px;padding:3px '+PAD+' 0">'+wmLine+wmTxt+wmLine+'</div>';
 
-    // footer
-    "<div style=\"background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);padding:5px "+pad+";flex-shrink:0\">"+
-      "<div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:2px\">"+
-        "<span style=\"font-size:4.5px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;padding:1px 5px;letter-spacing:.4px\">ℹ️ NOT INVESTMENT ADVICE · FOR INFO ONLY</span>"+
-        "<span style=\"font-size:6px;color:#00ff88;letter-spacing:.8px\">marketsamachar.in</span>"+
-      "</div>"+
-      "<div style=\"font-size:4px;color:#1a3040;line-height:1.45\">⚠ Investment in securities market are subject to market risks. Read all related documents carefully before investing.</div>"+
-    "</div>"+
+  var ftBadge = '<span style="font-size:'+FS_FT+';background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;padding:1px 5px;letter-spacing:.4px">ℹ️ NOT INVESTMENT ADVICE · FOR INFO ONLY</span>';
+  var ftSite  = '<span style="font-size:'+FS_SITE+';color:#00ff88;letter-spacing:.8px">marketsamachar.in</span>';
+  var ftRow   = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'+ftBadge+ftSite+'</div>';
+  var ftDisc  = '<div style="font-size:'+FS_DISC+';color:#1a3040;line-height:1.45">⚠ Investment in securities market are subject to market risks. Read all related documents carefully before investing.</div>';
+  var footer  = '<div style="background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);padding:5px '+PAD+';flex-shrink:0">'+ftRow+ftDisc+'</div>';
 
-  "</div>";
+  return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border:1px solid #1a1a2e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
+    header + headSection + body + wm + footer +
+  '</div>';
 }
 
 async function downloadCard() {
@@ -1762,22 +1766,36 @@ async function downloadCard() {
   var btn = document.getElementById("dl-btn");
   btn.disabled = true;
   btn.textContent = "⏳ Rendering…";
+
   var wrapper = document.createElement("div");
-  wrapper.style.cssText = "position:fixed;top:-9999px;left:-9999px;z-index:-1;";
+  wrapper.setAttribute("style", "position:fixed;top:-9999px;left:-9999px;z-index:-1");
   wrapper.innerHTML = buildCard(_cardArticle, _cardFmt);
   document.body.appendChild(wrapper);
+
   try {
-    var cardEl = wrapper.firstElementChild;
-    var canvas = await html2canvas(cardEl, {
-      scale:3, useCORS:true, allowTaint:true,
-      backgroundColor:"#07070e", logging:false
-    });
-    var link = document.createElement("a");
-    var safe = (_cardArticle.title||"card").slice(0,30).replace(/[^a-z0-9]/gi,"-").toLowerCase();
-    link.download = "ms-"+_cardFmt+"-"+safe+".png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    toast("Card downloaded at 1080px wide!");
+    if (typeof html2canvas === "undefined") {
+      toast("Downloading via fallback…");
+      var svgEl = wrapper.firstElementChild;
+      var xml = new XMLSerializer().serializeToString(svgEl);
+      var blob = new Blob([wrapper.innerHTML], {type:"text/html"});
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement("a");
+      a.href = url; a.download = "ms-card-"+_cardFmt+".html"; a.click();
+      URL.revokeObjectURL(url);
+      toast("Saved as HTML (open in browser to screenshot)");
+    } else {
+      var cardEl = wrapper.firstElementChild;
+      var canvas = await html2canvas(cardEl, {
+        scale:3, useCORS:true, allowTaint:true,
+        backgroundColor:"#07070e", logging:false
+      });
+      var link = document.createElement("a");
+      var safe = (_cardArticle.title||"card").slice(0,30).replace(/[^a-z0-9]/gi,"-").toLowerCase();
+      link.download = "ms-"+_cardFmt+"-"+safe+".png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast("Card downloaded at 1080px!");
+    }
   } catch(ex) {
     toast("Download failed: "+ex.message, "err");
   } finally {
@@ -1788,7 +1806,7 @@ async function downloadCard() {
 }
 
 document.getElementById("card-overlay").addEventListener("click", function(e) {
-  if (e.target===this) closeCardModal();
+  if (e.target === this) closeCardModal();
 });
 
 loadSection("overview");
