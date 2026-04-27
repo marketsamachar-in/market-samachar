@@ -75,3 +75,7 @@ export const READING_REWARD_DAILY_CAP      = 100;      // max 100 unique article
 
 // ─── Starting balance ────────────────────────────────────────────────────────
 export const STARTING_BALANCE        = 10 * X;      // 1,000 coins for new users
+
+// ─── Community Engagement ────────────────────────────────────────────────────
+export const POLL_VOTE_COINS         = 3;           //   3 coins for voting on community poll
+export const SHARE_ARTICLE_COINS     = 2;           //   2 coins for sharing an article
