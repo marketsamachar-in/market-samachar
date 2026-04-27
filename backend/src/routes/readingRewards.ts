@@ -17,6 +17,8 @@ import {
   DAILY_READING_STREAK_COINS,
   DAILY_READING_STREAK_MIN_ARTICLES,
   READING_REWARD_DAILY_CAP,
+  POLL_VOTE_COINS,
+  SHARE_ARTICLE_COINS,
 } from "../services/rewardConfig.ts";
 
 const router = Router();
@@ -29,11 +31,16 @@ function istDateStr(tsMs: number): string {
   return new Date(tsMs + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
-const VALID_TYPES = ['AI_SUMMARY_READ', 'ARTICLE_LISTEN'] as const;
+const VALID_TYPES = ['AI_SUMMARY_READ', 'ARTICLE_LISTEN', 'POLL_VOTE', 'SHARE_ARTICLE'] as const;
 type RewardType = typeof VALID_TYPES[number];
 
 function coinsForType(t: RewardType): number {
-  return t === 'AI_SUMMARY_READ' ? AI_SUMMARY_READ_COINS : ARTICLE_LISTEN_COINS;
+  switch (t) {
+    case 'AI_SUMMARY_READ': return AI_SUMMARY_READ_COINS;
+    case 'ARTICLE_LISTEN':  return ARTICLE_LISTEN_COINS;
+    case 'POLL_VOTE':       return POLL_VOTE_COINS;
+    case 'SHARE_ARTICLE':   return SHARE_ARTICLE_COINS;
+  }
 }
 
 // ─── POST /claim ──────────────────────────────────────────────────────────────
@@ -47,7 +54,7 @@ router.post("/claim", (req, res) => {
       return res.status(400).json({ ok: false, error: "articleId required" });
     }
     if (!rewardType || !VALID_TYPES.includes(rewardType as RewardType)) {
-      return res.status(400).json({ ok: false, error: "rewardType must be AI_SUMMARY_READ or ARTICLE_LISTEN" });
+      return res.status(400).json({ ok: false, error: "rewardType must be one of AI_SUMMARY_READ, ARTICLE_LISTEN, POLL_VOTE, SHARE_ARTICLE" });
     }
 
     ensureUser(user.id, user.name, user.email);
