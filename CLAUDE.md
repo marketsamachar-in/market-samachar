@@ -394,24 +394,31 @@ user_ipo_predictions (
 
 ```typescript
 type CoinActionType =
-  | 'FIRST_LOGIN'          // 10X = 1,000 coins — one-time welcome bonus
-  | 'DAILY_LOGIN'          // 1X  = 100 coins — daily login base
-  | 'DAILY_STREAK'         // +0.5X per day = +50/day (max 5X = 500)
-  | 'QUIZ_CORRECT'         // 1X × IQ-tier-mult (1.0×–3.0×) per correct, 1/day
-  | 'QUIZ_BONUS'           // 3X × IQ-tier-mult for perfect 5/5 score
-  | 'QUIZ_PODIUM_DAILY'    // 1000/750/500 for daily top 3 BY IQ GAIN (23:55 IST)
-  | 'QUIZ_PODIUM_WEEKLY'   // 1000/750/500 for weekly top 3 BY IQ GAIN (Sun 23:55 IST)
-  | 'QUIZ_PODIUM_MONTHLY'  // 1000/750/500 for monthly top 3 BY IQ GAIN (month-end 23:55 IST)
-  | 'PREDICTION_VOTE'      // 1X  = 100 coins for participating
-  | 'PREDICTION_CORRECT'   // 3X  = 300 coins for correct prediction
-  | 'VIRTUAL_TRADE'        // 0.5X = 50 coins per trade activity
-  | 'PORTFOLIO_PROFIT'     // 5X  = 500 coins for ≥5% profit on sell
-  | 'REFERRAL'             // 5X  = 500 coins for both parties
-  | 'NEWS_IMPACT_CORRECT'  // 1X  = 100 coins per correct answer
-  | 'IPO_PREDICTION'       // 1X  = 100 coins for participating
-  | 'IPO_CORRECT'          // 5X  = 500 coins for correct IPO prediction
-  | 'ADMIN_GRANT'          // manual admin coin grant
-  | 'PURCHASE'             // paid coin purchase (future)
+  | 'FIRST_LOGIN'           // 10X = 1,000 coins — one-time welcome bonus
+  | 'DAILY_LOGIN'           // 1X  = 100 coins — daily login base
+  | 'DAILY_STREAK'          // +0.5X per day = +50/day (max 5X = 500)
+  | 'VIRTUAL_TRADE'         // 0.5X = 50 coins per trade activity
+  | 'PORTFOLIO_PROFIT'      // 5X  = 500 coins for ≥5% profit on sell
+  | 'REFERRAL'              // 5X  = 500 coins for both parties (viral jackpot)
+  | 'PULSE_SWIPE'           // +5  per swipe (cap 100/day = 500 base)
+  | 'PULSE_CORRECT'         // +20 bonus when 24h price move agrees with swipe
+  | 'CHARTGUESSR_CORRECT'   // +20 per correct guess
+  | 'CHARTGUESSR_WRONG'     // -5  penalty (capped at current balance)
+  | 'CHARTGUESSR_STREAK'    // +50 / +200 / +1000 at streaks of 5 / 10 / 20
+  | 'POLL_VOTE'             // +10 per vote (cap 30/day = 300 base)
+  | 'POLL_VOTE_BONUS'       // +50 at 5 votes/day · +150 at 15 votes/day
+  | 'SHARE_ARTICLE'         // +25 per article+platform (cap 10/day = 250 base)
+  | 'SHARE_ARTICLE_BONUS'   // +50 multi-platform · +100 streak at 5 shares/day
+  | 'AI_SUMMARY_READ'       // +5  per unique AI summary view
+  | 'ARTICLE_LISTEN'        // +10 per unique article listen
+  | 'DAILY_READING_STREAK'  // 5X  = 500 daily bonus for ≥5 articles read
+  | 'ADMIN_GRANT'           // manual admin coin grant
+  | 'PURCHASE'              // paid coin purchase (future)
+  // Legacy (Gemini-dependent, retired in favor of PULSE / CHARTGUESSR):
+  | 'QUIZ_CORRECT' | 'QUIZ_BONUS'
+  | 'QUIZ_PODIUM_DAILY' | 'QUIZ_PODIUM_WEEKLY' | 'QUIZ_PODIUM_MONTHLY'
+  | 'PREDICTION_VOTE' | 'PREDICTION_CORRECT'
+  | 'NEWS_IMPACT_CORRECT' | 'IPO_PREDICTION' | 'IPO_CORRECT';
 ```
 
 ---
@@ -883,16 +890,35 @@ Quiz podium (top 3):   10X / 7.5X / 5X = 1000 / 750 / 500 coins per period
                        Ranked by IQ DELTA earned (not raw score) — speed + streak both feed in
                        Paid by cron for daily (23:55 IST), weekly (Sun 23:55), monthly (month-end 23:55)
                        Dedup via `quiz_podium_payouts` table — safe to run twice per period
-Prediction vote:       1X  = 100 coins for participating
-Prediction correct:    3X  = 300 coins for correct answer
-News Impact correct:   1X  = 100 coins per correct answer
-IPO prediction vote:   1X  = 100 coins for participating
-IPO prediction correct:5X  = 500 coins for correct IPO call
+Pulse swipe:           +5  per swipe (cap 100/day = 500 base coins)
+Pulse correct:         +20 bonus when 24h price move agrees with swipe direction
+                       Resolved by cron every 30 min using Yahoo price snapshot
+Chartguessr correct:   +20 per correct guess (cap 30 plays/day)
+Chartguessr wrong:     −5  penalty (capped at current balance)
+Chartguessr streaks:   +50 / +200 / +1000 at consecutive 5 / 10 / 20 correct
+Poll vote:             +10 per vote (cap 30/day = 300 base)
+Poll vote bonuses:     +50 at 5 polls today · +150 at 15 polls today
+                       → max poll coins/day = 30×10 + 50 + 150 = 500
+Article share:         +25 per (article × platform) pair (cap 10 shares/day)
+Share bonuses:         +50 if same article shared to 2+ platforms
+                       +100 streak bonus at 5 shares today
+                       → max share coins/day excl. signups = 10×25 + 50 + 100 = 400
+Share viral jackpot:   +500 to BOTH parties when someone signs up via the
+                       shared link (?ref=USER_CODE) — uses existing REFERRAL flow
+Referral click attrib: anonymous beacon to /api/referrals/click logs every
+                       ?ref= landing in `referral_clicks` table for stats
 Trade activity:        0.5X = 50 coins per trade
 Portfolio profit:      5X  = 500 coins for ≥5% gain
+AI summary read:       5   coins per unique article (cap 100/day)
+Article listen:        10  coins per unique article (cap 100/day)
+Daily reading streak:  5X  = 500 bonus when ≥5 unique AI summaries read today
 Coin source of truth:  SQLite `virtual_coin_balance` + `samachar_coins` ledger
                        Supabase `profiles.coins` is a read-only mirror
 InsufficientCoinsError: thrown by deductCoins(), caught in trading routes → HTTP 402
+
+Legacy (Gemini-dependent, retired in favor of PULSE / CHARTGUESSR):
+  Quiz, Prediction, News Impact, IPO Prediction reward types still exist in
+  the union for historical ledger entries but no new payouts are issued.
 ```
 
 ### Cron Jobs (in server.ts)
@@ -906,6 +932,7 @@ InsufficientCoinsError: thrown by deductCoins(), caught in trading routes → HT
 "55 23 * * 0"         Asia/Kolkata  → payoutPodium('weekly')          (= 23:55 IST Sundays)
 "55 23 * * *"         Asia/Kolkata  → payoutPodium('monthly') if last day of month
 "30 3 * * *"          Asia/Kolkata  → nightly cleanup (news, batches, expired quiz Qs)
+"*/30 * * * *"        Asia/Kolkata  → resolvePulseSwipes() — settle 24h+ swipes
 Background intervals:
   3-min  → processUnprocessedArticles('background')  — AI summary safety net
   4-min  → backfill articles missing social captions
