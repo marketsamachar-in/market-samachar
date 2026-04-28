@@ -174,13 +174,13 @@ function EarnCoinsPanel({ onNavigate, compact = false }: {
   compact?: boolean;
 }) {
   const EARN_OPTIONS = [
-    { icon: '🧠', label: 'Market Quiz',        desc: '100 coins/correct · 300 bonus for 5/5', coins: '+500', view: 'quiz',        color: '#b366ff' },
-    { icon: '🔮', label: 'Daily Predictions',   desc: '100 coins/vote · 300 for correct',      coins: '+400', view: 'predictions', color: '#3b9eff' },
-    { icon: '📰', label: 'News Impact Quiz',    desc: '100 coins per correct answer',           coins: '+100', view: 'predictions', color: '#ff9f3b' },
-    { icon: '📊', label: 'IPO Predictions',     desc: '100 coins/vote · 500 for correct',      coins: '+600', view: 'predictions', color: '#ff3bff' },
-    { icon: '📈', label: 'Trade Stocks',        desc: '50 coins per trade · 500 for 5% profit', coins: '+550', view: 'trading',     color: GREEN },
-    { icon: '👥', label: 'Refer a Friend',      desc: 'Both get 500 coins!',                    coins: '+500', view: 'rewards',     color: '#ffdd3b' },
-    { icon: '📅', label: 'Daily Login Streak',  desc: '100 base + 50/day streak (max 500)',     coins: '+600', view: 'rewards',     color: '#3bffee' },
+    { icon: '⚡', label: 'Pulse — Bull/Bear Swiper', desc: '5 coins per swipe · +20 bonus when right after 24h', coins: '+520', view: 'pulse',       color: '#ff9f3b' },
+    { icon: '📊', label: 'Chartguessr',              desc: '20 coins per correct guess · streak bonus up to 1000', coins: '+1000', view: 'chartguessr', color: '#3b9eff' },
+    { icon: '📈', label: 'Trade Stocks',             desc: '50 coins per trade · 500 for 5% profit',           coins: '+550',  view: 'trading',     color: GREEN     },
+    { icon: '📅', label: 'Daily Login Streak',       desc: '100 base + 50/day streak (max 500)',               coins: '+600',  view: 'rewards',     color: '#3bffee' },
+    { icon: '👥', label: 'Refer a Friend',           desc: 'Both get 500 coins!',                              coins: '+500',  view: 'rewards',     color: '#ffdd3b' },
+    { icon: '🗳️', label: 'Vote on Polls',            desc: '10 coins per vote · +50 at 5 votes · +150 at 15 votes',  coins: '+500', view: 'news', color: '#b366ff' },
+    { icon: '🔗', label: 'Share Articles',           desc: '25/share · +50 multi-platform · +500 if friend signs up', coins: '+750', view: 'news', color: '#ff3bff' },
   ];
 
   const items = compact ? EARN_OPTIONS.slice(0, 4) : EARN_OPTIONS;
