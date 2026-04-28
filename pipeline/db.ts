@@ -1137,6 +1137,36 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS quiz_podium_user_idx ON quiz_podium_payouts (user_id, created_at DESC);
 
+  -- ── PULSE — Bull/Bear News Swiper ─────────────────────────────────────────
+  CREATE TABLE IF NOT EXISTS pulse_swipes (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      TEXT    NOT NULL,
+    article_id   TEXT    NOT NULL,
+    symbol       TEXT,                            -- nullable; resolved only if symbol detected
+    direction    TEXT    NOT NULL CHECK(direction IN ('BULL','BEAR')),
+    swiped_at    INTEGER NOT NULL,
+    swipe_price  REAL,                            -- price snapshot when swiped (for resolution)
+    resolved_at  INTEGER,                         -- when 24h check ran; NULL = pending
+    was_correct  INTEGER,                         -- 0/1, NULL until resolved
+    bonus_coins  INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(user_id, article_id)
+  );
+  CREATE INDEX IF NOT EXISTS pulse_swipes_user_idx ON pulse_swipes (user_id, swiped_at DESC);
+  CREATE INDEX IF NOT EXISTS pulse_swipes_pending_idx ON pulse_swipes (resolved_at, swiped_at);
+
+  -- ── CHARTGUESSR — Guess the Stock from chart ──────────────────────────────
+  CREATE TABLE IF NOT EXISTS chartguessr_plays (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         TEXT    NOT NULL,
+    correct_symbol  TEXT    NOT NULL,
+    chosen_symbol   TEXT    NOT NULL,
+    was_correct     INTEGER NOT NULL,
+    coins_earned    INTEGER NOT NULL,
+    streak_after    INTEGER NOT NULL DEFAULT 0,
+    played_at       INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS chartguessr_user_idx ON chartguessr_plays (user_id, played_at DESC);
+
   -- Drop removed-scope tables (IQ-centric quiz redesign removed practice mode)
   DROP TABLE IF EXISTS quiz_practice_attempts;
 `);
@@ -1152,7 +1182,9 @@ export type CoinActionType =
   | 'VIRTUAL_TRADE'       | 'PORTFOLIO_PROFIT'   | 'REFERRAL'
   | 'FIRST_LOGIN'         | 'DAILY_LOGIN'
   | 'AI_SUMMARY_READ'     | 'ARTICLE_LISTEN'     | 'DAILY_READING_STREAK'
-  | 'POLL_VOTE'           | 'SHARE_ARTICLE';
+  | 'POLL_VOTE'           | 'SHARE_ARTICLE'
+  | 'PULSE_SWIPE'         | 'PULSE_CORRECT'
+  | 'CHARTGUESSR_CORRECT' | 'CHARTGUESSR_WRONG'  | 'CHARTGUESSR_STREAK';
 
 export interface UserRow {
   id:                   string;
