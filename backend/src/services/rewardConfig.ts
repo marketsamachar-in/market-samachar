@@ -79,3 +79,16 @@ export const STARTING_BALANCE        = 10 * X;      // 1,000 coins for new users
 // ─── Community Engagement ────────────────────────────────────────────────────
 export const POLL_VOTE_COINS         = 3;           //   3 coins for voting on community poll
 export const SHARE_ARTICLE_COINS     = 2;           //   2 coins for sharing an article
+
+// ─── PULSE — Bull/Bear News Swiper ───────────────────────────────────────────
+export const PULSE_SWIPE_COINS         = 5;     //  +5 coins per swipe (capped daily)
+export const PULSE_CORRECT_BONUS_COINS = 20;    // +20 coins after 24h if direction correct
+export const PULSE_DAILY_SWIPE_CAP     = 100;   // max coin-paying swipes per day per user
+
+// ─── CHARTGUESSR — Guess the Stock from chart ────────────────────────────────
+export const CHARTGUESSR_CORRECT_COINS  = 20;   // +20 coins per correct guess
+export const CHARTGUESSR_WRONG_PENALTY  = 5;    //  −5 coins per wrong guess
+export const CHARTGUESSR_DAILY_LIMIT    = 30;   // max plays/day before paywall
+export const CHARTGUESSR_STREAK_5_BONUS = 50;   // +50 at streak of 5
+export const CHARTGUESSR_STREAK_10_BONUS = 200; // +200 at streak of 10
+export const CHARTGUESSR_STREAK_20_BONUS = 1000;// +1000 at streak of 20
