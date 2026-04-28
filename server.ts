@@ -69,12 +69,17 @@ import readingRewardsRouter from "./backend/src/routes/readingRewards.ts";
 import authSyncRouter       from "./backend/src/routes/authSync.ts";
 import pulseRouter          from "./backend/src/routes/pulse.ts";
 import chartguessrRouter    from "./backend/src/routes/chartguessr.ts";
+import referralsRouter      from "./backend/src/routes/referrals.ts";
 import { resolvePulseSwipes } from "./backend/src/services/pulseResolver.ts";
 import { startStockPriceCron } from "./backend/src/services/stockPriceService.ts";
 import { createDailyPredictions, resolvePredictions } from "./backend/src/services/predictionService.ts";
 import { addCoins, ensureUser as ensureSqliteUser } from "./backend/src/services/coinService.ts";
 import { requireAuth } from "./backend/src/middleware/auth.ts";
-import { POLL_VOTE_COINS, SHARE_ARTICLE_COINS } from "./backend/src/services/rewardConfig.ts";
+import {
+  POLL_VOTE_COINS, SHARE_ARTICLE_COINS,
+  POLL_VOTE_DAILY_CAP, POLL_STREAK_5_BONUS_COINS, POLL_STREAK_15_BONUS_COINS,
+  SHARE_ARTICLE_DAILY_CAP, SHARE_STREAK_5_BONUS_COINS, SHARE_MULTI_PLATFORM_BONUS,
+} from "./backend/src/services/rewardConfig.ts";
 import {
   QUIZ_CORRECT_COINS,
   QUIZ_PERFECT_BONUS,
@@ -1327,6 +1332,7 @@ async function startServer() {
   app.use("/api/auth", authSyncRouter);
   app.use("/api/pulse", pulseRouter);
   app.use("/api/chartguessr", chartguessrRouter);
+  app.use("/api/referrals", referralsRouter);
 
   // Stricter limiter for Gemini-powered routes (cost-bearing)
   app.use("/api/news/article", articleLimiter);
@@ -3581,45 +3587,122 @@ body{background:#07070e;color:#e8eaf0;font-family:'DM Sans',sans-serif;min-heigh
         return res.status(500).json({ ok: false, error: 'Failed to record vote' });
       }
 
-      // Award POLL_VOTE coins once per (user, article) — INSERT OR IGNORE on reading_rewards
+      // Award POLL_VOTE coins (capped daily) + streak bonuses at 5 / 15.
       ensureSqliteUser(user.id, user.name, user.email);
       const today = getISTDate();
       let coinsEarned = 0;
-      const ins = rawDb.prepare(
-        "INSERT OR IGNORE INTO reading_rewards (user_id, article_id, reward_type, coins_awarded, reward_date, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      ).run(user.id, articleId, 'POLL_VOTE', POLL_VOTE_COINS, today, Date.now());
-      if (ins.changes > 0) {
-        addCoins(user.id, POLL_VOTE_COINS, 'POLL_VOTE', articleId, 'Community poll vote');
-        coinsEarned = POLL_VOTE_COINS;
+      let bonusEarned = 0;
+      let bonusReason: string | null = null;
+      let alreadyCapped = false;
+
+      const countBefore = (rawDb.prepare(
+        "SELECT COUNT(*) AS c FROM reading_rewards WHERE user_id = ? AND reward_type = 'POLL_VOTE' AND reward_date = ?"
+      ).get(user.id, today) as { c: number }).c;
+
+      if (countBefore >= POLL_VOTE_DAILY_CAP) {
+        alreadyCapped = true;
+      } else {
+        const ins = rawDb.prepare(
+          "INSERT OR IGNORE INTO reading_rewards (user_id, article_id, reward_type, coins_awarded, reward_date, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+        ).run(user.id, articleId, 'POLL_VOTE', POLL_VOTE_COINS, today, Date.now());
+
+        if (ins.changes > 0) {
+          addCoins(user.id, POLL_VOTE_COINS, 'POLL_VOTE', articleId, 'Community poll vote');
+          coinsEarned = POLL_VOTE_COINS;
+
+          const countAfter = countBefore + 1;
+          if (countAfter === 5)  {
+            addCoins(user.id, POLL_STREAK_5_BONUS_COINS, 'POLL_VOTE_BONUS', null, 'Streak: 5 polls today');
+            bonusEarned += POLL_STREAK_5_BONUS_COINS;
+            bonusReason = '5 polls today!';
+          }
+          if (countAfter === 15) {
+            addCoins(user.id, POLL_STREAK_15_BONUS_COINS, 'POLL_VOTE_BONUS', null, 'Streak: 15 polls today');
+            bonusEarned += POLL_STREAK_15_BONUS_COINS;
+            bonusReason = '15 polls today!';
+          }
+        }
       }
 
       const counts = await getPollCounts(articleId);
-      res.json({ ok: true, ...counts, coinsEarned });
+      res.json({
+        ok: true, ...counts,
+        coinsEarned, bonusEarned, bonusReason,
+        alreadyCapped, dailyCap: POLL_VOTE_DAILY_CAP,
+      });
     } catch (err: any) {
       console.error('[news/poll POST] error:', err);
       res.status(500).json({ ok: false, error: 'Internal error' });
     }
   });
 
-  // POST /api/news/share/:id/reward — authenticated; one-time SHARE_ARTICLE coins per article per day
+  // POST /api/news/share/:id/reward — authenticated.
+  // Awards SHARE_ARTICLE coins per article+platform per day, plus:
+  //   • +SHARE_STREAK_5_BONUS_COINS at 5 shares today
+  //   • +SHARE_MULTI_PLATFORM_BONUS when an article hits 2+ distinct platforms
+  // Body / query: { platform?: 'whatsapp'|'twitter'|'telegram'|'copy'|'other' }
   app.post('/api/news/share/:id/reward', requireAuth, (req: Request, res: Response) => {
     try {
       const user = req.user!;
       const { id: articleId } = req.params;
+      const rawPlatform = (req.body?.platform ?? req.query?.platform ?? 'other')
+        .toString().toLowerCase();
+      const validPlatforms = new Set(['whatsapp','twitter','telegram','copy','other']);
+      const platform = validPlatforms.has(rawPlatform) ? rawPlatform : 'other';
 
       ensureSqliteUser(user.id, user.name, user.email);
       const today = getISTDate();
 
-      const ins = rawDb.prepare(
-        "INSERT OR IGNORE INTO reading_rewards (user_id, article_id, reward_type, coins_awarded, reward_date, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-      ).run(user.id, articleId, 'SHARE_ARTICLE', SHARE_ARTICLE_COINS, today, Date.now());
-
-      if (ins.changes === 0) {
-        return res.json({ ok: true, alreadyClaimed: true, coinsEarned: 0 });
+      // Daily cap
+      const countBefore = (rawDb.prepare(
+        "SELECT COUNT(*) AS c FROM reading_rewards WHERE user_id = ? AND reward_type = 'SHARE_ARTICLE' AND reward_date = ?"
+      ).get(user.id, today) as { c: number }).c;
+      if (countBefore >= SHARE_ARTICLE_DAILY_CAP) {
+        return res.json({ ok: true, alreadyCapped: true, coinsEarned: 0, dailyCap: SHARE_ARTICLE_DAILY_CAP });
       }
 
-      addCoins(user.id, SHARE_ARTICLE_COINS, 'SHARE_ARTICLE', articleId, 'Article share reward');
-      res.json({ ok: true, coinsEarned: SHARE_ARTICLE_COINS });
+      const ins = rawDb.prepare(
+        "INSERT OR IGNORE INTO reading_rewards (user_id, article_id, reward_type, coins_awarded, reward_date, platform, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+      ).run(user.id, articleId, 'SHARE_ARTICLE', SHARE_ARTICLE_COINS, today, platform, Date.now());
+
+      if (ins.changes === 0) {
+        return res.json({ ok: true, alreadyClaimed: true, coinsEarned: 0, platform });
+      }
+
+      addCoins(user.id, SHARE_ARTICLE_COINS, 'SHARE_ARTICLE', articleId, `Share via ${platform}`);
+
+      const countAfter = countBefore + 1;
+      let bonusEarned = 0;
+      let bonusReason: string | null = null;
+
+      // Streak bonus at 5 shares today
+      if (countAfter === 5) {
+        addCoins(user.id, SHARE_STREAK_5_BONUS_COINS, 'SHARE_ARTICLE_BONUS', null, 'Streak: 5 shares today');
+        bonusEarned += SHARE_STREAK_5_BONUS_COINS;
+        bonusReason = '5 shares today!';
+      }
+
+      // Multi-platform bonus: award when article hits 2 distinct platforms today
+      const distinctPlat = (rawDb.prepare(`
+        SELECT COUNT(DISTINCT platform) AS c FROM reading_rewards
+        WHERE user_id = ? AND article_id = ? AND reward_type = 'SHARE_ARTICLE'
+          AND reward_date = ? AND platform IS NOT NULL
+      `).get(user.id, articleId, today) as { c: number }).c;
+      if (distinctPlat === 2) {
+        addCoins(user.id, SHARE_MULTI_PLATFORM_BONUS, 'SHARE_ARTICLE_BONUS', articleId, 'Multi-platform share');
+        bonusEarned += SHARE_MULTI_PLATFORM_BONUS;
+        bonusReason = bonusReason ? `${bonusReason} + Multi-platform!` : 'Multi-platform bonus!';
+      }
+
+      res.json({
+        ok:           true,
+        coinsEarned:  SHARE_ARTICLE_COINS,
+        bonusEarned,
+        bonusReason,
+        platform,
+        countToday:   countAfter,
+        dailyCap:     SHARE_ARTICLE_DAILY_CAP,
+      });
     } catch (err: any) {
       console.error('[news/share] error:', err);
       res.status(500).json({ ok: false, error: 'Internal error' });
