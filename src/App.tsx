@@ -13,10 +13,10 @@ import { AddToHomeScreen } from "./components/pwa/AddToHomeScreen";
 import type { CertificateData } from "./lib/certificate";
 import { useAuth } from "./hooks/useAuth";
 import PaperTrading from "./pages/PaperTrading";
-import { MarketForecast } from "./components/MarketForecast";
-import NewsImpactQuiz from "./components/NewsImpactQuiz";
-import IPOPredictions from "./components/IPOPredictions";
+import Pulse from "./pages/Pulse";
+import Chartguessr from "./pages/Chartguessr";
 import RewardsHub from "./pages/RewardsHub";
+import { MarketForecast } from "./components/MarketForecast";
 import { AppHeader } from "./components/AppHeader";
 import { BottomNav, getOnClickNavTabs } from "./components/BottomNav";
 import { Sparkline } from "./components/Sparkline";
@@ -344,22 +344,22 @@ export default function App() {
   const { user, profile, investorIq, session } = useAuth();
 
   // ── URL ↔ view sync ──────────────────────────────────────────────────────
-  type ViewType = "news" | "quiz" | "trading" | "predictions" | "rewards";
+  type ViewType = "news" | "trading" | "pulse" | "chartguessr" | "rewards";
 
   function pathToView(p: string): ViewType {
     if (p.startsWith("/paper-trading")) return "trading";
-    if (p.startsWith("/predict"))      return "predictions";
-    if (p.startsWith("/rewards"))      return "rewards";
-    if (p.startsWith("/quiz"))         return "quiz";
+    if (p.startsWith("/pulse"))         return "pulse";
+    if (p.startsWith("/chartguessr"))   return "chartguessr";
+    if (p.startsWith("/rewards"))       return "rewards";
     return "news";
   }
 
   function viewToPath(v: ViewType): string {
     switch (v) {
       case "trading":     return "/paper-trading";
-      case "predictions": return "/predict";
+      case "pulse":       return "/pulse";
+      case "chartguessr": return "/chartguessr";
       case "rewards":     return "/rewards";
-      case "quiz":        return "/quiz";
       default:            return "/";
     }
   }
@@ -369,9 +369,9 @@ export default function App() {
   // Dynamic page title per tab
   const TAB_TITLES: Record<ViewType, string> = {
     news:        "Market Samachar — Live News",
-    quiz:        "Market Quiz — Test Your IQ",
     trading:     "Paper Trading — Virtual Markets",
-    predictions: "Daily Forecast — Market Predictions",
+    pulse:       "Pulse — Bull/Bear News Swiper",
+    chartguessr: "Chartguessr — Guess the Stock",
     rewards:     "Rewards Hub — Market Samachar",
   };
   useEffect(() => { document.title = TAB_TITLES[view]; }, [view]);
@@ -549,68 +549,19 @@ export default function App() {
       <BottomNav tabs={bottomNavTabs} />
 
       {/* ── Non-news pages ─────────────────────────────────────────────── */}
-      {view === "quiz" && (
-        <div key="quiz" className="page-enter" style={{ minHeight: "calc(100vh - 112px)", padding: "20px 16px 80px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div style={{ width: "100%", maxWidth: 480 }}>
-            <MarketQuiz />
-          </div>
-        </div>
-      )}
       {view === "trading" && (
         <div key="trading" className="page-enter" style={{ paddingBottom: 72 }}>
           <PaperTrading authToken={session?.access_token} onNavigate={navigate} />
         </div>
       )}
-      {view === "predictions" && (
-        <div key="predictions" className="page-enter" style={{ padding: "16px 16px 80px" }}>
-          {/* Mystery Stock — mobile access (desktop shows in sidebar) */}
-          <button
-            onClick={() => setShowMysteryStock(true)}
-            className="lg:hidden hover:border-[#00ff8830] transition-colors"
-            style={{
-              background:  '#0d0d1e',
-              border:      '1px solid #1a1a2e',
-              borderRadius: 10,
-              padding:     '14px 16px',
-              cursor:      'pointer',
-              textAlign:   'left',
-              width:       '100%',
-              marginBottom: 20,
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span style={{ fontSize: 18 }}>🔍</span>
-                <span style={{ color: '#00ff88', ...MONO, fontSize: 10, letterSpacing: 2 }} className="uppercase">
-                  Mystery Stock
-                </span>
-              </div>
-              <span style={{ background: '#0a1a10', border: '1px solid #00ff8830', color: '#00ff88', ...MONO, fontSize: 8, padding: '2px 6px', borderRadius: 3 }}>
-                DAILY
-              </span>
-            </div>
-            <div style={{ color: '#8899aa', ...SANS, fontSize: 11, lineHeight: 1.5 }}>
-              Guess the mystery Nifty 500 stock from 5 clues
-            </div>
-            <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-              {['🟩','🟥','🟥','⬜','⬜'].map((e, i) => (
-                <span key={i} style={{ fontSize: 12 }}>{e}</span>
-              ))}
-              <span style={{ color: '#334466', ...MONO, fontSize: 9, marginLeft: 4, alignSelf: 'center' }}>500 pts</span>
-            </div>
-          </button>
-
-          <MarketForecast authToken={session?.access_token} />
-
-          {/* News Impact Quiz */}
-          <div style={{ marginTop: 20 }}>
-            <NewsImpactQuiz authToken={session?.access_token} />
-          </div>
-
-          {/* IPO Predictions */}
-          <div style={{ marginTop: 20 }}>
-            <IPOPredictions authToken={session?.access_token} />
-          </div>
+      {view === "pulse" && (
+        <div key="pulse" className="page-enter">
+          <Pulse authToken={session?.access_token} />
+        </div>
+      )}
+      {view === "chartguessr" && (
+        <div key="chartguessr" className="page-enter">
+          <Chartguessr authToken={session?.access_token} />
         </div>
       )}
       {view === "rewards" && (
@@ -765,9 +716,9 @@ export default function App() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {[
               { id: "trading"     as ViewType, label: "Paper Trading",  icon: <TradingIcon size={16} />, color: "#00ff88", desc: "Virtual Trading" },
+              { id: "pulse"       as ViewType, label: "Pulse",          icon: <Zap         size={16} />, color: "#ff9f3b", desc: "Bull/Bear Swiper" },
+              { id: "chartguessr" as ViewType, label: "Chartguessr",    icon: <Activity    size={16} />, color: "#3b9eff", desc: "Guess the Stock" },
               { id: "rewards"     as ViewType, label: "Rewards Hub",    icon: <Star        size={16} />, color: "#ffdd3b", desc: "Coins & Badges"  },
-              { id: "predictions" as ViewType, label: "Forecast",       icon: <Target      size={16} />, color: "#3b9eff", desc: "Daily Predictions" },
-              { id: "quiz"        as ViewType, label: "Market Quiz",    icon: <Brain       size={16} />, color: "#b366ff", desc: "IQ Quiz" },
             ].map((item) => (
               <button
                 key={item.id}
