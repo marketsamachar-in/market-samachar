@@ -146,7 +146,10 @@ function refreshPortfolioTotals(userId: string): void {
   const priceMap = new Map<string, number>(popular.map((s) => [s.symbol, s.currentPrice]));
 
   const currentValue = holdings.reduce((sum, h) => {
-    const price = priceMap.get(h.symbol) ?? h.avg_buy_price_coins;
+    const cached = priceMap.get(h.symbol);
+    // Treat 0/missing as unknown — use avg buy price so portfolio doesn't
+    // collapse to zero when the price cache hasn't populated yet.
+    const price  = cached && cached > 0 ? cached : h.avg_buy_price_coins;
     return sum + Math.round(price * h.quantity);
   }, 0);
 
@@ -349,9 +352,14 @@ export function getPortfolio(userId: string): Portfolio {
   let currentValue  = 0;
 
   const enriched: PortfolioHolding[] = holdings.map((h) => {
-    const cached   = priceMap.get(h.symbol);
-    const curPrice = cached?.price ?? h.avg_buy_price_coins;
-    const isStale  = !cached || cached.stale;
+    const cached      = priceMap.get(h.symbol);
+    // Treat 0/negative as missing — when stockPriceService can't reach Yahoo
+    // and has no cache, it returns currentPrice:0 (placeholder). Falling back
+    // to the user's avg buy price keeps the portfolio visible after market
+    // close instead of collapsing the row to zero.
+    const cachedPrice = cached && cached.price > 0 ? cached.price : null;
+    const curPrice    = cachedPrice ?? h.avg_buy_price_coins;
+    const isStale     = cachedPrice == null || cached?.stale === true;
 
     const invested   = Math.round(h.avg_buy_price_coins * h.quantity);
     const value      = Math.round(curPrice * h.quantity);
@@ -436,10 +444,11 @@ export function getHoldingForSymbol(userId: string, symbol: string): PortfolioHo
   const holding = getHolding(userId, symbol);
   if (!holding) return null;
 
-  const popular  = getPopularStocks();
-  const cached   = popular.find((s) => s.symbol === symbol);
-  const curPrice = cached?.currentPrice ?? holding.avg_buy_price_coins;
-  const isStale  = !cached || cached.staleData === true;
+  const popular     = getPopularStocks();
+  const cached      = popular.find((s) => s.symbol === symbol);
+  const cachedPrice = cached && cached.currentPrice > 0 ? cached.currentPrice : null;
+  const curPrice    = cachedPrice ?? holding.avg_buy_price_coins;
+  const isStale     = cachedPrice == null || cached?.staleData === true;
 
   const invested   = Math.round(holding.avg_buy_price_coins * holding.quantity);
   const value      = Math.round(curPrice * holding.quantity);
