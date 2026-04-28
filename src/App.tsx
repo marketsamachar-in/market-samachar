@@ -17,6 +17,8 @@ import Pulse from "./pages/Pulse";
 import Chartguessr from "./pages/Chartguessr";
 import RewardsHub from "./pages/RewardsHub";
 import { MarketForecast } from "./components/MarketForecast";
+import IPOPredictions from "./components/IPOPredictions";
+import NewsImpactQuiz from "./components/NewsImpactQuiz";
 import { AppHeader } from "./components/AppHeader";
 import { BottomNav, getOnClickNavTabs } from "./components/BottomNav";
 import { Sparkline } from "./components/Sparkline";
@@ -294,10 +296,10 @@ const NewsCard: React.FC<{
           📖 Timeline
         </button>
         <button onClick={() => isSignedIn ? setActivePopup('poll') : onSignIn?.()} style={btnStyle('#ff9f3b')} className="hover:brightness-125 justify-center">
-          🗳️ Poll +3
+          🗳️ Poll +10
         </button>
         <button onClick={() => setActivePopup('share')} style={btnStyle('#ff6bff')} className="hover:brightness-125 justify-center">
-          🔗 Share +2
+          🔗 Share +25
         </button>
         <button onClick={() => setActivePopup('source')} style={btnStyle('#ffdd3b')} className="hover:brightness-125 justify-center">
           <ExternalLink className="w-3 h-3" /> Source
@@ -823,6 +825,12 @@ export default function App() {
 
           {/* Daily Forecast — market predictions */}
           <MarketForecast authToken={session?.access_token} />
+
+          {/* News Impact Quiz — answer 4-option MCQs from today's articles */}
+          <NewsImpactQuiz authToken={session?.access_token} />
+
+          {/* IPO Predictions — vote on upcoming listings */}
+          <IPOPredictions authToken={session?.access_token} />
 
           {/* Market Quiz */}
           <MarketQuiz />
