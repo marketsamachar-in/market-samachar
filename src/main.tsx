@@ -2,7 +2,11 @@ import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider } from './hooks/useAuth';
+import { captureIncomingReferral } from './lib/referral';
 import './index.css';
+
+// If the URL is ?ref=CODE, log the click and stash the code for later signup.
+captureIncomingReferral();
 
 // Code-split: only load the page the user actually visits
 const App              = lazy(() => import('./App.tsx'));
