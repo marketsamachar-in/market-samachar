@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Newspaper, TrendingUp, Target, Brain, Trophy } from 'lucide-react';
+import { Newspaper, TrendingUp, Zap, BarChart2, Trophy } from 'lucide-react';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────── */
 const GREEN  = '#00ff88';
@@ -167,11 +167,11 @@ export function BottomNav({ tabs }: BottomNavProps) {
 /** Href-based tabs for LandingPage (navigates between routes) */
 export function getHrefNavTabs(activePath: string): BottomNavTab[] {
   const tabs: Array<Omit<BottomNavTab, 'active'> & { href: string }> = [
-    { id: 'news',    label: 'NEWS',    icon: <Newspaper  size={20} />, href: '/'             },
-    { id: 'trading', label: 'TRADE',   icon: <TrendingUp size={22} />, href: '/paper-trading', hot: true },
-    { id: 'predict', label: 'PREDICT', icon: <Target     size={20} />, href: '/predict'      },
-    { id: 'quiz',    label: 'QUIZ',    icon: <Brain      size={20} />, href: '/app'          },
-    { id: 'rewards', label: 'REWARDS', icon: <Trophy     size={20} />, href: '/rewards'      },
+    { id: 'news',        label: 'NEWS',    icon: <Newspaper  size={20} />, href: '/'             },
+    { id: 'trading',     label: 'TRADE',   icon: <TrendingUp size={22} />, href: '/paper-trading', hot: true },
+    { id: 'pulse',       label: 'PULSE',   icon: <Zap        size={20} />, href: '/pulse',         hot: true },
+    { id: 'chartguessr', label: 'CHARTS',  icon: <BarChart2  size={20} />, href: '/chartguessr'  },
+    { id: 'rewards',     label: 'REWARDS', icon: <Trophy     size={20} />, href: '/rewards'      },
   ];
   return tabs.map(t => ({
     ...t,
@@ -187,8 +187,8 @@ export function getOnClickNavTabs(
   return [
     { id: 'news',        label: 'NEWS',    icon: <Newspaper  size={20} />, onClick: () => navigate('news'),        active: view === 'news'        },
     { id: 'trading',     label: 'TRADE',   icon: <TrendingUp size={22} />, onClick: () => navigate('trading'),     active: view === 'trading',     hot: true },
-    { id: 'predictions', label: 'PREDICT', icon: <Target     size={20} />, onClick: () => navigate('predictions'), active: view === 'predictions' },
-    { id: 'quiz',        label: 'QUIZ',    icon: <Brain      size={20} />, onClick: () => navigate('quiz'),        active: view === 'quiz'        },
+    { id: 'pulse',       label: 'PULSE',   icon: <Zap        size={20} />, onClick: () => navigate('pulse'),       active: view === 'pulse',       hot: true },
+    { id: 'chartguessr', label: 'CHARTS',  icon: <BarChart2  size={20} />, onClick: () => navigate('chartguessr'), active: view === 'chartguessr' },
     { id: 'rewards',     label: 'REWARDS', icon: <Trophy     size={20} />, onClick: () => navigate('rewards'),     active: view === 'rewards'     },
   ];
 }
