@@ -1921,7 +1921,57 @@ async function startServer() {
       filteredItems = newsCache.filter(item => item.category === category);
     }
 
-    const pageItems = filteredItems.slice(offset, offset + limit);
+    let pageItems = filteredItems.slice(offset, offset + limit);
+    let totalCount = filteredItems.length;
+
+    // ── Fall through to SQLite when caller paginates past the in-memory
+    // cache. The cache is capped at 500 items but news_items keeps 30 days,
+    // so older articles must come from disk.
+    if (pageItems.length < limit) {
+      try {
+        const remaining = limit - pageItems.length;
+        const dbOffset  = Math.max(0, offset - filteredItems.length);
+        const cacheIds  = new Set(filteredItems.map(i => i.id));
+
+        const where = category && category !== 'all' ? 'WHERE category = ?' : '';
+        const params: any[] = category && category !== 'all' ? [category] : [];
+
+        // Total count for accurate "Load more" UX
+        const countRow = rawDb.prepare(
+          `SELECT COUNT(*) AS c FROM news_items ${where}`
+        ).get(...params) as { c: number };
+        totalCount = Math.max(totalCount, countRow.c);
+
+        // Pull a generous slice — we may need to skip cached duplicates
+        const slice = rawDb.prepare(`
+          SELECT id, title, link, pub_date, source, category, content_snippet
+          FROM news_items
+          ${where}
+          ORDER BY pub_date DESC
+          LIMIT ? OFFSET ?
+        `).all(...params, remaining + 50, dbOffset) as Array<{
+          id: string; title: string; link: string; pub_date: string;
+          source: string; category: string; content_snippet: string | null;
+        }>;
+
+        const olderItems = slice
+          .filter(r => !cacheIds.has(r.id))
+          .slice(0, remaining)
+          .map(r => ({
+            id:             r.id,
+            title:          r.title,
+            link:           r.link,
+            pubDate:        r.pub_date,
+            source:         r.source,
+            category:       r.category as any,
+            contentSnippet: r.content_snippet ?? undefined,
+          }));
+
+        pageItems = [...pageItems, ...olderItems];
+      } catch (err) {
+        console.error('[/api/news] db fallthrough failed:', err);
+      }
+    }
 
     // Enrich with pre-computed AI data from DB (best-effort — never blocks the response)
     let aiMap: ReturnType<typeof getAiDataBatch> = {};
@@ -1946,7 +1996,7 @@ async function startServer() {
     res.json({
       lastFetchTime,
       items: enriched,
-      total: filteredItems.length,
+      total: totalCount,
     });
   });
 
