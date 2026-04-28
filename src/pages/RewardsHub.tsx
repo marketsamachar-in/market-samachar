@@ -23,6 +23,7 @@ import {
   IQ_MAX,
 } from "../lib/iq-calculator";
 import { APP_URL, BRAND_HOST } from "../lib/config";
+import { buildShareUrl } from "../lib/referral";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -242,6 +243,11 @@ export default function RewardsHub({ authToken }: { authToken?: string }) {
   const [referralInput, setReferralInput] = useState("");
   const [referralMsg, setReferralMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [claimingRef, setClaimingRef] = useState(false);
+  const [shareStats, setShareStats] = useState<{
+    totalClicks: number;
+    todayClicks: number;
+    byPlatform:  Record<string, number>;
+  } | null>(null);
   const animBalance = useCountUp(data?.virtualBalance ?? 0);
 
   const fetchHub = useCallback(async () => {
@@ -256,6 +262,24 @@ export default function RewardsHub({ authToken }: { authToken?: string }) {
   }, [authToken]);
 
   useEffect(() => { fetchHub(); }, [fetchHub]);
+
+  // Fetch share-link click attribution stats
+  useEffect(() => {
+    if (!authToken) return;
+    let aborted = false;
+    fetch("/api/referrals/my-stats", { headers: { Authorization: `Bearer ${authToken}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (aborted || !d?.ok) return;
+        setShareStats({
+          totalClicks: d.totalClicks ?? 0,
+          todayClicks: d.todayClicks ?? 0,
+          byPlatform:  d.byPlatform  ?? {},
+        });
+      })
+      .catch(() => {});
+    return () => { aborted = true; };
+  }, [authToken]);
 
   // Auto-claim daily login reward on first visit
   const loginClaimedRef = useRef(false);
@@ -308,8 +332,9 @@ export default function RewardsHub({ authToken }: { authToken?: string }) {
 
   const handleWhatsAppShare = () => {
     if (!data?.referralCode) return;
+    const link = buildShareUrl("/", data.referralCode, "whatsapp");
     const msg = encodeURIComponent(
-      `Join Market Samachar, India's smartest financial news app! Use my code ${data.referralCode} and get 500 bonus coins. We both earn 500 coins! 🚀 ${BRAND_HOST}`
+      `Join Market Samachar, India's smartest financial news app! Use my code ${data.referralCode} and get 500 bonus coins. We both earn 500 coins! 🚀 ${link}`
     );
     window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener");
   };
@@ -739,7 +764,7 @@ export default function RewardsHub({ authToken }: { authToken?: string }) {
           {/* Stats row */}
           <div className="flex items-center gap-4 mb-3">
             <div>
-              <p style={{ color: DIM, ...MONO, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Referrals</p>
+              <p style={{ color: DIM, ...MONO, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Signups</p>
               <p style={{ color: YELLOW, ...MONO, fontSize: 18, fontWeight: 700 }}>
                 {data?.referralCount ?? 0}
               </p>
@@ -750,7 +775,61 @@ export default function RewardsHub({ authToken }: { authToken?: string }) {
                 {((data?.referralCount ?? 0) * 1000).toLocaleString("en-IN")}
               </p>
             </div>
+            {shareStats && (
+              <>
+                <div>
+                  <p style={{ color: DIM, ...MONO, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Today's Clicks</p>
+                  <p style={{ color: ORANGE, ...MONO, fontSize: 18, fontWeight: 700 }}>
+                    {shareStats.todayClicks}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ color: DIM, ...MONO, fontSize: 9, letterSpacing: "0.1em", textTransform: "uppercase" }}>Total Clicks</p>
+                  <p style={{ color: TEXT, ...MONO, fontSize: 18, fontWeight: 700 }}>
+                    {shareStats.totalClicks}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
+
+          {/* Share Impact panel — platform breakdown when there are clicks */}
+          {shareStats && shareStats.totalClicks > 0 && (
+            <div style={{
+              background:   BG, border: `1px solid ${BORDER}`,
+              borderRadius: 8, padding: "10px 12px", marginBottom: 12,
+            }}>
+              <p style={{ color: DIM, ...MONO, fontSize: 9, letterSpacing: "0.1em", marginBottom: 6 }}>
+                CLICK-THROUGHS BY PLATFORM
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {Object.entries(shareStats.byPlatform)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([platform, count]) => {
+                    const emoji =
+                      platform === "whatsapp" ? "💚" :
+                      platform === "twitter"  ? "𝕏"  :
+                      platform === "telegram" ? "✈️" :
+                      platform === "copy"     ? "🔗" : "📤";
+                    return (
+                      <span key={platform} style={{
+                        background: CARD, border: `1px solid ${BORDER}`,
+                        borderRadius: 4, padding: "3px 8px",
+                        ...MONO, fontSize: 11, color: TEXT,
+                        display: "inline-flex", alignItems: "center", gap: 5,
+                      }}>
+                        <span style={{ fontSize: 13 }}>{emoji}</span>
+                        {platform.toUpperCase()}
+                        <span style={{ color: ORANGE, fontWeight: 700, marginLeft: 2 }}>{count}</span>
+                      </span>
+                    );
+                  })}
+              </div>
+              <p style={{ color: DIM, ...SANS, fontSize: 10, marginTop: 8, lineHeight: 1.5 }}>
+                Each signup via your link = <span style={{ color: GREEN }}>+500 coins</span> for both of you. Keep sharing!
+              </p>
+            </div>
+          )}
 
           {/* Share buttons */}
           <div className="flex gap-2">
