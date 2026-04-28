@@ -67,6 +67,9 @@ import newsImpactRouter     from "./backend/src/routes/newsImpact.ts";
 import ipoPredictionsRouter from "./backend/src/routes/ipoPredictions.ts";
 import readingRewardsRouter from "./backend/src/routes/readingRewards.ts";
 import authSyncRouter       from "./backend/src/routes/authSync.ts";
+import pulseRouter          from "./backend/src/routes/pulse.ts";
+import chartguessrRouter    from "./backend/src/routes/chartguessr.ts";
+import { resolvePulseSwipes } from "./backend/src/services/pulseResolver.ts";
 import { startStockPriceCron } from "./backend/src/services/stockPriceService.ts";
 import { createDailyPredictions, resolvePredictions } from "./backend/src/services/predictionService.ts";
 import { addCoins, ensureUser as ensureSqliteUser } from "./backend/src/services/coinService.ts";
@@ -1322,6 +1325,8 @@ async function startServer() {
   app.use("/api/ipo-predictions", ipoPredictionsRouter);
   app.use("/api/reading-rewards", readingRewardsRouter);
   app.use("/api/auth", authSyncRouter);
+  app.use("/api/pulse", pulseRouter);
+  app.use("/api/chartguessr", chartguessrRouter);
 
   // Stricter limiter for Gemini-powered routes (cost-bearing)
   app.use("/api/news/article", articleLimiter);
@@ -3915,6 +3920,15 @@ body{background:#07070e;color:#e8eaf0;font-family:'DM Sans',sans-serif;min-heigh
 
   // Start stock price background refresh (every 15 min during market hours)
   startStockPriceCron();
+
+  // ── PULSE swipe resolver — every 30 min, batch up to 50 due swipes ─────────
+  cron.schedule("*/30 * * * *", async () => {
+    try {
+      await resolvePulseSwipes();
+    } catch (e) {
+      console.error("[cron] resolvePulseSwipes error:", e);
+    }
+  }, { timezone: "Asia/Kolkata" });
 
   // ── Daily Forecast cron jobs (IST) ──────────────────────────────────────
   // 08:45 IST weekdays → create today's prediction questions
