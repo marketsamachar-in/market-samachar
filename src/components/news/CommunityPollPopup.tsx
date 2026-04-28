@@ -51,6 +51,9 @@ export function CommunityPollPopup({ articleId, articleTitle, isSignedIn, authTo
   const [userVote, setUserVote]         = useState<VoteKey | null>(null);
   const [hasVoted, setHasVoted]         = useState(false);
   const [coinsEarned, setCoinsEarned]   = useState(0);
+  const [bonusEarned, setBonusEarned]   = useState(0);
+  const [bonusReason, setBonusReason]   = useState<string | null>(null);
+  const [alreadyCapped, setCapped]      = useState(false);
   const [loading, setLoading]           = useState(true);
   const [submitting, setSubmitting]     = useState(false);
   const [error, setError]               = useState<string | null>(null);
@@ -105,6 +108,9 @@ export function CommunityPollPopup({ articleId, articleTitle, isSignedIn, authTo
       setUserVote(vote);
       setHasVoted(true);
       setCoinsEarned(data.coinsEarned ?? 0);
+      setBonusEarned(data.bonusEarned ?? 0);
+      setBonusReason(data.bonusReason ?? null);
+      setCapped(!!data.alreadyCapped);
     } catch (e: any) {
       setError(e?.message || 'Network error');
     } finally {
@@ -186,7 +192,7 @@ export function CommunityPollPopup({ articleId, articleTitle, isSignedIn, authTo
           borderRadius:  6,
           background:    '#0a0a18',
         }}>
-          Sign in to vote and earn +3 coins
+          Sign in to vote · +10 coins per vote · streak bonus +50 at 5 today
         </div>
       )}
 
@@ -195,13 +201,38 @@ export function CommunityPollPopup({ articleId, articleTitle, isSignedIn, authTo
           {coinsEarned > 0 && (
             <div style={{
               fontFamily:   MONO,
-              fontSize:     12,
+              fontSize:     13,
               color:        '#ffdd3b',
+              fontWeight:   700,
               textAlign:    'center',
               padding:      '8px 0',
               animation:    'pulse 1.2s ease-out',
             }}>
-              +{coinsEarned} coins earned! 🪙
+              +{coinsEarned}{bonusEarned > 0 ? ` + ${bonusEarned} bonus` : ''} coins! 🪙
+            </div>
+          )}
+          {bonusReason && (
+            <div style={{
+              fontFamily:    MONO,
+              fontSize:      10,
+              color:         AMBER,
+              letterSpacing: '0.06em',
+              textAlign:     'center',
+              marginBottom:  4,
+            }}>
+              🔥 {bonusReason}
+            </div>
+          )}
+          {alreadyCapped && (
+            <div style={{
+              fontFamily:    MONO,
+              fontSize:      10,
+              color:         DIM,
+              letterSpacing: '0.04em',
+              textAlign:     'center',
+              marginBottom:  4,
+            }}>
+              Daily poll cap reached — vote still counts!
             </div>
           )}
           <div style={{
