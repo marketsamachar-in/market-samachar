@@ -76,9 +76,24 @@ export const READING_REWARD_DAILY_CAP      = 100;      // max 100 unique article
 // ─── Starting balance ────────────────────────────────────────────────────────
 export const STARTING_BALANCE        = 10 * X;      // 1,000 coins for new users
 
-// ─── Community Engagement ────────────────────────────────────────────────────
-export const POLL_VOTE_COINS         = 3;           //   3 coins for voting on community poll
-export const SHARE_ARTICLE_COINS     = 2;           //   2 coins for sharing an article
+// ─── Community Engagement — Polls ────────────────────────────────────────────
+// Polls drive sentiment data we can show on every news card. Pay generously
+// to get the volume needed for meaningful "X% bullish" signals.
+export const POLL_VOTE_COINS              = 10;     //  10 coins per vote (was 3)
+export const POLL_VOTE_DAILY_CAP          = 30;     //  max coin-paying votes per day
+export const POLL_STREAK_5_BONUS_COINS    = 50;     //  +50 bonus when you hit 5 votes today
+export const POLL_STREAK_15_BONUS_COINS   = 150;    //  +150 additional bonus at 15 votes
+                                                    //  → max poll coins/day = 30×10 + 50 + 150 = 500
+
+// ─── Community Engagement — Shares (viral growth) ────────────────────────────
+// Shares are user-acquisition. Each click-through that converts to a signup
+// triggers the existing REFERRAL flow (+500 to both parties) — that is the
+// "viral jackpot" on top of the per-share reward below.
+export const SHARE_ARTICLE_COINS          = 25;     //  25 coins per share (was 2)
+export const SHARE_ARTICLE_DAILY_CAP      = 10;     //  max coin-paying shares per day
+export const SHARE_MULTI_PLATFORM_BONUS   = 50;     //  +50 if same article shared to 2+ platforms
+export const SHARE_STREAK_5_BONUS_COINS   = 100;    //  +100 when you hit 5 shares today
+                                                    //  → max share coins/day (excl. signups) = 10×25 + 50 + 100 = 400
 
 // ─── PULSE — Bull/Bear News Swiper ───────────────────────────────────────────
 export const PULSE_SWIPE_COINS         = 5;     //  +5 coins per swipe (capped daily)
