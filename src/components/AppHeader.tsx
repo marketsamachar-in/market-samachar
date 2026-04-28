@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import CoinsPopup from './CoinsPopup';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────── */
 const GREEN  = '#00ff88';
@@ -114,6 +115,7 @@ export function AppHeader({
   const [istTime, setIstTime]       = useState('');
   const [mStatus, setMStatus]       = useState(calcMarketStatus);
   const [dropdownOpen, setDropdown] = useState(false);
+  const [coinsOpen, setCoinsOpen]   = useState(false);
   const dropdownRef                 = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -266,15 +268,22 @@ export function AppHeader({
             }} />
           ) : user ? (
             <>
-              {/* Coin balance */}
-              <span style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)',
-                borderRadius: 6, padding: '4px 10px',
-                color: GREEN, ...MONO, fontSize: '0.72rem', fontWeight: 600,
-              }}>
+              {/* Coin balance — click for history + ways to earn */}
+              <button
+                onClick={() => setCoinsOpen(true)}
+                aria-label="View coin history and ways to earn"
+                title="Coin history & ways to earn"
+                className="ah-btn"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: 'rgba(0,255,136,0.08)', border: '1px solid rgba(0,255,136,0.2)',
+                  borderRadius: 6, padding: '4px 10px',
+                  color: GREEN, ...MONO, fontSize: '0.72rem', fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
                 🪙 {displayCoins.toLocaleString('en-IN')}
-              </span>
+              </button>
 
               {/* Avatar + dropdown */}
               <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -374,6 +383,8 @@ export function AppHeader({
 
         </div>
       </header>
+
+      <CoinsPopup open={coinsOpen} onClose={() => setCoinsOpen(false)} />
     </>
   );
 }
