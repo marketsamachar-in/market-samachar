@@ -19,6 +19,7 @@ import IPOPredictions from "./components/IPOPredictions";
 import RewardsHub from "./pages/RewardsHub";
 import { AppHeader } from "./components/AppHeader";
 import { BottomNav, getOnClickNavTabs } from "./components/BottomNav";
+import { Sparkline } from "./components/Sparkline";
 import {
   RefreshCw,
   Clock,
@@ -130,10 +131,10 @@ const FALLBACK_TICKER_DATA = [
 ];
 
 const FALLBACK_MARKET_CARDS = [
-  { name: "NIFTY 50",   price: "—", change: "—", pct: "—", up: true,  high: "—", low: "—" },
-  { name: "SENSEX",     price: "—", change: "—", pct: "—", up: true,  high: "—", low: "—" },
-  { name: "BANK NIFTY", price: "—", change: "—", pct: "—", up: false, high: "—", low: "—" },
-  { name: "GOLD (MCX)", price: "—", change: "—", pct: "—", up: true,  high: "—", low: "—" },
+  { name: "NIFTY 50",   symbol: "^NSEI",    price: "—", change: "—", pct: "—", up: true,  high: "—", low: "—" },
+  { name: "SENSEX",     symbol: "^BSESN",   price: "—", change: "—", pct: "—", up: true,  high: "—", low: "—" },
+  { name: "BANK NIFTY", symbol: "^NSEBANK", price: "—", change: "—", pct: "—", up: false, high: "—", low: "—" },
+  { name: "GOLD (MCX)", symbol: "GC=F",     price: "—", change: "—", pct: "—", up: true,  high: "—", low: "—" },
 ];
 
 
@@ -166,8 +167,18 @@ const MarketCard: React.FC<{ card: typeof FALLBACK_MARKET_CARDS[0] }> = ({ card 
         : <TrendingDown className="w-3.5 h-3.5" style={{ color: "#ff2244" }} />
       }
     </div>
-    <div style={{ color: TEXT, ...MONO }} className="text-lg font-medium mb-1">
-      {card.price}
+    <div className="flex items-end justify-between mb-1 gap-2">
+      <div style={{ color: TEXT, ...MONO }} className="text-lg font-medium">
+        {card.price}
+      </div>
+      {card.symbol && (
+        <Sparkline
+          symbol={card.symbol}
+          width={70}
+          height={22}
+          color={card.up ? "#00ff88" : "#ff4466"}
+        />
+      )}
     </div>
     <div style={{ color: card.up ? "#00ff88" : "#ff2244", ...MONO }} className="text-xs font-medium">
       {card.change} ({card.pct})
@@ -500,6 +511,7 @@ export default function App() {
     if (!q) return FALLBACK_MARKET_CARDS[i];
     return {
       name: q.name,
+      symbol: sym,
       price: fmtPrice(sym, q.price),
       change: fmtChange(sym, q.change),
       pct: fmtPct(q.changePercent),
