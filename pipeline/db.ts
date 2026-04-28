@@ -1102,11 +1102,13 @@ db.exec(`
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id       TEXT    NOT NULL,
     article_id    TEXT    NOT NULL,
-    reward_type   TEXT    NOT NULL CHECK (reward_type IN ('AI_SUMMARY_READ', 'ARTICLE_LISTEN')),
+    reward_type   TEXT    NOT NULL CHECK (reward_type IN
+      ('AI_SUMMARY_READ', 'ARTICLE_LISTEN', 'POLL_VOTE', 'SHARE_ARTICLE')),
     coins_awarded INTEGER NOT NULL,
     reward_date   TEXT    NOT NULL,
+    platform      TEXT,                              -- e.g. whatsapp/twitter/telegram/copy (shares only)
     created_at    INTEGER NOT NULL,
-    UNIQUE (user_id, article_id, reward_type, reward_date)
+    UNIQUE (user_id, article_id, reward_type, reward_date, platform)
   );
   CREATE INDEX IF NOT EXISTS reading_rewards_user_date_idx    ON reading_rewards (user_id, reward_date);
   CREATE INDEX IF NOT EXISTS reading_rewards_user_article_idx ON reading_rewards (user_id, article_id);
@@ -1136,6 +1138,20 @@ db.exec(`
     UNIQUE (period, period_key, user_id)
   );
   CREATE INDEX IF NOT EXISTS quiz_podium_user_idx ON quiz_podium_payouts (user_id, created_at DESC);
+
+  -- ── Referral click tracking (viral share attribution) ────────────────────
+  -- Logs ?ref=CODE click-throughs so users can see "your shares got 12 clicks today".
+  -- Doesn't pay coins directly — actual signups via referral pay through the
+  -- existing REFERRAL flow (REFERRAL_NEW_USER_COINS / REFERRAL_INVITER_COINS).
+  CREATE TABLE IF NOT EXISTS referral_clicks (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    referral_code   TEXT    NOT NULL,
+    article_id      TEXT,                            -- nullable: which article was shared
+    platform        TEXT,                            -- whatsapp/twitter/telegram/copy/other
+    clicked_at      INTEGER NOT NULL,
+    ip_hash         TEXT                             -- SHA-256 truncated, for crude dedup
+  );
+  CREATE INDEX IF NOT EXISTS referral_clicks_code_idx ON referral_clicks (referral_code, clicked_at DESC);
 
   -- ── PULSE — Bull/Bear News Swiper ─────────────────────────────────────────
   CREATE TABLE IF NOT EXISTS pulse_swipes (
@@ -1171,6 +1187,56 @@ db.exec(`
   DROP TABLE IF EXISTS quiz_practice_attempts;
 `);
 
+// ─── Migration: relax reading_rewards.reward_type CHECK ──────────────────────
+// Old schema only allowed AI_SUMMARY_READ / ARTICLE_LISTEN. Polls and shares
+// now route through the same table for daily-cap accounting, so the CHECK
+// must accept POLL_VOTE and SHARE_ARTICLE too. This block detects the old
+// constraint and rebuilds the table once.
+(() => {
+  try {
+    const tableSql = (db.prepare(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='reading_rewards'"
+    ).get() as { sql: string } | undefined)?.sql ?? "";
+
+    // If the table SQL still mentions the old 2-value CHECK, rebuild it.
+    if (tableSql.includes("AI_SUMMARY_READ") && !tableSql.includes("POLL_VOTE")) {
+      db.exec(`
+        BEGIN;
+        CREATE TABLE reading_rewards_new (
+          id            INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id       TEXT    NOT NULL,
+          article_id    TEXT    NOT NULL,
+          reward_type   TEXT    NOT NULL CHECK (reward_type IN
+            ('AI_SUMMARY_READ', 'ARTICLE_LISTEN', 'POLL_VOTE', 'SHARE_ARTICLE')),
+          coins_awarded INTEGER NOT NULL,
+          reward_date   TEXT    NOT NULL,
+          platform      TEXT,
+          created_at    INTEGER NOT NULL,
+          UNIQUE (user_id, article_id, reward_type, reward_date, platform)
+        );
+        INSERT INTO reading_rewards_new
+          (id, user_id, article_id, reward_type, coins_awarded, reward_date, created_at)
+          SELECT id, user_id, article_id, reward_type, coins_awarded, reward_date, created_at
+          FROM reading_rewards;
+        DROP TABLE reading_rewards;
+        ALTER TABLE reading_rewards_new RENAME TO reading_rewards;
+        CREATE INDEX reading_rewards_user_date_idx    ON reading_rewards (user_id, reward_date);
+        CREATE INDEX reading_rewards_user_article_idx ON reading_rewards (user_id, article_id);
+        COMMIT;
+      `);
+      console.log("[db migration] reading_rewards: relaxed CHECK + added platform column");
+    } else if (tableSql && !tableSql.includes("platform")) {
+      // Table already has the relaxed CHECK but predates `platform` column — add it.
+      try {
+        db.exec("ALTER TABLE reading_rewards ADD COLUMN platform TEXT");
+        console.log("[db migration] reading_rewards: added platform column");
+      } catch (e) { /* already added */ }
+    }
+  } catch (e) {
+    console.error("[db migration] reading_rewards CHECK relax failed:", e);
+  }
+})();
+
 // ─── Types — Engagement ───────────────────────────────────────────────────────
 
 export type CoinActionType =
@@ -1183,6 +1249,7 @@ export type CoinActionType =
   | 'FIRST_LOGIN'         | 'DAILY_LOGIN'
   | 'AI_SUMMARY_READ'     | 'ARTICLE_LISTEN'     | 'DAILY_READING_STREAK'
   | 'POLL_VOTE'           | 'SHARE_ARTICLE'
+  | 'POLL_VOTE_BONUS'     | 'SHARE_ARTICLE_BONUS'
   | 'PULSE_SWIPE'         | 'PULSE_CORRECT'
   | 'CHARTGUESSR_CORRECT' | 'CHARTGUESSR_WRONG'  | 'CHARTGUESSR_STREAK';
 
