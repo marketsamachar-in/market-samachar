@@ -1,7 +1,7 @@
 /**
  * CommunityPollPopup — bullish / bearish / neutral sentiment poll for a
  * single article. Fetches GET /api/news/poll/:id, posts to
- * /api/news/poll/:id/vote, awards +3 coins on first vote per article.
+ * /api/news/poll/:id/vote, awards +10 coins on first vote per article (per rewardConfig.ts).
  */
 
 import { useEffect, useState } from 'react';
