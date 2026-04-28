@@ -1234,7 +1234,7 @@ async function startServer() {
   // Security headers
   const CSP = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https:",
@@ -2090,6 +2090,75 @@ async function startServer() {
       console.error("[market-data] fetch error:", err);
       if (marketCache) return res.json(marketCache.data);
       res.status(500).json({ error: "Failed to fetch market data" });
+    }
+  });
+
+  // ── /api/chart ──────────────────────────────────────────────────────────
+  // Historical price series for indices (^NSEI, ^BSESN, ...) or NSE stocks.
+  // Stock symbols are auto-suffixed with `.NS`. Indices (start with ^) and
+  // futures/FX (contain = or /) are passed through unchanged.
+  // Returns: { symbol, range, points: [{ t, c }] }   t=ms, c=close price
+  type ChartRange = '1d' | '5d' | '1mo' | '6mo' | '1y';
+  const RANGE_MAP: Record<ChartRange, { period: number; interval: string }> = {
+    '1d':  { period:       86_400_000, interval: '5m'  },  // 1 day, 5-min bars
+    '5d':  { period:   5 * 86_400_000, interval: '15m' },
+    '1mo': { period:  31 * 86_400_000, interval: '1d'  },
+    '6mo': { period: 186 * 86_400_000, interval: '1d'  },
+    '1y':  { period: 366 * 86_400_000, interval: '1wk' },
+  };
+  const chartCache = new Map<string, { data: any; fetchedAt: number }>();
+
+  app.get("/api/chart", async (req, res) => {
+    const rawSym = String(req.query.symbol ?? '').trim().toUpperCase();
+    const range  = (String(req.query.range ?? '1d') as ChartRange);
+
+    if (!rawSym || !/^[\^A-Z0-9&=\.\-/]{1,20}$/.test(rawSym)) {
+      return res.status(400).json({ ok: false, error: 'Invalid symbol' });
+    }
+    if (!RANGE_MAP[range]) {
+      return res.status(400).json({ ok: false, error: 'Invalid range' });
+    }
+
+    // Auto-append .NS for plain NSE stock symbols
+    const ySymbol = (rawSym.startsWith('^') || rawSym.includes('=') || rawSym.includes('.'))
+      ? rawSym
+      : `${rawSym}.NS`;
+
+    const cacheKey = `${ySymbol}:${range}`;
+    // Cache: 5 min during market hours for intraday, longer for >=1mo
+    const cacheTtl = range === '1d' || range === '5d'
+      ? (isMarketHours() ? 5 * 60_000 : 30 * 60_000)
+      : 6 * 60 * 60_000;
+
+    const cached = chartCache.get(cacheKey);
+    if (cached && Date.now() - cached.fetchedAt < cacheTtl) {
+      return res.json(cached.data);
+    }
+
+    try {
+      const { period, interval } = RANGE_MAP[range];
+      const period2 = new Date();
+      const period1 = new Date(period2.getTime() - period);
+      const result  = await yahooFinance.chart(ySymbol, {
+        period1, period2, interval: interval as any,
+      } as any);
+
+      const quotes = (result?.quotes ?? []) as any[];
+      const points = quotes
+        .filter((q) => q && q.close != null)
+        .map((q) => ({
+          t: new Date(q.date).getTime(),
+          c: Math.round(q.close * 100) / 100,
+        }));
+
+      const payload = { ok: true, symbol: rawSym, range, points };
+      chartCache.set(cacheKey, { data: payload, fetchedAt: Date.now() });
+      res.json(payload);
+    } catch (err) {
+      console.error(`[/api/chart] ${ySymbol} ${range}:`, (err as Error).message);
+      // Serve stale cache if available
+      if (cached) return res.json(cached.data);
+      res.status(200).json({ ok: false, symbol: rawSym, range, points: [] });
     }
   });
 
