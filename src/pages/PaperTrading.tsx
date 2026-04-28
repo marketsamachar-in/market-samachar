@@ -12,6 +12,7 @@ import {
   Wallet, AlertCircle, CheckCircle, Search, ShoppingCart,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { StockChart } from '../components/StockChart';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────── */
 const BG     = '#07070e';
@@ -394,6 +395,11 @@ function TradePanelContent({
 
       {/* Scrollable body */}
       <div className="bb-scroll" style={{ padding: '14px 16px', flex: 1, overflowY: 'auto' }}>
+        {/* Price chart */}
+        <div style={{ marginBottom: 14 }}>
+          <StockChart symbol={stock.symbol} height={170} />
+        </div>
+
         {/* BUY / SELL toggle */}
         <div style={{ display: 'flex', gap: 7, marginBottom: 14 }}>
           {(['BUY', 'SELL'] as const).map((s) => (
