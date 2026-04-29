@@ -338,6 +338,14 @@ select.inp{cursor:pointer}
 .fmt-btn.active{background:#00ff8818;border-color:#00ff8840;color:var(--green)}
 .fmt-btn:not(.active){background:#0a0a18;border-color:var(--border);color:var(--dim)}
 .fmt-btn:not(.active):hover{border-color:#334466;color:var(--sub)}
+
+/* Font-size adjustment buttons in card modal */
+.card-fontsize-row{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap}
+.card-fontsize-row .lbl{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:1.5px;margin-right:4px}
+.fnt-btn{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .12s;min-width:32px;text-align:center}
+.fnt-btn.active{background:#3b9eff18;border-color:#3b9eff50;color:var(--blue)}
+.fnt-btn:not(.active){background:#0a0a18;border-color:var(--border);color:var(--dim)}
+.fnt-btn:not(.active):hover{border-color:#334466;color:var(--sub)}
 .card-preview-wrap{display:flex;justify-content:center;align-items:flex-start;background:#04040a;border:1px solid var(--border);border-radius:6px;padding:16px;min-height:200px}
 .card-actions{display:flex;gap:8px;justify-content:flex-end}
 /* inline card design */
@@ -910,6 +918,14 @@ select.inp{cursor:pointer}
       <button class="fmt-btn" id="fmt-4x5" onclick="switchFmt('4x5')">📱 4:5 Portrait</button>
       <button class="fmt-btn" id="fmt-9x16" onclick="switchFmt('9x16')">🎬 9:16 Story</button>
     </div>
+    <div class="card-fontsize-row">
+      <span class="lbl">FONT SIZE</span>
+      <button class="fnt-btn"        id="fnt-085" onclick="setFontMult(0.85)" title="Smaller">A−</button>
+      <button class="fnt-btn"        id="fnt-092" onclick="setFontMult(0.92)" title="Small">A·</button>
+      <button class="fnt-btn active" id="fnt-100" onclick="setFontMult(1.00)" title="Default">A</button>
+      <button class="fnt-btn"        id="fnt-108" onclick="setFontMult(1.08)" title="Large">A•</button>
+      <button class="fnt-btn"        id="fnt-115" onclick="setFontMult(1.15)" title="Larger">A+</button>
+    </div>
     <div class="card-preview-wrap">
       <div id="card-preview-inner"></div>
     </div>
@@ -932,6 +948,7 @@ var _ipos = [];
 var _articles = {};
 var _cardArticle = null;
 var _cardFmt = "1x1";
+var _cardFontMult = 1.0;         // 0.85 / 0.92 / 1.00 / 1.08 / 1.15 — admin-tunable in modal
 var _marketLive = null;          // { quotes: { SYM: {price,change,changePercent} }, fetchedAt }
 var _marketLiveTtl = 60_000;     // refetch after 60s
 var _searchTimer = null;
@@ -1913,10 +1930,16 @@ function genCard(id, fmt) {
   if (!a) { toast("Article not found", "err"); return; }
   _cardArticle = a;
   _cardFmt = fmt;
+  _cardFontMult = 1.0;  // reset to default when opening a new article
   document.getElementById("card-article-title").textContent = a.title || "";
   ["1x1","4x5","9x16"].forEach(function(f) {
     document.getElementById("fmt-"+f).className = "fmt-btn"+(f===fmt?" active":"");
   });
+  ["fnt-085","fnt-092","fnt-100","fnt-108","fnt-115"].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.classList.remove("active");
+  });
+  var defaultBtn = document.getElementById("fnt-100");
+  if (defaultBtn) defaultBtn.classList.add("active");
   document.getElementById("card-overlay").classList.add("open");
   // Render an immediate preview, then re-render once live data arrives.
   renderCardPreview(a, fmt);
@@ -1934,8 +1957,33 @@ function closeCardModal() {
   document.getElementById("card-overlay").classList.remove("open");
   _cardArticle = null;
 }
+
+// ─── Font-size adjustment ─────────────────────────────────────────────────────
+// Scales every "font-size:Npx" value in the card HTML by _cardFontMult.
+// Leaves layout/padding/border-radius untouched so the card dimensions stay
+// exactly 1080×1080 (or 4:5 / 9:16) — only typography scales.
+var _FONT_BUTTON_IDS = { "0.85": "fnt-085", "0.92": "fnt-092", "1": "fnt-100", "1.08": "fnt-108", "1.15": "fnt-115" };
+function setFontMult(mult) {
+  _cardFontMult = mult;
+  // Update active button highlight
+  ["fnt-085","fnt-092","fnt-100","fnt-108","fnt-115"].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.classList.remove("active");
+  });
+  var key = String(mult);
+  var btnId = _FONT_BUTTON_IDS[key] || _FONT_BUTTON_IDS[parseFloat(key).toString()];
+  var btn = btnId && document.getElementById(btnId);
+  if (btn) btn.classList.add("active");
+  // Re-render preview if a card is open
+  if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
+}
+function applyFontMult(html, mult) {
+  if (!mult || mult === 1) return html;
+  return html.replace(/font-size:\s*(\d+(?:\.\d+)?)px/g, function(_m, n) {
+    return "font-size:" + (parseFloat(n) * mult).toFixed(2) + "px";
+  });
+}
 function renderCardPreview(a, fmt) {
-  document.getElementById("card-preview-inner").innerHTML = buildCard(a, fmt);
+  document.getElementById("card-preview-inner").innerHTML = applyFontMult(buildCard(a, fmt), _cardFontMult);
 }
 
 function buildCard(a, fmt) {
@@ -2239,7 +2287,7 @@ async function downloadCard() {
 
   var wrapper = document.createElement("div");
   wrapper.setAttribute("style", "position:fixed;top:-9999px;left:-9999px;z-index:-1");
-  wrapper.innerHTML = buildCard(_cardArticle, _cardFmt);
+  wrapper.innerHTML = applyFontMult(buildCard(_cardArticle, _cardFmt), _cardFontMult);
   document.body.appendChild(wrapper);
 
   try {
