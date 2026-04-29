@@ -383,7 +383,7 @@ select.inp{cursor:pointer}
 .btn-916:hover{background:#b57dff20}
 
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="/vendor/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -409,6 +409,8 @@ select.inp{cursor:pointer}
     <a class="nav-item" data-section="ipos" href="#ipos"><span class="ni-icon">⬡</span>IPOs</a>
     <a class="nav-item" data-section="quiz" href="#quiz"><span class="ni-icon">?</span>Quiz</a>
     <a class="nav-item" data-section="predictions" href="#predictions"><span class="ni-icon">◎</span>Predictions</a>
+    <a class="nav-item" data-section="combo" href="#combo"><span class="ni-icon">⊕</span>Combo Card</a>
+    <a class="nav-item" data-section="t20" href="#t20"><span class="ni-icon">⚾</span>Dalal St T20</a>
   </div>
 
   <div class="sb-section">
@@ -678,6 +680,82 @@ select.inp{cursor:pointer}
 </section>
 
 <!-- ══════════════════════════════════════════════════════════════
+     7b. COMBO CARD
+════════════════════════════════════════════════════════════════ -->
+<section class="section" id="s-combo">
+  <div class="page-hd">
+    <div class="page-hd-left">
+      <div class="page-title">COMBO CARD</div>
+      <div class="page-sub">Daily 5-question prediction lottery · 09:30 IST cutoff · 15:36 IST settle</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-gd" onclick="loadComboCard()">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="stat-grid" id="combo-stats"><div class="loading">Loading…</div></div>
+  <div class="table-wrap" style="margin-top:14px">
+    <div class="table-hd">
+      <span class="table-hd-title">TODAY'S CARD</span>
+      <span class="table-hd-meta" id="combo-today-meta"></span>
+    </div>
+    <div id="combo-today" style="padding:14px 16px"><div class="loading">Loading…</div></div>
+  </div>
+  <div class="table-wrap" style="margin-top:14px">
+    <div class="table-hd">
+      <span class="table-hd-title">SCORE DISTRIBUTION (ALL TIME)</span>
+    </div>
+    <div id="combo-histogram" style="padding:14px 16px"><div class="loading">Loading…</div></div>
+  </div>
+  <div class="table-wrap" style="margin-top:14px">
+    <div class="table-hd">
+      <span class="table-hd-title">DAILY HISTORY (LAST 30)</span>
+    </div>
+    <div id="combo-history"><div class="loading">Loading…</div></div>
+  </div>
+  <div class="table-wrap" style="margin-top:14px">
+    <div class="table-hd">
+      <span class="table-hd-title">RECENT JACKPOTS — 5/5 WINNERS</span>
+    </div>
+    <div id="combo-jackpots"><div class="loading">Loading…</div></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     7c. DALAL STREET T20
+════════════════════════════════════════════════════════════════ -->
+<section class="section" id="s-t20">
+  <div class="page-hd">
+    <div class="page-hd-left">
+      <div class="page-title">DALAL STREET T20</div>
+      <div class="page-sub">Cricket-themed reaction game · 36 balls · 5 matches/day cap</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-gd" onclick="loadT20()">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="stat-grid" id="t20-stats"><div class="loading">Loading…</div></div>
+  <div class="table-wrap" style="margin-top:14px">
+    <div class="table-hd">
+      <span class="table-hd-title">TODAY'S LEADERBOARD</span>
+      <span class="table-hd-meta" id="t20-today-meta"></span>
+    </div>
+    <div id="t20-today-table"><div class="loading">Loading…</div></div>
+  </div>
+  <div class="table-wrap" style="margin-top:14px">
+    <div class="table-hd">
+      <span class="table-hd-title">ALL-TIME HIGHEST INNINGS</span>
+    </div>
+    <div id="t20-alltime-table"><div class="loading">Loading…</div></div>
+  </div>
+  <div class="table-wrap" style="margin-top:14px">
+    <div class="table-hd">
+      <span class="table-hd-title">RECENT BIG KNOCKS — 💯 / 🚀</span>
+    </div>
+    <div id="t20-bigknocks-table"><div class="loading">Loading…</div></div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
      8. IPOs
 ════════════════════════════════════════════════════════════════ -->
 <section class="section" id="s-ipos">
@@ -832,12 +910,6 @@ select.inp{cursor:pointer}
       <button class="fmt-btn" id="fmt-4x5" onclick="switchFmt('4x5')">📱 4:5 Portrait</button>
       <button class="fmt-btn" id="fmt-9x16" onclick="switchFmt('9x16')">🎬 9:16 Story</button>
     </div>
-    <div style="background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:10px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <span style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:1px;white-space:nowrap">🔡 FONT SIZE</span>
-      <input type="range" id="font-scale" min="0.7" max="1.6" step="0.05" value="1" style="flex:1;min-width:100px" oninput="onFontScale(this.value)"/>
-      <span id="font-scale-lbl" style="font-family:var(--mono);font-size:10px;color:var(--green);min-width:32px">1.0×</span>
-      <button class="btn btn-gd" style="padding:3px 8px;font-size:9px" onclick="resetFontScale()">Reset</button>
-    </div>
     <div class="card-preview-wrap">
       <div id="card-preview-inner"></div>
     </div>
@@ -860,7 +932,8 @@ var _ipos = [];
 var _articles = {};
 var _cardArticle = null;
 var _cardFmt = "1x1";
-var _fontScale = 1.0;
+var _marketLive = null;          // { quotes: { SYM: {price,change,changePercent} }, fetchedAt }
+var _marketLiveTtl = 60_000;     // refetch after 60s
 var _searchTimer = null;
 var _newsPage = 1, _newsPages = 0, _newsTotal = 0;
 var _coinPage = 1, _coinPages = 0, _coinTotal = 0;
@@ -894,7 +967,8 @@ updateClock();
 var SECTION_LABELS = {
   overview:"OVERVIEW", news:"NEWS ARTICLES", trading:"VIRTUAL TRADING",
   payments:"PAYMENTS", users:"USERS", quiz:"MARKET QUIZ",
-  predictions:"PREDICTIONS", ipos:"IPO MANAGEMENT",
+  predictions:"PREDICTIONS", combo:"COMBO CARD", t20:"DALAL STREET T20",
+  ipos:"IPO MANAGEMENT",
   coins:"COIN LEDGER", rewards:"PRO REWARDS"
 };
 
@@ -925,6 +999,8 @@ function loadSection(name) {
   if (name === "payments")    loadPayments();
   if (name === "quiz")        loadQuiz();
   if (name === "predictions") loadPredictions();
+  if (name === "combo")       loadComboCard();
+  if (name === "t20")         loadT20();
   if (name === "ipos")        loadIpos();
   if (name === "coins")       loadCoins(1);
   if (name === "rewards")     loadRewards();
@@ -1384,6 +1460,198 @@ async function loadPredictions() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// 7b. COMBO CARD
+// ═══════════════════════════════════════════════════════════════
+async function loadComboCard() {
+  try {
+    var d = await api("/api/admin/combo-card");
+
+    var todaySubs    = (d.todayPicks && d.todayPicks.c) || 0;
+    var todaySettled = (d.todayPicks && d.todayPicks.settled) || 0;
+    document.getElementById("combo-stats").innerHTML =
+      sCard("TODAY · SUBMISSIONS", fmt(todaySubs), "blue", null, "blue") +
+      sCard("TODAY · SETTLED",     fmt(todaySettled), "green", null, "green") +
+      sCard("ALL-TIME PLAYS",      fmt(d.totalSubmissions || 0), "gold", null, "gold") +
+      sCard("ALL-TIME PAYOUTS",    fmt(d.totalPayouts || 0) + " coins", "purple", null, "purple");
+
+    var card = d.todayCard;
+    var todayMetaEl = document.getElementById("combo-today-meta");
+    var todayBody   = document.getElementById("combo-today");
+    if (todayMetaEl) todayMetaEl.textContent = d.today;
+
+    if (!card) {
+      todayBody.innerHTML = "<div class=\\"empty\\">No card yet today (lazy-created on first submission).</div>";
+    } else if (!card.settled_at) {
+      todayBody.innerHTML =
+        "<div style=\\"display:flex;justify-content:space-between;align-items:center\\">" +
+          "<div><span class=\\"badge bgd\\">PENDING</span> Answers fill in at 15:36 IST</div>" +
+          "<div class=\\"mono fn\\" style=\\"color:var(--dim)\\">Created " + fmtAgo(card.created_at) + "</div>" +
+        "</div>";
+    } else {
+      var ansRow = function(label, val) {
+        var color = val === "UP" ? "var(--green)" : "var(--red)";
+        return "<div><div class=\\"mono fn\\" style=\\"color:var(--dim);font-size:9px;letter-spacing:.08em\\">" + label + "</div>" +
+          "<div class=\\"mono\\" style=\\"color:" + color + ";font-size:14px;font-weight:700;margin-top:2px\\">" + (val === "UP" ? "▲ UP" : "▼ DOWN") + "</div></div>";
+      };
+      todayBody.innerHTML =
+        "<div style=\\"display:grid;grid-template-columns:repeat(5,1fr);gap:12px\\">" +
+          ansRow("NIFTY",      card.answer_nifty)     +
+          ansRow("BANK NIFTY", card.answer_banknifty) +
+          ansRow("USD/INR",    card.answer_usdinr)    +
+          ansRow("GOLD",       card.answer_gold)      +
+          "<div><div class=\\"mono fn\\" style=\\"color:var(--dim);font-size:9px;letter-spacing:.08em\\">TOP SECTOR</div>" +
+            "<div class=\\"mono\\" style=\\"color:var(--gold);font-size:14px;font-weight:700;margin-top:2px\\">🏆 " + esc(card.answer_sector || "—") + "</div></div>" +
+        "</div>" +
+        "<div class=\\"mono fn\\" style=\\"color:var(--dim);margin-top:10px;font-size:10px\\">Settled " + fmtAgo(card.settled_at) + "</div>";
+    }
+
+    var histEl = document.getElementById("combo-histogram");
+    if (!d.scoreHistogram || !d.scoreHistogram.length) {
+      histEl.innerHTML = "<div class=\\"empty\\">No settled picks yet</div>";
+    } else {
+      var maxC = Math.max.apply(null, d.scoreHistogram.map(function(r){ return r.c; }));
+      var rows = [5,4,3,2,1,0].map(function(score) {
+        var match = d.scoreHistogram.find(function(r){ return r.score === score; });
+        var c = match ? match.c : 0;
+        var pct = maxC ? (c / maxC * 100) : 0;
+        var col = score === 5 ? "var(--gold)" : score === 4 ? "var(--green)" : score === 3 ? "var(--blue)" : "var(--dim)";
+        return "<div style=\\"display:flex;align-items:center;gap:10px;margin-bottom:6px\\">" +
+          "<span class=\\"mono\\" style=\\"width:30px;color:" + col + ";font-weight:700\\">" + score + "/5</span>" +
+          "<div style=\\"flex:1;background:#0d0d1e;border-radius:3px;height:18px;position:relative;overflow:hidden\\">" +
+            "<div style=\\"width:" + pct.toFixed(1) + "%;height:100%;background:" + col + ";opacity:.55\\"></div>" +
+            "<span style=\\"position:absolute;left:8px;top:0;line-height:18px;font-size:11px\\" class=\\"mono\\">" + fmt(c) + "</span>" +
+          "</div>" +
+        "</div>";
+      }).join("");
+      histEl.innerHTML = rows;
+    }
+
+    var hEl = document.getElementById("combo-history");
+    if (!d.historyDays || !d.historyDays.length) {
+      hEl.innerHTML = "<div class=\\"empty\\">No history yet</div>";
+    } else {
+      hEl.innerHTML = "<table class=\\"tbl\\"><thead><tr><th>DATE</th><th>STATUS</th><th>SUBS</th><th>5/5</th><th>4/5</th><th>3/5</th><th>SECTOR</th><th>PAYOUT</th></tr></thead><tbody>" +
+        d.historyDays.map(function(r) {
+          var status = r.settled_at ? "<span class=\\"badge bg\\">SETTLED</span>" : "<span class=\\"badge bgd\\">PENDING</span>";
+          return "<tr>" +
+            "<td class=\\"mono fn\\">" + esc(r.card_date) + "</td>" +
+            "<td>" + status + "</td>" +
+            "<td class=\\"mono fn\\">" + fmt(r.submissions) + "</td>" +
+            "<td class=\\"mono fn\\" style=\\"color:var(--gold)\\">" + fmt(r.fives) + "</td>" +
+            "<td class=\\"mono fn\\" style=\\"color:var(--green)\\">" + fmt(r.fours) + "</td>" +
+            "<td class=\\"mono fn\\" style=\\"color:var(--blue)\\">" + fmt(r.threes) + "</td>" +
+            "<td class=\\"mono fn\\" style=\\"color:var(--sub)\\">" + esc(r.answer_sector || "—") + "</td>" +
+            "<td class=\\"mono fn\\">" + fmt(r.total_payout || 0) + "</td>" +
+          "</tr>";
+        }).join("") + "</tbody></table>";
+    }
+
+    var jEl = document.getElementById("combo-jackpots");
+    if (!d.topJackpot || !d.topJackpot.length) {
+      jEl.innerHTML = "<div class=\\"empty\\">No 5/5 jackpot winners yet</div>";
+    } else {
+      jEl.innerHTML = "<table class=\\"tbl\\"><thead><tr><th>USER</th><th>EMAIL</th><th>DATE</th><th>SCORE</th><th>COINS</th></tr></thead><tbody>" +
+        d.topJackpot.map(function(r) {
+          return "<tr>" +
+            "<td>" + esc(r.name || "—") + "</td>" +
+            "<td class=\\"fn\\" style=\\"color:var(--sub)\\">" + esc(r.email || "—") + "</td>" +
+            "<td class=\\"mono fn\\">" + esc(r.card_date) + "</td>" +
+            "<td><span class=\\"badge bg\\">" + r.score + "/5</span></td>" +
+            "<td class=\\"mono\\" style=\\"color:var(--gold);font-weight:700\\">+" + fmt(r.coins_awarded) + "</td>" +
+          "</tr>";
+        }).join("") + "</tbody></table>";
+    }
+  } catch(e) {
+    document.getElementById("combo-stats").innerHTML = "<div class=\\"empty\\">Failed to load: " + esc(e.message) + "</div>";
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 7c. DALAL STREET T20
+// ═══════════════════════════════════════════════════════════════
+async function loadT20() {
+  try {
+    var d = await api("/api/admin/t20");
+    var s  = d.stats || {};
+    var ts = d.todayStats || {};
+
+    document.getElementById("t20-stats").innerHTML =
+      sCard("TODAY · MATCHES",  fmt(ts.matches || 0), "green", null, "green") +
+      sCard("TODAY · PLAYERS",  fmt(ts.players || 0), "blue", null, "blue") +
+      sCard("TODAY · TOP SCORE", fmt(ts.topScore || 0) + " runs", "gold", null, "gold") +
+      sCard("CENTURIES · 💯",   fmt(s.centuries || 0), "purple", null, "purple") +
+      sCard("DOUBLE-TONS · 🚀", fmt(s.doubleTons || 0), "gold", null, "gold") +
+      sCard("ALL-TIME PLAYS",   fmt(s.totalMatches || 0), "blue", null, "blue") +
+      sCard("AVG RUNS / MATCH", Math.round(s.avgRuns || 0).toString(), "green", null, "green") +
+      sCard("TOTAL PAYOUTS",    fmt(s.totalPayout || 0) + " coins", "purple", null, "purple");
+
+    var todayMetaEl = document.getElementById("t20-today-meta");
+    if (todayMetaEl) todayMetaEl.textContent = d.today;
+
+    var todayEl = document.getElementById("t20-today-table");
+    if (!d.todayLeaderboard || !d.todayLeaderboard.length) {
+      todayEl.innerHTML = "<div class=\\"empty\\">No matches completed today yet</div>";
+    } else {
+      todayEl.innerHTML = "<table class=\\"tbl\\"><thead><tr><th>RANK</th><th>USER</th><th>EMAIL</th><th>RUNS</th><th>BALLS</th><th>WICKETS</th><th>BONUS</th><th>COINS</th></tr></thead><tbody>" +
+        d.todayLeaderboard.map(function(r, i) {
+          var medal = i === 0 ? "🥇 1" : i === 1 ? "🥈 2" : i === 2 ? "🥉 3" : "#" + (i+1);
+          var bonus = r.bonus_kind === "DOUBLE_TON" ? "<span class=\\"badge bg\\">🚀 DOUBLE-TON</span>"
+                    : r.bonus_kind === "CENTURY"    ? "<span class=\\"badge bg\\">💯 CENTURY</span>"
+                    : "<span class=\\"fn\\" style=\\"color:var(--dim)\\">—</span>";
+          return "<tr>" +
+            "<td class=\\"mono\\">" + medal + "</td>" +
+            "<td>" + esc(r.name || "—") + "</td>" +
+            "<td class=\\"fn\\" style=\\"color:var(--sub)\\">" + esc(r.email || "—") + "</td>" +
+            "<td class=\\"mono\\" style=\\"color:var(--green);font-weight:700\\">" + fmt(r.runs) + "</td>" +
+            "<td class=\\"mono fn\\">" + fmt(r.balls_bowled) + "</td>" +
+            "<td class=\\"mono fn\\" style=\\"color:var(--red)\\">" + fmt(r.wickets) + "/10</td>" +
+            "<td>" + bonus + "</td>" +
+            "<td class=\\"mono\\" style=\\"color:var(--gold)\\">+" + fmt(r.coins_awarded) + "</td>" +
+          "</tr>";
+        }).join("") + "</tbody></table>";
+    }
+
+    var allEl = document.getElementById("t20-alltime-table");
+    if (!d.allTimeBest || !d.allTimeBest.length) {
+      allEl.innerHTML = "<div class=\\"empty\\">No completed matches yet</div>";
+    } else {
+      allEl.innerHTML = "<table class=\\"tbl\\"><thead><tr><th>RANK</th><th>USER</th><th>RUNS</th><th>BALLS</th><th>BONUS</th><th>DATE</th></tr></thead><tbody>" +
+        d.allTimeBest.map(function(r, i) {
+          var medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : "#" + (i+1);
+          var bonus = r.bonus_kind === "DOUBLE_TON" ? "🚀" : r.bonus_kind === "CENTURY" ? "💯" : "—";
+          return "<tr>" +
+            "<td class=\\"mono\\">" + medal + "</td>" +
+            "<td>" + esc(r.name || "—") + "</td>" +
+            "<td class=\\"mono\\" style=\\"color:var(--green);font-weight:700\\">" + fmt(r.runs) + "</td>" +
+            "<td class=\\"mono fn\\">" + fmt(r.balls_bowled) + "</td>" +
+            "<td class=\\"mono fn\\">" + bonus + "</td>" +
+            "<td class=\\"mono fn\\">" + esc(r.match_date) + "</td>" +
+          "</tr>";
+        }).join("") + "</tbody></table>";
+    }
+
+    var knockEl = document.getElementById("t20-bigknocks-table");
+    if (!d.recentBigKnocks || !d.recentBigKnocks.length) {
+      knockEl.innerHTML = "<div class=\\"empty\\">No centuries or double-tons yet</div>";
+    } else {
+      knockEl.innerHTML = "<table class=\\"tbl\\"><thead><tr><th>USER</th><th>SCORE</th><th>BONUS</th><th>COINS</th><th>WHEN</th></tr></thead><tbody>" +
+        d.recentBigKnocks.map(function(r) {
+          var bonus = r.bonus_kind === "DOUBLE_TON" ? "<span class=\\"badge bg\\">🚀 DOUBLE-TON</span>" : "<span class=\\"badge bg\\">💯 CENTURY</span>";
+          return "<tr>" +
+            "<td>" + esc(r.name || "—") + "</td>" +
+            "<td class=\\"mono\\" style=\\"color:var(--green);font-weight:700\\">" + fmt(r.runs) + " <span class=\\"fn\\" style=\\"color:var(--dim)\\">(" + fmt(r.balls_bowled) + " bls)</span></td>" +
+            "<td>" + bonus + "</td>" +
+            "<td class=\\"mono\\" style=\\"color:var(--gold)\\">+" + fmt(r.coins_awarded) + "</td>" +
+            "<td class=\\"mono fn\\">" + fmtAgo(r.ended_at) + "</td>" +
+          "</tr>";
+        }).join("") + "</tbody></table>";
+    }
+  } catch(e) {
+    document.getElementById("t20-stats").innerHTML = "<div class=\\"empty\\">Failed to load: " + esc(e.message) + "</div>";
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // 8. IPOs
 // ═══════════════════════════════════════════════════════════════
 async function loadIpos() {
@@ -1606,17 +1874,40 @@ var CAT_LABEL = {
   economy:"ECONOMY", banking:"BANKING", sebi:"SEBI", rbi:"RBI"
 };
 
-function onFontScale(val) {
-  _fontScale = parseFloat(val);
-  document.getElementById("font-scale-lbl").textContent = _fontScale.toFixed(2)+"x";
-  if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
+async function ensureMarketLive() {
+  if (_marketLive && Date.now() - _marketLive.fetchedAt < _marketLiveTtl) return _marketLive;
+  try {
+    var r = await fetch("/api/market-data", {credentials:"same-origin"});
+    if (!r.ok) throw new Error("HTTP "+r.status);
+    var arr = await r.json();
+    var byKey = {};
+    arr.forEach(function(q){ byKey[q.symbol] = q; });
+    _marketLive = { quotes: byKey, fetchedAt: Date.now() };
+  } catch(ex) {
+    if (!_marketLive) _marketLive = { quotes:{}, fetchedAt: Date.now() };
+  }
+  return _marketLive;
 }
-function resetFontScale() {
-  _fontScale = 1.0;
-  document.getElementById("font-scale").value = "1";
-  document.getElementById("font-scale-lbl").textContent = "1.0x";
-  if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
+
+// Format helpers
+function _fmtNum(n, decimals) {
+  if (n == null || isNaN(n)) return "—";
+  var d = decimals != null ? decimals : (n >= 1000 ? 0 : 2);
+  return Number(n).toLocaleString("en-IN", {maximumFractionDigits:d, minimumFractionDigits:d});
 }
+function _fmtPct(p) {
+  if (p == null || isNaN(p)) return "—";
+  var s = p >= 0 ? "▲" : "▼";
+  return s + Math.abs(p).toFixed(2) + "%";
+}
+function _pctColor(p) {
+  if (p == null || isNaN(p)) return "#888899";
+  return p >= 0 ? "#00ff88" : "#ff4466";
+}
+function _sym(quotes, key) {
+  return (quotes && quotes[key]) || null;
+}
+
 function genCard(id, fmt) {
   var a = _articles[id];
   if (!a) { toast("Article not found", "err"); return; }
@@ -1626,8 +1917,10 @@ function genCard(id, fmt) {
   ["1x1","4x5","9x16"].forEach(function(f) {
     document.getElementById("fmt-"+f).className = "fmt-btn"+(f===fmt?" active":"");
   });
-  renderCardPreview(a, fmt);
   document.getElementById("card-overlay").classList.add("open");
+  // Render an immediate preview, then re-render once live data arrives.
+  renderCardPreview(a, fmt);
+  ensureMarketLive().then(function(){ renderCardPreview(_cardArticle, _cardFmt); });
 }
 function switchFmt(fmt) {
   if (!_cardArticle) return;
@@ -1642,11 +1935,10 @@ function closeCardModal() {
   _cardArticle = null;
 }
 function renderCardPreview(a, fmt) {
-  document.getElementById("card-preview-inner").innerHTML = buildCard(a, fmt, _fontScale);
+  document.getElementById("card-preview-inner").innerHTML = buildCard(a, fmt);
 }
 
-function buildCard(a, fmt, scale) {
-  scale = scale || 1.0;
+function buildCard(a, fmt) {
   var W  = 360;
   var AR = fmt==="1x1" ? 1 : fmt==="4x5" ? 1.25 : 1.778;
   var H  = Math.round(W * AR);
@@ -1654,32 +1946,22 @@ function buildCard(a, fmt, scale) {
   var title   = (a.title || "").toUpperCase();
   var snippet = a.content_snippet || a.contentSnippet || "";
   var cat     = a.category || "indian";
+  var cc      = CAT_COLORS[cat] || "#00ff88";
   var ce      = CAT_EMOJI[cat]  || "📊";
   var cl      = CAT_LABEL[cat]  || cat.toUpperCase();
+  var maxC    = 75;
+  var sTitle  = title.length > maxC ? title.slice(0, maxC)+"…" : title;
+  var summary = snippet.length > 160 ? snippet.slice(0,157)+"…" : snippet;
 
-  // Font sizes - all scaled
-  function fs(base) { return (base * scale).toFixed(1)+"px"; }
-
-  // Headline truncation
-  var maxC = 72;
-  var sTitle = title.length > maxC ? title.slice(0, maxC)+"…" : title;
-
-  // Summary text
-  var summary = snippet.length > 180 ? snippet.slice(0,177)+"…" : snippet;
-
-  // Bullet extraction - use simple split to avoid regex escaping issues in template
-  var bullets = [];
-  var parts = snippet.split(". ");
-  for (var i=0; i<parts.length; i++) {
-    var s = parts[i].replace(/[.!?]+$/, "").trim();
-    if (s.length > 20) bullets.push(s);
-    if (bullets.length >= (fmt==="1x1" ? 3 : 4)) break;
-  }
-  if (!bullets.length && snippet) bullets = [snippet.slice(0, 120)];
+  // Better bullet extraction - split by sentence
+  var rawSents = snippet.replace(/([.!?])\s+/g,'$1|').split('|')
+    .map(function(s){return s.trim().replace(/[.!?]+$/,'');})
+    .filter(function(s){return s.length > 20 && s.length < 120;});
+  var bullets = rawSents.slice(0, fmt==="1x1" ? 3 : 4);
+  if (!bullets.length) bullets = [snippet.slice(0,100)].filter(Boolean);
 
   var bIcons = ["📌","📊","💡","🔍"];
 
-  // Date formatting
   var dateStr = "—";
   try {
     var dd = new Date(a.pub_date || a.pubDate || Date.now());
@@ -1687,171 +1969,263 @@ function buildCard(a, fmt, scale) {
     dateStr = ("0"+dd.getDate()).slice(-2)+"-"+MM[dd.getMonth()]+"-"+dd.getFullYear();
   } catch(ex) {}
 
-  // Category badges
-  var catBadge = '<span style="font-size:'+fs(5.5)+';padding:2px 8px;border-radius:2px;letter-spacing:.8px;display:inline-flex;align-items:center;gap:2px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:#00ff88">'+ce+' '+cl+'</span>';
-  var extra2ndBadge = (cat==='ipo') ? ' <span style="font-size:'+fs(5.5)+';padding:2px 8px;border-radius:2px;letter-spacing:.8px;background:rgba(255,70,102,.1);border:1px solid rgba(255,70,102,.25);color:#ff4466">🔥 TRENDING</span>'
-    : (cat==='companies') ? ' <span style="font-size:'+fs(5.5)+';padding:2px 8px;border-radius:2px;letter-spacing:.8px;background:rgba(255,204,68,.1);border:1px solid rgba(255,204,68,.25);color:#ffcc44">📋 Q4 RESULTS</span>'
-    : (cat==='economy'||cat==='rbi'||cat==='sebi') ? ' <span style="font-size:'+fs(5.5)+';padding:2px 8px;border-radius:2px;letter-spacing:.8px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.25);color:#3b9eff">📢 POLICY</span>' : '';
+  var catBadge = '<span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;display:inline-flex;align-items:center;gap:2px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:#00ff88">'+ce+' '+cl+'</span>';
+  var hotBadge = (cat==='ipo') ?
+    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,70,102,.1);border:1px solid rgba(255,70,102,.25);color:#ff4466">🔥 TRENDING</span>' :
+    (cat==='companies') ?
+    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,204,68,.1);border:1px solid rgba(255,204,68,.25);color:#ffcc44">📋 Q4 RESULTS</span>' :
+    (cat==='economy'||cat==='rbi'||cat==='sebi') ?
+    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.25);color:#3b9eff">📢 POLICY</span>' : '';
 
-  // Bullets HTML
-  var bHtml = '';
-  for (var bi=0; bi<bullets.length; bi++) {
-    bHtml += '<div style="display:flex;gap:5px;margin-bottom:'+(fmt==="1x1"?"6":"7")+'px;align-items:flex-start">'+
-      '<span style="font-size:'+fs(7)+';color:#00ff88;flex-shrink:0;min-width:16px;line-height:1.5;font-weight:700">'+('0'+(bi+1)).slice(-2)+'</span>'+
-      '<span style="font-size:'+fs(7.5)+';color:#aabbcc;line-height:1.5">'+bIcons[bi]+' '+esc(bullets[bi])+'</span>'+
+  var bHtml = bullets.map(function(b,i) {
+    return '<div style="display:flex;gap:5px;margin-bottom:5px;align-items:flex-start">'+
+      '<span style="font-size:6.5px;color:#00ff88;flex-shrink:0;min-width:14px;line-height:1.5;font-weight:600">'+('0'+(i+1)).slice(-2)+'</span>'+
+      '<span style="font-size:6.5px;color:#8899aa;line-height:1.5">'+bIcons[i]+' '+esc(b)+'</span>'+
     '</div>';
-  }
+  }).join('');
 
-  // Market data cell builder
-  function mCell(l, v, s, vc, sc) {
+  // Market strip — live values from /api/market-data, category-aware row 2
+  var quotes = (_marketLive && _marketLive.quotes) || {};
+
+  function mktCell(l,v,s,vc,sc) {
     return '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px;text-align:center">'+
-      '<div style="font-size:'+fs(5.5)+';color:#334466;letter-spacing:.7px;margin-bottom:3px">'+l+'</div>'+
-      '<div style="font-size:'+fs(12)+';color:'+vc+';font-weight:700;line-height:1.1">'+v+'</div>'+
-      '<div style="font-size:'+fs(6)+';color:'+sc+';margin-top:2px">'+s+'</div>'+
+      '<div style="font-size:5px;color:#334466;letter-spacing:.7px;margin-bottom:2px">'+l+'</div>'+
+      '<div style="font-size:11px;color:'+vc+';font-weight:600;line-height:1">'+v+'</div>'+
+      '<div style="font-size:5.5px;color:'+sc+';margin-top:2px">'+s+'</div>'+
     '</div>';
   }
+  // Build a cell from a Yahoo symbol — keeps colors driven by sign of % change.
+  // prefix/suffix/decimals control display formatting per asset class.
+  function liveCell(label, sym, opts) {
+    opts = opts || {};
+    var q = _sym(quotes, sym);
+    if (!q) return mktCell(label, '—', '—', '#888899', '#888899');
+    var price = q.price;
+    var pct   = q.changePercent;
+    var dec   = opts.decimals != null ? opts.decimals : (price >= 1000 ? 0 : 2);
+    var v     = (opts.prefix||'') + _fmtNum(price, dec) + (opts.suffix||'');
+    var vc    = opts.valueColor || _pctColor(pct);
+    return mktCell(label, v, _fmtPct(pct), vc, _pctColor(pct));
+  }
+
+  // Row 1 — always Nifty / Sensex / USD-INR (universal market anchor)
   var mktRow1 = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px">'+
-    mCell('📈 NIFTY 50','24,200','▲0.91%','#00ff88','#00ff88')+
-    mCell('📊 SENSEX','79,600','▲0.87%','#00ff88','#00ff88')+
-    mCell('💱 ₹/USD','84.21','▼0.12%','#3b9eff','#ff4466')+
-  '</div>';
-  var mktRow2 = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-top:3px">'+
-    mCell('🏦 BANK NIFTY','51,200','▲1.12%','#00ff88','#00ff88')+
-    mCell('🥇 GOLD','₹92,400','▲0.31%','#ffcc44','#00ff88')+
-    mCell('🛢️ CRUDE','$82.4','▼0.65%','#ff9f3b','#ff4466')+
+    liveCell('📈 NIFTY 50',  '^NSEI')+
+    liveCell('📊 SENSEX',    '^BSESN')+
+    liveCell('💱 ₹/USD',     'USDINR=X', {decimals:2, valueColor:'#3b9eff'})+
   '</div>';
 
-  // IPO grid
+  // Row 2 — varies by article category, so each article tells a different story
+  function buildRow2(c) {
+    var cells;
+    if (c === 'companies') {
+      cells = liveCell('🏦 BANK NIFTY','^NSEBANK')+
+              liveCell('💻 NIFTY IT', '^CNXIT')+
+              liveCell('💱 ₹/USD',    'USDINR=X', {decimals:2, valueColor:'#3b9eff'});
+    } else if (c === 'commodity') {
+      cells = liveCell('🥇 GOLD',   'GC=F', {prefix:'$'})+
+              liveCell('🥈 SILVER', 'SI=F', {prefix:'$'})+
+              liveCell('🛢️ CRUDE', 'CL=F', {prefix:'$', valueColor:'#ff9f3b'});
+    } else if (c === 'crypto') {
+      cells = liveCell('₿ BTC',     'BTC-USD', {prefix:'$'})+
+              liveCell('Ξ ETH',     'ETH-USD', {prefix:'$'})+
+              liveCell('💱 ₹/USD',  'USDINR=X', {decimals:2, valueColor:'#3b9eff'});
+    } else if (c === 'banking') {
+      cells = liveCell('🏦 BANK NIFTY','^NSEBANK')+
+              liveCell('💱 ₹/USD',     'USDINR=X', {decimals:2, valueColor:'#3b9eff'})+
+              liveCell('🛢️ CRUDE',    'CL=F', {prefix:'$', valueColor:'#ff9f3b'});
+    } else if (c === 'rbi') {
+      cells = liveCell('💱 ₹/USD',  'USDINR=X', {decimals:2, valueColor:'#3b9eff'})+
+              liveCell('🥇 GOLD',   'GC=F', {prefix:'$'})+
+              liveCell('🛢️ CRUDE', 'CL=F', {prefix:'$', valueColor:'#ff9f3b'});
+    } else if (c === 'sebi') {
+      cells = liveCell('📈 NIFTY 50','^NSEI')+
+              liveCell('🌪️ INDIA VIX','^INDIAVIX', {valueColor:'#ff9f3b'})+
+              liveCell('💱 ₹/USD',   'USDINR=X', {decimals:2, valueColor:'#3b9eff'});
+    } else if (c === 'global') {
+      cells = liveCell('🇺🇸 DOW',  '^DJI')+
+              liveCell('📊 S&P',   '^GSPC')+
+              liveCell('💻 NASDAQ','^IXIC');
+    } else if (c === 'economy') {
+      cells = liveCell('💱 ₹/USD',  'USDINR=X', {decimals:2, valueColor:'#3b9eff'})+
+              liveCell('🥇 GOLD',   'GC=F', {prefix:'$'})+
+              liveCell('🛢️ CRUDE', 'CL=F', {prefix:'$', valueColor:'#ff9f3b'});
+    } else {
+      // 'indian', 'ipo', and anything else → broad-market context
+      cells = liveCell('🏦 BANK NIFTY','^NSEBANK')+
+              liveCell('🥇 GOLD',      'GC=F', {prefix:'$'})+
+              liveCell('🛢️ CRUDE',    'CL=F', {prefix:'$', valueColor:'#ff9f3b'});
+    }
+    return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-top:3px">'+cells+'</div>';
+  }
+  var mktRow2 = buildRow2(cat);
+
+  // SEBI advisory: live quotes must be timestamped. Stamp shown above strip.
+  var nowIst = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+  var hh = ('0'+nowIst.getUTCHours()).slice(-2);
+  var mm = ('0'+nowIst.getUTCMinutes()).slice(-2);
+  var quoteStamp = '<div style="font-size:4.5px;color:#334466;letter-spacing:.6px;text-align:right;margin-bottom:2px">⏱ AS OF '+hh+':'+mm+' IST · 15-MIN DELAYED</div>';
+
+  // IPO snapshot
   var ipoExtra = (cat==='ipo') ?
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px;flex-shrink:0">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px">'+
       '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px">'+
-        '<div style="font-size:'+fs(5)+';color:#334466;margin-bottom:2px">💰 PRICE BAND</div>'+
-        '<div style="font-size:'+fs(9)+';color:#e8eaf0">₹120 – ₹135</div>'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">💰 PRICE BAND</div>'+
+        '<div style="font-size:9px;color:#e8eaf0">₹120 – ₹135</div>'+
       '</div>'+
       '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:3px;padding:5px">'+
-        '<div style="font-size:'+fs(5)+';color:#334466;margin-bottom:2px">📦 LOT SIZE</div>'+
-        '<div style="font-size:'+fs(9)+';color:#e8eaf0">111 shares</div>'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">📦 LOT SIZE</div>'+
+        '<div style="font-size:9px;color:#e8eaf0">111 shares</div>'+
       '</div>'+
     '</div>' : '';
 
-  // Common structural elements
-  var header = '<div style="background:linear-gradient(90deg,rgba(0,255,136,.1),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.15);padding:7px 11px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
+  // Common elements
+  var header = '<div style="background:linear-gradient(90deg,rgba(0,255,136,.1),rgba(0,255,136,.04));border-bottom:1px solid rgba(0,255,136,.15);padding:6px 10px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">'+
     '<div style="display:flex;align-items:center;gap:5px">'+
-      '<div style="width:7px;height:7px;border-radius:50%;background:#00ff88;flex-shrink:0"></div>'+
-      '<span style="font-size:'+fs(6.5)+';color:#00ff88;letter-spacing:1.5px;font-weight:700">📊 MARKET SAMACHAR</span>'+
+      '<div style="width:7px;height:7px;border-radius:50%;background:#00ff88"></div>'+
+      '<span style="font-size:6px;color:#00ff88;letter-spacing:1.5px;font-weight:600">📊 MARKET SAMACHAR</span>'+
     '</div>'+
     '<div style="display:flex;align-items:center;gap:4px">'+
-      '<span style="font-size:10px">🇮🇳</span>'+
-      '<span style="font-size:'+fs(6)+';color:#334466">'+dateStr+' · IST</span>'+
+      '<span style="font-size:9px">🇮🇳</span>'+
+      '<span style="font-size:5.5px;color:#334466">'+dateStr+' · IST</span>'+
     '</div>'+
   '</div>';
 
-  var summaryBar = summary ?
-    '<div style="font-size:'+fs(7.5)+';color:#5580aa;line-height:1.55;margin-top:6px;padding:6px 9px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.35);border-radius:0 3px 3px 0">'+esc(summary)+'</div>' : '';
-
-  var divider = '<div style="width:28px;height:2px;background:rgba(0,255,136,.45);margin:7px 0 0;border-radius:1px"></div>';
-
-  var wm = '<div style="display:flex;align-items:center;gap:4px;padding:3px 11px">'+
+  var wm = '<div style="display:flex;align-items:center;gap:4px;padding:2px 10px">'+
     '<div style="flex:1;height:1px;background:rgba(0,255,136,.15)"></div>'+
-    '<div style="font-size:'+fs(5)+';color:rgba(0,255,136,.3);letter-spacing:1.5px">◈ MARKETSAMACHAR.IN</div>'+
+    '<div style="font-size:4.5px;color:rgba(0,255,136,.3);letter-spacing:1.5px">◈ MARKETSAMACHAR.IN</div>'+
     '<div style="flex:1;height:1px;background:rgba(0,255,136,.15)"></div>'+
   '</div>';
 
-  var footer = '<div style="background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);padding:6px 11px;flex-shrink:0">'+
+  var footer = '<div style="background:rgba(0,255,136,.03);border-top:1px solid rgba(0,255,136,.1);padding:5px 10px;flex-shrink:0">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'+
-      '<span style="font-size:'+fs(5)+';background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;padding:1px 5px">ℹ️ NOT INVESTMENT ADVICE · FOR INFO ONLY</span>'+
-      '<span style="font-size:'+fs(6.5)+';color:#00ff88;letter-spacing:.8px;font-weight:700">marketsamachar.in</span>'+
+      '<span style="font-size:4.5px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.2);color:#3b9eff;border-radius:2px;padding:1px 5px">ℹ️ NOT INVESTMENT ADVICE · FOR INFO ONLY</span>'+
+      '<span style="font-size:6px;color:#00ff88;letter-spacing:.8px;font-weight:600">marketsamachar.in</span>'+
     '</div>'+
-    '<div style="font-size:'+fs(4.5)+';color:#1a3040;line-height:1.4">⚠ Investment in securities market are subject to market risks. Read all related documents carefully before investing.</div>'+
+    '<div style="font-size:4px;color:#1a3040;line-height:1.4">⚠ Investment in securities market are subject to market risks. Read all related documents carefully before investing.</div>'+
   '</div>';
 
-  // ─── 1:1 SQUARE ────────────────────────────────────────────────────
-  if (fmt==="1x1") {
-    var summSum1 = summary ? '<div style="font-size:'+fs(8)+';color:#5580aa;line-height:1.5;margin-top:6px;padding:6px 9px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.35);border-radius:0 3px 3px 0">'+esc(summary.slice(0,110))+'</div>' : '';
+  // ─── 1:1 SQUARE LAYOUT ────────────────────────────────────────────────
+  if (fmt === "1x1") {
+    var hl1 = '<div style="font-size:13.5px;color:#00ff88;line-height:1.3;font-weight:600;letter-spacing:.3px">'+esc(sTitle)+'</div>';
+    var summ1 = summary ? '<div style="font-size:7px;color:#5580aa;line-height:1.5;margin-top:5px;padding:5px 7px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.3);border-radius:0 3px 3px 0">'+esc(summary.slice(0,120))+'</div>' : '';
     return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
       header+
-      '<div style="padding:8px 11px 4px;flex-shrink:0">'+
-        '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+extra2ndBadge+'</div>'+
-        '<div style="font-size:'+fs(14)+';color:#00ff88;line-height:1.3;font-weight:700;letter-spacing:.3px">'+esc(sTitle)+'</div>'+
-        summSum1+divider+
+      '<div style="padding:8px 10px 4px;flex-shrink:0">'+
+        '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+hotBadge+'</div>'+
+        hl1+summ1+
+        '<div style="width:24px;height:2px;background:rgba(0,255,136,.4);margin:6px 0 0;border-radius:1px"></div>'+
       '</div>'+
-      '<div style="padding:4px 11px 0;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
-        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex:1;overflow:hidden">'+
-          '<div style="font-size:'+fs(6)+';color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
+      '<div style="padding:0 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
+        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:7px;flex:1">'+
+          '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:3px">💡 KEY HIGHLIGHTS</div>'+
           bHtml+
         '</div>'+
-        '<div style="flex-shrink:0">'+mktRow1+'</div>'+
+        '<div style="flex-shrink:0">'+quoteStamp+mktRow1+'</div>'+
       '</div>'+
       wm+footer+
     '</div>';
   }
 
-  // ─── 4:5 PORTRAIT ──────────────────────────────────────────────────
-  if (fmt==="4x5") {
-    var summSum45 = summary ? '<div style="font-size:'+fs(8)+';color:#5580aa;line-height:1.55;margin-top:6px;padding:6px 9px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.35);border-radius:0 3px 3px 0">'+esc(summary.slice(0,140))+'</div>' : '';
+  // ─── 4:5 PORTRAIT LAYOUT ──────────────────────────────────────────────
+  if (fmt === "4x5") {
+    var hl45 = '<div style="font-size:14.5px;color:#00ff88;line-height:1.3;font-weight:600;letter-spacing:.3px">'+esc(sTitle)+'</div>';
+    var summ45 = summary ? '<div style="font-size:7.5px;color:#5580aa;line-height:1.55;margin-top:6px;padding:6px 8px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.3);border-radius:0 3px 3px 0">'+esc(summary.slice(0,150))+'</div>' : '';
     return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
       header+
-      '<div style="padding:9px 11px 4px;flex-shrink:0">'+
-        '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+extra2ndBadge+'</div>'+
-        '<div style="font-size:'+fs(15)+';color:#00ff88;line-height:1.3;font-weight:700;letter-spacing:.3px">'+esc(sTitle)+'</div>'+
-        summSum45+divider+
+      '<div style="padding:9px 10px 5px;flex-shrink:0">'+
+        '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+hotBadge+'</div>'+
+        hl45+summ45+
+        '<div style="width:24px;height:2px;background:rgba(0,255,136,.4);margin:7px 0 0;border-radius:1px"></div>'+
       '</div>'+
-      '<div style="padding:5px 11px 0;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
+      '<div style="padding:5px 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
         ipoExtra+
-        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex:1;overflow:hidden">'+
-          '<div style="font-size:'+fs(6)+';color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
+        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex:1">'+
+          '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
           bHtml+
         '</div>'+
-        '<div style="flex-shrink:0">'+mktRow1+mktRow2+'</div>'+
+        '<div style="flex-shrink:0">'+quoteStamp+mktRow1+mktRow2+'</div>'+
       '</div>'+
       wm+footer+
     '</div>';
   }
 
-  // ─── 9:16 STORY ────────────────────────────────────────────────────
-  var summSum9 = summary ? '<div style="font-size:'+fs(8)+';color:#5580aa;line-height:1.55;margin-top:6px;padding:6px 9px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.35);border-radius:0 3px 3px 0">'+esc(summary.slice(0,160))+'</div>' : '';
+  // ─── 9:16 STORY LAYOUT ────────────────────────────────────────────────
+  var hl9 = '<div style="font-size:15px;color:#00ff88;line-height:1.3;font-weight:600;letter-spacing:.3px">'+esc(sTitle)+'</div>';
+  var summ9 = summary ? '<div style="font-size:7.5px;color:#5580aa;line-height:1.55;margin-top:6px;padding:6px 8px;background:rgba(0,255,136,.04);border-left:2px solid rgba(0,255,136,.3);border-radius:0 3px 3px 0">'+esc(summary.slice(0,160))+'</div>' : '';
+
+  // Extra context section for 9:16 — fully derived (no hardcoded numbers).
+  // Trading-session text comes from current IST clock. Gold/Crude come live.
+  var ctxIstMins = nowIst.getUTCHours() * 60 + nowIst.getUTCMinutes();
+  var ctxDow     = nowIst.getUTCDay();   // 0=Sun..6=Sat
+  var ctxIsWeekend = (ctxDow === 0 || ctxDow === 6);
+  var ctxOpen   = ctxIstMins >= (9*60+15) && ctxIstMins <= (15*60+30) && !ctxIsWeekend;
+  var ctxPreOpen= ctxIstMins >= (9*60) && ctxIstMins < (9*60+15) && !ctxIsWeekend;
+  var ctxSessionLabel = ctxOpen ? 'NSE/BSE OPEN' : (ctxPreOpen ? 'NSE/BSE PRE-OPEN' : 'NSE/BSE CLOSED');
+  var ctxSessionColor = ctxOpen ? '#00ff88' : (ctxPreOpen ? '#ffcc44' : '#ff9f3b');
+  // Next session = next non-weekend trading day.
+  var nextDay = new Date(nowIst.getTime());
+  if (ctxIstMins >= (15*60+30) || ctxIsWeekend) {
+    do { nextDay.setUTCDate(nextDay.getUTCDate()+1); }
+    while (nextDay.getUTCDay() === 0 || nextDay.getUTCDay() === 6);
+  }
+  var DOW_NAMES = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  var MM_NAMES  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  var nextStr   = ('0'+nextDay.getUTCDate()).slice(-2)+' '+MM_NAMES[nextDay.getUTCMonth()]+' '+nextDay.getUTCFullYear();
+  var nextDow   = DOW_NAMES[nextDay.getUTCDay()];
+  var todayStr  = ('0'+nowIst.getUTCDate()).slice(-2)+' '+MM_NAMES[nowIst.getUTCMonth()]+' '+nowIst.getUTCFullYear();
+
+  // Live gold/crude (fall back to em-dash if unavailable).
+  var gQ = _sym(quotes, 'GC=F');
+  var cQ = _sym(quotes, 'CL=F');
+  var goldPrice = gQ ? '$'+_fmtNum(gQ.price, gQ.price>=1000?0:2) : '—';
+  var goldPct   = gQ ? _fmtPct(gQ.changePercent)+' today' : 'live data unavailable';
+  var goldCol   = gQ ? _pctColor(gQ.changePercent) : '#888899';
+  var crudePrice= cQ ? '$'+_fmtNum(cQ.price, cQ.price>=1000?0:2) : '—';
+  var crudePct  = cQ ? _fmtPct(cQ.changePercent)+' today' : 'live data unavailable';
+  var crudeCol  = cQ ? _pctColor(cQ.changePercent) : '#888899';
 
   var contextBox = '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex-shrink:0">'+
-    '<div style="font-size:'+fs(6)+';color:#334466;letter-spacing:1px;margin-bottom:7px">📌 MARKET CONTEXT — '+dateStr+'</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'+
-      '<div style="background:#070710;border-radius:3px;padding:6px">'+
-        '<div style="font-size:'+fs(5.5)+';color:#334466;margin-bottom:2px">🕐 TRADING SESSION</div>'+
-        '<div style="font-size:'+fs(8.5)+';color:#00ff88;font-weight:700">NSE/BSE</div>'+
-        '<div style="font-size:'+fs(6)+';color:#334466">9:15 – 15:30 IST</div>'+
+    '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:6px">📌 MARKET CONTEXT — '+todayStr+'</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">🕐 TRADING SESSION</div>'+
+        '<div style="font-size:8px;color:'+ctxSessionColor+'">'+ctxSessionLabel+'</div>'+
+        '<div style="font-size:5.5px;color:#334466">Market Hours: 9:15–15:30 IST</div>'+
       '</div>'+
-      '<div style="background:#070710;border-radius:3px;padding:6px">'+
-        '<div style="font-size:'+fs(5.5)+';color:#334466;margin-bottom:2px">📅 MARKET DATE</div>'+
-        '<div style="font-size:'+fs(8.5)+';color:#ffcc44;font-weight:700">'+dateStr+'</div>'+
-        '<div style="font-size:'+fs(6)+';color:#334466">NSE/BSE India</div>'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">📅 NEXT SESSION</div>'+
+        '<div style="font-size:8px;color:#ffcc44">'+nextStr+'</div>'+
+        '<div style="font-size:5.5px;color:#334466">'+nextDow+' — Market Opens</div>'+
       '</div>'+
-      '<div style="background:#070710;border-radius:3px;padding:6px">'+
-        '<div style="font-size:'+fs(5.5)+';color:#334466;margin-bottom:2px">🥇 MCX GOLD</div>'+
-        '<div style="font-size:'+fs(8.5)+';color:#ffcc44;font-weight:700">₹92,400</div>'+
-        '<div style="font-size:'+fs(6)+';color:#00ff88">▲ 0.31% today</div>'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">🥇 GOLD (COMEX)</div>'+
+        '<div style="font-size:8px;color:#ffcc44">'+goldPrice+'</div>'+
+        '<div style="font-size:5.5px;color:'+goldCol+'">'+goldPct+'</div>'+
       '</div>'+
-      '<div style="background:#070710;border-radius:3px;padding:6px">'+
-        '<div style="font-size:'+fs(5.5)+';color:#334466;margin-bottom:2px">🛢️ CRUDE OIL</div>'+
-        '<div style="font-size:'+fs(8.5)+';color:#ff9f3b;font-weight:700">$82.40</div>'+
-        '<div style="font-size:'+fs(6)+';color:#ff4466">▼ 0.65% today</div>'+
+      '<div style="background:#070710;border-radius:3px;padding:5px">'+
+        '<div style="font-size:5px;color:#334466;margin-bottom:2px">🛢️ CRUDE OIL</div>'+
+        '<div style="font-size:8px;color:#ff9f3b">'+crudePrice+'</div>'+
+        '<div style="font-size:5.5px;color:'+crudeCol+'">'+crudePct+'</div>'+
       '</div>'+
     '</div>'+
   '</div>';
 
   return '<div style="width:'+W+'px;height:'+H+'px;background:#07070e;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
     header+
-    '<div style="padding:9px 11px 4px;flex-shrink:0">'+
-      '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+extra2ndBadge+'</div>'+
-      '<div style="font-size:'+fs(15.5)+';color:#00ff88;line-height:1.3;font-weight:700;letter-spacing:.3px">'+esc(sTitle)+'</div>'+
-      summSum9+divider+
+    '<div style="padding:9px 10px 5px;flex-shrink:0">'+
+      '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px">'+catBadge+hotBadge+'</div>'+
+      hl9+summ9+
+      '<div style="width:24px;height:2px;background:rgba(0,255,136,.4);margin:7px 0 0;border-radius:1px"></div>'+
     '</div>'+
-    '<div style="padding:5px 11px 0;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
+    '<div style="padding:5px 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
       ipoExtra+
-      '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex:1;overflow:hidden">'+
-        '<div style="font-size:'+fs(6)+';color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
+      '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex-shrink:0">'+
+        '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
         bHtml+
       '</div>'+
       contextBox+
-      '<div style="flex-shrink:0">'+mktRow1+mktRow2+'</div>'+
+      '<div style="flex-shrink:0">'+quoteStamp+mktRow1+mktRow2+'</div>'+
     '</div>'+
     wm+footer+
   '</div>';
@@ -1865,7 +2239,7 @@ async function downloadCard() {
 
   var wrapper = document.createElement("div");
   wrapper.setAttribute("style", "position:fixed;top:-9999px;left:-9999px;z-index:-1");
-  wrapper.innerHTML = buildCard(_cardArticle, _cardFmt, _fontScale);
+  wrapper.innerHTML = buildCard(_cardArticle, _cardFmt);
   document.body.appendChild(wrapper);
 
   try {
