@@ -127,6 +127,17 @@ const BB_CSS = `
 
   /* Hide some table columns on small screens */
   @media (max-width: 640px) { .bb-col-sm { display: none !important; } }
+  /* Hide medium-priority columns on small phones (≤640px) */
+  @media (max-width: 640px) { .bb-col-md { display: none !important; } }
+  /* Drop table min-widths on mobile so tables fit the viewport */
+  @media (max-width: 640px) {
+    .bb-tbl-md { min-width: 0 !important; }
+    .bb-tbl-lg { min-width: 0 !important; }
+  }
+  /* Mobile container padding: cut horizontal padding on phones */
+  @media (max-width: 640px) {
+    .bb-pad-resp { padding-left: 12px !important; padding-right: 12px !important; }
+  }
 `;
 
 /* ─── Skeleton ───────────────────────────────────────────────────────────── */
@@ -174,6 +185,8 @@ function EarnCoinsPanel({ onNavigate, compact = false }: {
   compact?: boolean;
 }) {
   const EARN_OPTIONS = [
+    { icon: '🏏', label: 'Dalal Street T20',         desc: '1 coin per run · century +200 · double-ton +500',    coins: '+2000', view: 't20',         color: GREEN, isNew: true },
+    { icon: '🎯', label: 'Combo Card',               desc: 'Daily 5-question lottery · 5/5 = 5,000 jackpot',     coins: '+5000', view: 'combo',       color: '#3b9eff', isNew: true },
     { icon: '⚡', label: 'Pulse — Bull/Bear Swiper', desc: '5 coins per swipe · +20 bonus when right after 24h', coins: '+520', view: 'pulse',       color: '#ff9f3b' },
     { icon: '📊', label: 'Chartguessr',              desc: '20 coins per correct guess · streak bonus up to 1000', coins: '+1000', view: 'chartguessr', color: '#3b9eff' },
     { icon: '📈', label: 'Trade Stocks',             desc: '50 coins per trade · 500 for 5% profit',           coins: '+550',  view: 'trading',     color: GREEN     },
@@ -187,24 +200,35 @@ function EarnCoinsPanel({ onNavigate, compact = false }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? 6 : 8 }}>
-      {items.map((opt) => (
+      {items.map((opt: any) => (
         <button
           key={opt.label}
           onClick={() => onNavigate?.(opt.view)}
           style={{
             display: 'flex', alignItems: 'center', gap: 10,
-            background: '#09091a', border: `1px solid ${BORDER}`,
-            borderRadius: 8, padding: compact ? '8px 10px' : '10px 12px',
+            background: opt.isNew ? `linear-gradient(90deg, ${opt.color}10, #09091a 60%)` : '#09091a',
+            border: `1px solid ${opt.isNew ? opt.color + '40' : BORDER}`,
+            borderRadius: 8, padding: compact ? '10px 10px' : '12px 12px',
             cursor: onNavigate ? 'pointer' : 'default', textAlign: 'left',
-            width: '100%', transition: 'border-color 0.15s',
+            width: '100%', minHeight: compact ? 40 : 44,
+            transition: 'border-color 0.15s',
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.borderColor = opt.color + '50')}
-          onMouseLeave={(e) => (e.currentTarget.style.borderColor = BORDER)}
+          onMouseEnter={(e) => (e.currentTarget.style.borderColor = opt.color + '60')}
+          onMouseLeave={(e) => (e.currentTarget.style.borderColor = opt.isNew ? opt.color + '40' : BORDER)}
         >
           <span style={{ fontSize: compact ? 16 : 18, flexShrink: 0 }}>{opt.icon}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: TEXT, ...SANS, fontSize: compact ? 12 : 13, fontWeight: 600 }}>
-              {opt.label}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: TEXT, ...SANS, fontSize: compact ? 12 : 13, fontWeight: 600 }}>
+                {opt.label}
+              </span>
+              {opt.isNew && (
+                <span style={{
+                  ...MONO, fontSize: 8, color: '#ffdd3b',
+                  background: 'rgba(255,221,59,0.1)', border: '1px solid #ffdd3b40',
+                  borderRadius: 3, padding: '1px 5px', letterSpacing: '0.08em', fontWeight: 700,
+                }}>NEW</span>
+              )}
             </div>
             {!compact && (
               <div style={{ color: MUTED, ...SANS, fontSize: 11, marginTop: 1 }}>
@@ -908,7 +932,7 @@ function MarketsTab({
 
         {/* Table */}
         <div className="bb-scroll" style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
+          <table className="bb-tbl-md" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 420 }}>
             <thead>
               <tr style={{ background: '#08081a', borderBottom: `1px solid ${BORDER}` }}>
                 {[
@@ -1193,11 +1217,21 @@ function PortfolioTab({
             HOLDINGS ({holdings.length})
           </div>
           <div className="bb-scroll" style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
+            <table className="bb-tbl-lg" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
               <thead>
                 <tr style={{ background: '#08081a', borderBottom: `1px solid ${BORDER}` }}>
-                  {['STOCK', 'QTY', 'AVG PRICE', 'CURR PRICE', 'INVESTED', 'CURRENT', 'P&L', 'P&L%', ''].map((h, i) => (
-                    <th key={h + i} style={{
+                  {[
+                    { h: 'STOCK',      cls: '' },
+                    { h: 'QTY',        cls: '' },
+                    { h: 'AVG PRICE',  cls: 'bb-col-md' },
+                    { h: 'CURR PRICE', cls: '' },
+                    { h: 'INVESTED',   cls: 'bb-col-md' },
+                    { h: 'CURRENT',    cls: 'bb-col-md' },
+                    { h: 'P&L',        cls: '' },
+                    { h: 'P&L%',       cls: 'bb-col-md' },
+                    { h: '',           cls: '' },
+                  ].map(({ h, cls }, i) => (
+                    <th key={h + i} className={cls} style={{
                       padding: '7px 10px', textAlign: i < 2 ? 'left' : 'right',
                       color: DIM, ...MONO, fontSize: 9, letterSpacing: '0.1em',
                       fontWeight: 600, whiteSpace: 'nowrap',
@@ -1217,14 +1251,14 @@ function PortfolioTab({
                         <div style={{ color: MUTED, ...SANS, fontSize: 10 }}>{short(h.companyName)}</div>
                       </td>
                       <td style={{ padding: '10px 10px', textAlign: 'right', color: TEXT, ...MONO, fontSize: 13 }}>{h.quantity}</td>
-                      <td style={{ padding: '10px 10px', textAlign: 'right', color: MUTED, ...MONO, fontSize: 12 }}>₹{fmtPrice(h.avgBuyPrice)}</td>
+                      <td className="bb-col-md" style={{ padding: '10px 10px', textAlign: 'right', color: MUTED, ...MONO, fontSize: 12 }}>₹{fmtPrice(h.avgBuyPrice)}</td>
                       <td style={{ padding: '10px 10px', textAlign: 'right', color: TEXT, ...MONO, fontSize: 13, fontWeight: 600 }}>₹{fmtPrice(h.currentPrice)}</td>
-                      <td style={{ padding: '10px 10px', textAlign: 'right', color: MUTED, ...MONO, fontSize: 12 }}>{fmt(h.investedCoins)}</td>
-                      <td style={{ padding: '10px 10px', textAlign: 'right', color: TEXT, ...MONO, fontSize: 12 }}>{fmt(h.currentValue)}</td>
+                      <td className="bb-col-md" style={{ padding: '10px 10px', textAlign: 'right', color: MUTED, ...MONO, fontSize: 12 }}>{fmt(h.investedCoins)}</td>
+                      <td className="bb-col-md" style={{ padding: '10px 10px', textAlign: 'right', color: TEXT, ...MONO, fontSize: 12 }}>{fmt(h.currentValue)}</td>
                       <td style={{ padding: '10px 10px', textAlign: 'right', color: up ? GREEN : RED, ...MONO, fontSize: 13, fontWeight: 700 }}>
                         {up ? '+' : ''}{fmt(h.pnlCoins)}
                       </td>
-                      <td style={{ padding: '10px 10px', textAlign: 'right', color: up ? GREEN : RED, ...MONO, fontSize: 12, fontWeight: 600 }}>
+                      <td className="bb-col-md" style={{ padding: '10px 10px', textAlign: 'right', color: up ? GREEN : RED, ...MONO, fontSize: 12, fontWeight: 600 }}>
                         {fmtPct(h.pnlPercent)}
                       </td>
                       <td style={{ padding: '10px 12px', textAlign: 'right' }}>
@@ -1453,19 +1487,19 @@ function OrdersTab({
         {orders.length} ORDERS — NEWEST FIRST
       </div>
       <div className="bb-scroll" style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+        <table className="bb-tbl-md" style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
           <thead>
             <tr style={{ background: '#08081a', borderBottom: `1px solid ${BORDER}` }}>
               {[
-                { h: 'DATE/TIME',    a: 'left'  },
-                { h: 'TYPE',         a: 'left'  },
-                { h: 'STOCK',        a: 'left'  },
-                { h: 'QTY',          a: 'right' },
-                { h: 'PRICE',        a: 'right' },
-                { h: 'TOTAL COINS',  a: 'right' },
-                { h: 'STATUS',       a: 'right' },
-              ].map(({ h, a }) => (
-                <th key={h} style={{
+                { h: 'DATE/TIME',    a: 'left',  cls: '' },
+                { h: 'TYPE',         a: 'left',  cls: '' },
+                { h: 'STOCK',        a: 'left',  cls: '' },
+                { h: 'QTY',          a: 'right', cls: '' },
+                { h: 'PRICE',        a: 'right', cls: 'bb-col-md' },
+                { h: 'TOTAL COINS',  a: 'right', cls: 'bb-col-md' },
+                { h: 'STATUS',       a: 'right', cls: '' },
+              ].map(({ h, a, cls }) => (
+                <th key={h} className={cls} style={{
                   padding: '7px 10px', textAlign: a as any,
                   color: DIM, ...MONO, fontSize: 9,
                   letterSpacing: '0.1em', fontWeight: 600, whiteSpace: 'nowrap',
@@ -1503,10 +1537,10 @@ function OrdersTab({
                   <td style={{ padding: '9px 10px', textAlign: 'right', color: TEXT, ...MONO, fontSize: 13 }}>
                     {o.quantity}
                   </td>
-                  <td style={{ padding: '9px 10px', textAlign: 'right', color: MUTED, ...MONO, fontSize: 12 }}>
+                  <td className="bb-col-md" style={{ padding: '9px 10px', textAlign: 'right', color: MUTED, ...MONO, fontSize: 12 }}>
                     ₹{fmtPrice(o.price)}
                   </td>
-                  <td style={{ padding: '9px 10px', textAlign: 'right', color: isBuy ? RED : GREEN, ...MONO, fontSize: 13, fontWeight: 700 }}>
+                  <td className="bb-col-md" style={{ padding: '9px 10px', textAlign: 'right', color: isBuy ? RED : GREEN, ...MONO, fontSize: 13, fontWeight: 700 }}>
                     {isBuy ? '−' : '+'}{fmt(o.total)} 🪙
                   </td>
                   <td style={{ padding: '9px 10px', textAlign: 'right' }}>
