@@ -79,7 +79,7 @@ export function renderAdminDashboard(): string {
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Market Samachar — Admin Terminal</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -339,13 +339,42 @@ select.inp{cursor:pointer}
 .fmt-btn:not(.active){background:#0a0a18;border-color:var(--border);color:var(--dim)}
 .fmt-btn:not(.active):hover{border-color:#334466;color:var(--sub)}
 
-/* Font-size adjustment buttons in card modal */
-.card-fontsize-row{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap}
-.card-fontsize-row .lbl{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:1.5px;margin-right:4px}
-.fnt-btn{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .12s;min-width:32px;text-align:center}
-.fnt-btn.active{background:#3b9eff18;border-color:#3b9eff50;color:var(--blue)}
-.fnt-btn:not(.active){background:#0a0a18;border-color:var(--border);color:var(--dim)}
-.fnt-btn:not(.active):hover{border-color:#334466;color:var(--sub)}
+/* ── Card editor controls ───────────────────────────────────── */
+.card-editor{display:flex;flex-direction:column;gap:10px;margin:8px 0;padding:10px;background:#06060c;border:1px solid var(--border);border-radius:6px}
+.card-edit-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card-edit-row .lbl{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:1.5px;min-width:64px}
+
+/* Template tabs */
+.tpl-btn{font-family:var(--mono);font-size:9px;padding:5px 12px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .12s;letter-spacing:0.04em}
+.tpl-btn.active{background:#00ff8818;border-color:#00ff8840;color:var(--green)}
+.tpl-btn:not(.active){background:#0a0a18;border-color:var(--border);color:var(--dim)}
+.tpl-btn:not(.active):hover{border-color:#334466;color:var(--sub)}
+
+/* Font slider */
+.font-slider{flex:1;min-width:140px;-webkit-appearance:none;appearance:none;height:4px;background:#1a1a2e;border-radius:2px;outline:none;cursor:pointer}
+.font-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;border:2px solid #07070e;box-shadow:0 0 6px #00ff8870}
+.font-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--green);cursor:pointer;border:2px solid #07070e}
+.font-slider-val{font-family:var(--mono);font-size:11px;color:var(--green);min-width:48px;text-align:right;font-weight:600}
+.font-reset{background:none;border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:9px;padding:3px 8px;border-radius:3px;cursor:pointer}
+.font-reset:hover{border-color:#334466;color:var(--sub)}
+
+/* Accent color radios */
+.acc-swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .12s}
+.acc-swatch.active{border-color:var(--text);transform:scale(1.15)}
+.acc-swatch:hover{transform:scale(1.1)}
+
+/* Section toggles */
+.sec-toggle{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;color:var(--sub);cursor:pointer;letter-spacing:.04em;user-select:none}
+.sec-toggle input{margin:0;cursor:pointer;accent-color:var(--green)}
+
+/* Override inputs */
+.ov-input{flex:1;background:#0a0a18;border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:3px;font-family:var(--mono);font-size:11px;min-width:160px}
+.ov-input:focus{border-color:#00ff8850;outline:none}
+
+/* Emoji picker */
+.emoji-pick{display:flex;flex-wrap:wrap;gap:3px;flex:1}
+.emoji-btn{background:#0a0a18;border:1px solid var(--border);font-size:14px;padding:3px 6px;border-radius:3px;cursor:pointer;transition:all .12s;line-height:1}
+.emoji-btn:hover{border-color:#334466;background:#10101e;transform:scale(1.1)}
 .card-preview-wrap{display:flex;justify-content:center;align-items:flex-start;background:#04040a;border:1px solid var(--border);border-radius:6px;padding:16px;min-height:200px}
 .card-actions{display:flex;gap:8px;justify-content:flex-end}
 /* inline card design */
@@ -918,14 +947,77 @@ select.inp{cursor:pointer}
       <button class="fmt-btn" id="fmt-4x5" onclick="switchFmt('4x5')">📱 4:5 Portrait</button>
       <button class="fmt-btn" id="fmt-9x16" onclick="switchFmt('9x16')">🎬 9:16 Story</button>
     </div>
-    <div class="card-fontsize-row">
-      <span class="lbl">FONT SIZE</span>
-      <button class="fnt-btn"        id="fnt-085" onclick="setFontMult(0.85)" title="Smaller">A−</button>
-      <button class="fnt-btn"        id="fnt-092" onclick="setFontMult(0.92)" title="Small">A·</button>
-      <button class="fnt-btn active" id="fnt-100" onclick="setFontMult(1.00)" title="Default">A</button>
-      <button class="fnt-btn"        id="fnt-108" onclick="setFontMult(1.08)" title="Large">A•</button>
-      <button class="fnt-btn"        id="fnt-115" onclick="setFontMult(1.15)" title="Larger">A+</button>
+
+    <div class="card-editor">
+      <!-- Template selector -->
+      <div class="card-edit-row">
+        <span class="lbl">TEMPLATE</span>
+        <button class="tpl-btn active" id="tpl-classic"   onclick="setTemplate('classic')">🟢 Classic Terminal</button>
+        <button class="tpl-btn"        id="tpl-editorial" onclick="setTemplate('editorial')">📰 Editorial</button>
+        <button class="tpl-btn"        id="tpl-breaking"  onclick="setTemplate('breaking')">🚨 Breaking News</button>
+      </div>
+
+      <!-- Font size slider -->
+      <div class="card-edit-row">
+        <span class="lbl">FONT SIZE</span>
+        <input type="range" class="font-slider" id="fnt-slider" min="0.7" max="1.5" step="0.05" value="1.0" oninput="setFontMult(this.value)"/>
+        <span class="font-slider-val" id="fnt-val">1.00×</span>
+        <button class="font-reset" onclick="setFontMult(1.0); document.getElementById('fnt-slider').value=1.0;">↺ RESET</button>
+      </div>
+
+      <!-- Accent color (Classic only — hidden for other templates) -->
+      <div class="card-edit-row" id="row-accent">
+        <span class="lbl">ACCENT</span>
+        <span class="acc-swatch active" id="acc-00ff88" onclick="setAccent('#00ff88')" style="background:#00ff88" title="Green (default)"></span>
+        <span class="acc-swatch"        id="acc-3bffee" onclick="setAccent('#3bffee')" style="background:#3bffee" title="Cyan"></span>
+        <span class="acc-swatch"        id="acc-ff9f3b" onclick="setAccent('#ff9f3b')" style="background:#ff9f3b" title="Amber"></span>
+        <span class="acc-swatch"        id="acc-b366ff" onclick="setAccent('#b366ff')" style="background:#b366ff" title="Purple"></span>
+        <span class="acc-swatch"        id="acc-ff3bff" onclick="setAccent('#ff3bff')" style="background:#ff3bff" title="Pink"></span>
+      </div>
+
+      <!-- Headline override -->
+      <div class="card-edit-row">
+        <span class="lbl">HEADLINE</span>
+        <input class="ov-input" id="ov-headline" type="text" placeholder="(empty = use article title)" oninput="updateOverride()"/>
+      </div>
+
+      <!-- Summary override -->
+      <div class="card-edit-row">
+        <span class="lbl">SUMMARY</span>
+        <input class="ov-input" id="ov-summary" type="text" placeholder="(empty = use article snippet)" oninput="updateOverride()"/>
+      </div>
+
+      <!-- Emoji picker -->
+      <div class="card-edit-row">
+        <span class="lbl">EMOJI</span>
+        <div class="emoji-pick">
+          <button class="emoji-btn" onclick="insertEmoji('📈')">📈</button>
+          <button class="emoji-btn" onclick="insertEmoji('📊')">📊</button>
+          <button class="emoji-btn" onclick="insertEmoji('💼')">💼</button>
+          <button class="emoji-btn" onclick="insertEmoji('🏦')">🏦</button>
+          <button class="emoji-btn" onclick="insertEmoji('💰')">💰</button>
+          <button class="emoji-btn" onclick="insertEmoji('📉')">📉</button>
+          <button class="emoji-btn" onclick="insertEmoji('⚡')">⚡</button>
+          <button class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button>
+          <button class="emoji-btn" onclick="insertEmoji('🚀')">🚀</button>
+          <button class="emoji-btn" onclick="insertEmoji('⚠️')">⚠️</button>
+          <button class="emoji-btn" onclick="insertEmoji('✅')">✅</button>
+          <button class="emoji-btn" onclick="insertEmoji('💯')">💯</button>
+          <button class="emoji-btn" onclick="insertEmoji('🎯')">🎯</button>
+          <button class="emoji-btn" onclick="insertEmoji('🇮🇳')">🇮🇳</button>
+        </div>
+      </div>
+
+      <!-- Section toggles -->
+      <div class="card-edit-row">
+        <span class="lbl">SECTIONS</span>
+        <label class="sec-toggle"><input type="checkbox" id="sec-market"      checked onchange="updateSections()"/>Market strip</label>
+        <label class="sec-toggle"><input type="checkbox" id="sec-highlights"  checked onchange="updateSections()"/>Key highlights</label>
+        <label class="sec-toggle"><input type="checkbox" id="sec-hot"         checked onchange="updateSections()"/>Hot/Trending badge</label>
+        <label class="sec-toggle"><input type="checkbox" id="sec-source"      checked onchange="updateSections()"/>Source attribution</label>
+      </div>
     </div>
+
     <div class="card-preview-wrap">
       <div id="card-preview-inner"></div>
     </div>
@@ -948,9 +1040,13 @@ var _ipos = [];
 var _articles = {};
 var _cardArticle = null;
 var _cardFmt = "1x1";
-var _cardFontMult = 1.0;         // 0.85 / 0.92 / 1.00 / 1.08 / 1.15 — admin-tunable in modal
-var _marketLive = null;          // { quotes: { SYM: {price,change,changePercent} }, fetchedAt }
-var _marketLiveTtl = 60_000;     // refetch after 60s
+var _cardTemplate = "classic";       // 'classic' | 'editorial' | 'breaking'
+var _cardFontMult = 1.0;             // 0.7..1.5 (slider)
+var _cardAccent = "#00ff88";         // accent color for Classic template
+var _cardOverrides = { headline: "", summary: "" };
+var _cardSections = { market: true, highlights: true, hot: true, source: true };
+var _marketLive = null;
+var _marketLiveTtl = 60_000;
 var _searchTimer = null;
 var _newsPage = 1, _newsPages = 0, _newsTotal = 0;
 var _coinPage = 1, _coinPages = 0, _coinTotal = 0;
@@ -1930,16 +2026,28 @@ function genCard(id, fmt) {
   if (!a) { toast("Article not found", "err"); return; }
   _cardArticle = a;
   _cardFmt = fmt;
-  _cardFontMult = 1.0;  // reset to default when opening a new article
+  // Reset editor state on every modal open
+  _cardTemplate = "classic";
+  _cardFontMult = 1.0;
+  _cardAccent = "#00ff88";
+  _cardOverrides = { headline: "", summary: "" };
+  _cardSections = { market: true, highlights: true, hot: true, source: true };
+
   document.getElementById("card-article-title").textContent = a.title || "";
   ["1x1","4x5","9x16"].forEach(function(f) {
     document.getElementById("fmt-"+f).className = "fmt-btn"+(f===fmt?" active":"");
   });
-  ["fnt-085","fnt-092","fnt-100","fnt-108","fnt-115"].forEach(function(id){
-    var el = document.getElementById(id); if (el) el.classList.remove("active");
+  // Reset all editor controls to default UI state
+  setTemplate("classic");
+  setAccent("#00ff88");
+  var slider = document.getElementById("fnt-slider");      if (slider) slider.value = 1.0;
+  var sval   = document.getElementById("fnt-val");         if (sval)   sval.textContent = "1.00×";
+  var ovH    = document.getElementById("ov-headline");     if (ovH)    ovH.value = "";
+  var ovS    = document.getElementById("ov-summary");      if (ovS)    ovS.value = "";
+  ["sec-market","sec-highlights","sec-hot","sec-source"].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.checked = true;
   });
-  var defaultBtn = document.getElementById("fnt-100");
-  if (defaultBtn) defaultBtn.classList.add("active");
+
   document.getElementById("card-overlay").classList.add("open");
   // Render an immediate preview, then re-render once live data arrives.
   renderCardPreview(a, fmt);
@@ -1958,41 +2066,125 @@ function closeCardModal() {
   _cardArticle = null;
 }
 
-// ─── Font-size adjustment ─────────────────────────────────────────────────────
-// Scales every "font-size:Npx" value in the card HTML by _cardFontMult.
-// Leaves layout/padding/border-radius untouched so the card dimensions stay
-// exactly 1080×1080 (or 4:5 / 9:16) — only typography scales.
-var _FONT_BUTTON_IDS = { "0.85": "fnt-085", "0.92": "fnt-092", "1": "fnt-100", "1.08": "fnt-108", "1.15": "fnt-115" };
+// ─── Editor state handlers ────────────────────────────────────────────────────
+
+// Slider — debounce re-render at 60ms for smooth dragging.
+var _fontDebounce = null;
 function setFontMult(mult) {
-  _cardFontMult = mult;
-  // Update active button highlight
-  ["fnt-085","fnt-092","fnt-100","fnt-108","fnt-115"].forEach(function(id){
-    var el = document.getElementById(id); if (el) el.classList.remove("active");
+  _cardFontMult = parseFloat(mult);
+  var valEl = document.getElementById("fnt-val");
+  if (valEl) valEl.textContent = _cardFontMult.toFixed(2) + "×";
+  if (_fontDebounce) clearTimeout(_fontDebounce);
+  _fontDebounce = setTimeout(function() {
+    if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
+  }, 60);
+}
+
+// Template selector
+function setTemplate(name) {
+  _cardTemplate = name;
+  ["classic", "editorial", "breaking"].forEach(function(t) {
+    var el = document.getElementById("tpl-" + t);
+    if (el) el.classList.toggle("active", t === name);
   });
-  var key = String(mult);
-  var btnId = _FONT_BUTTON_IDS[key] || _FONT_BUTTON_IDS[parseFloat(key).toString()];
-  var btn = btnId && document.getElementById(btnId);
-  if (btn) btn.classList.add("active");
-  // Re-render preview if a card is open
+  // Hide accent row for templates that don't use it
+  var accentRow = document.getElementById("row-accent");
+  if (accentRow) accentRow.style.display = (name === "classic") ? "" : "none";
   if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
 }
+
+// Accent color
+function setAccent(color) {
+  _cardAccent = color;
+  ["#00ff88","#3bffee","#ff9f3b","#b366ff","#ff3bff"].forEach(function(c) {
+    var el = document.getElementById("acc-" + c.replace("#",""));
+    if (el) el.classList.toggle("active", c === color);
+  });
+  if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
+}
+
+// Headline/summary overrides
+function updateOverride() {
+  var h = document.getElementById("ov-headline");
+  var s = document.getElementById("ov-summary");
+  _cardOverrides.headline = h ? h.value : "";
+  _cardOverrides.summary  = s ? s.value : "";
+  if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
+}
+
+// Section toggles
+function updateSections() {
+  _cardSections.market     = document.getElementById("sec-market").checked;
+  _cardSections.highlights = document.getElementById("sec-highlights").checked;
+  _cardSections.hot        = document.getElementById("sec-hot").checked;
+  _cardSections.source     = document.getElementById("sec-source").checked;
+  if (_cardArticle) renderCardPreview(_cardArticle, _cardFmt);
+}
+
+// Emoji insert — appends to headline override (creates one if empty)
+function insertEmoji(emoji) {
+  var h = document.getElementById("ov-headline");
+  if (!h) return;
+  if (!h.value) {
+    // Pre-fill with current article title so admin sees the base before adding emoji
+    h.value = (_cardArticle && (_cardArticle.title || "")) + " " + emoji;
+  } else {
+    h.value = h.value + " " + emoji;
+  }
+  updateOverride();
+}
+
+// Apply font multiplier to rendered HTML (regex over inline font-size:Npx).
 function applyFontMult(html, mult) {
   if (!mult || mult === 1) return html;
   return html.replace(/font-size:\s*(\d+(?:\.\d+)?)px/g, function(_m, n) {
     return "font-size:" + (parseFloat(n) * mult).toFixed(2) + "px";
   });
 }
+
+// Render preview using current template + overrides + sections + accent
 function renderCardPreview(a, fmt) {
-  document.getElementById("card-preview-inner").innerHTML = applyFontMult(buildCard(a, fmt), _cardFontMult);
+  document.getElementById("card-preview-inner").innerHTML =
+    applyFontMult(buildCard(a, fmt), _cardFontMult);
 }
 
+// ─── Dispatcher — picks the template based on _cardTemplate state ────────────
 function buildCard(a, fmt) {
+  var opts = {
+    headline: (_cardOverrides && _cardOverrides.headline) || "",
+    summary:  (_cardOverrides && _cardOverrides.summary)  || "",
+    sections: _cardSections || { market:true, highlights:true, hot:true, source:true },
+    accent:   _cardAccent || "#00ff88",
+  };
+  var html;
+  if (_cardTemplate === "editorial")     html = buildEditorialCard(a, fmt, opts);
+  else if (_cardTemplate === "breaking") html = buildBreakingCard(a, fmt, opts);
+  else                                   html = buildClassicCard(a, fmt, opts);
+  // For Classic only, apply accent color recolor (post-process every #00ff88 + 0,255,136 rgba ref)
+  if (_cardTemplate === "classic" && opts.accent && opts.accent !== "#00ff88") {
+    html = html.replace(/#00ff88/g, opts.accent);
+    html = html.replace(/0,255,136/g, hexToRgb(opts.accent));
+  }
+  return html;
+}
+
+function hexToRgb(hex) {
+  var m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return "0,255,136";
+  var v = parseInt(m[1], 16);
+  return ((v>>16)&255) + "," + ((v>>8)&255) + "," + (v&255);
+}
+
+// ─── Classic Terminal — current design ────────────────────────────────────────
+function buildClassicCard(a, fmt, opts) {
+  opts = opts || {};
+  var sections = opts.sections || { market:true, highlights:true, hot:true, source:true };
   var W  = 360;
   var AR = fmt==="1x1" ? 1 : fmt==="4x5" ? 1.25 : 1.778;
   var H  = Math.round(W * AR);
 
-  var title   = (a.title || "").toUpperCase();
-  var snippet = a.content_snippet || a.contentSnippet || "";
+  var title   = ((opts.headline || a.title) || "").toUpperCase();
+  var snippet = opts.summary || a.content_snippet || a.contentSnippet || "";
   var cat     = a.category || "indian";
   var cc      = CAT_COLORS[cat] || "#00ff88";
   var ce      = CAT_EMOJI[cat]  || "📊";
@@ -2018,12 +2210,15 @@ function buildCard(a, fmt) {
   } catch(ex) {}
 
   var catBadge = '<span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;display:inline-flex;align-items:center;gap:2px;background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.25);color:#00ff88">'+ce+' '+cl+'</span>';
-  var hotBadge = (cat==='ipo') ?
-    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,70,102,.1);border:1px solid rgba(255,70,102,.25);color:#ff4466">🔥 TRENDING</span>' :
-    (cat==='companies') ?
-    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,204,68,.1);border:1px solid rgba(255,204,68,.25);color:#ffcc44">📋 Q4 RESULTS</span>' :
-    (cat==='economy'||cat==='rbi'||cat==='sebi') ?
-    ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.25);color:#3b9eff">📢 POLICY</span>' : '';
+  var hotBadge = '';
+  if (sections.hot !== false) {
+    hotBadge = (cat==='ipo') ?
+      ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,70,102,.1);border:1px solid rgba(255,70,102,.25);color:#ff4466">🔥 TRENDING</span>' :
+      (cat==='companies') ?
+      ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(255,204,68,.1);border:1px solid rgba(255,204,68,.25);color:#ffcc44">📋 Q4 RESULTS</span>' :
+      (cat==='economy'||cat==='rbi'||cat==='sebi') ?
+      ' <span style="font-size:5px;padding:2px 7px;border-radius:2px;letter-spacing:.8px;background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.25);color:#3b9eff">📢 POLICY</span>' : '';
+  }
 
   var bHtml = bullets.map(function(b,i) {
     return '<div style="display:flex;gap:5px;margin-bottom:5px;align-items:flex-start">'+
@@ -2031,6 +2226,20 @@ function buildCard(a, fmt) {
       '<span style="font-size:6.5px;color:#8899aa;line-height:1.5">'+bIcons[i]+' '+esc(b)+'</span>'+
     '</div>';
   }).join('');
+
+  // Build the full Highlights box (or empty string if section toggled off)
+  function highlightsBox(padding, label, flexFill) {
+    if (sections.highlights === false) return '';
+    var fillStyle = flexFill ? ';flex:1' : ';flex-shrink:0';
+    return '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:'+padding+fillStyle+'">'+
+      '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:'+label+'">💡 KEY HIGHLIGHTS</div>'+
+      bHtml +
+    '</div>';
+  }
+  // Source attribution (above watermark) when section toggle is on
+  var sourceLine = (sections.source !== false && a.source)
+    ? '<div style="font-size:5px;color:#5580aa;text-align:center;padding:2px 0;font-style:italic;letter-spacing:.06em">— Source: '+esc(a.source)+'</div>'
+    : '';
 
   // Market strip — live values from /api/market-data, category-aware row 2
   var quotes = (_marketLive && _marketLive.quotes) || {};
@@ -2114,6 +2323,9 @@ function buildCard(a, fmt) {
   var mm = ('0'+nowIst.getUTCMinutes()).slice(-2);
   var quoteStamp = '<div style="font-size:4.5px;color:#334466;letter-spacing:.6px;text-align:right;margin-bottom:2px">⏱ AS OF '+hh+':'+mm+' IST · 15-MIN DELAYED</div>';
 
+  // Apply market section toggle — collapses to empty if disabled
+  if (sections.market === false) { mktRow1 = ''; mktRow2 = ''; quoteStamp = ''; }
+
   // IPO snapshot
   var ipoExtra = (cat==='ipo') ?
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:4px">'+
@@ -2165,13 +2377,10 @@ function buildCard(a, fmt) {
         '<div style="width:24px;height:2px;background:rgba(0,255,136,.4);margin:6px 0 0;border-radius:1px"></div>'+
       '</div>'+
       '<div style="padding:0 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
-        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:7px;flex:1">'+
-          '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:3px">💡 KEY HIGHLIGHTS</div>'+
-          bHtml+
-        '</div>'+
+        highlightsBox('7px', '6px', true)+
         '<div style="flex-shrink:0">'+quoteStamp+mktRow1+'</div>'+
       '</div>'+
-      wm+footer+
+      sourceLine+wm+footer+
     '</div>';
   }
 
@@ -2188,13 +2397,10 @@ function buildCard(a, fmt) {
       '</div>'+
       '<div style="padding:5px 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
         ipoExtra+
-        '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex:1">'+
-          '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
-          bHtml+
-        '</div>'+
+        highlightsBox('8px', '7px', true)+
         '<div style="flex-shrink:0">'+quoteStamp+mktRow1+mktRow2+'</div>'+
       '</div>'+
-      wm+footer+
+      sourceLine+wm+footer+
     '</div>';
   }
 
@@ -2268,14 +2474,257 @@ function buildCard(a, fmt) {
     '</div>'+
     '<div style="padding:5px 10px;flex:1;display:flex;flex-direction:column;gap:4px;min-height:0">'+
       ipoExtra+
-      '<div style="background:#0d0d1e;border:1px solid #1a1a2e;border-radius:4px;padding:8px;flex-shrink:0">'+
-        '<div style="font-size:5.5px;color:#334466;letter-spacing:1px;margin-bottom:7px">💡 KEY HIGHLIGHTS</div>'+
-        bHtml+
-      '</div>'+
-      contextBox+
+      highlightsBox('8px', '7px', false)+
+      (sections.market === false ? '' : contextBox)+
       '<div style="flex-shrink:0">'+quoteStamp+mktRow1+mktRow2+'</div>'+
     '</div>'+
-    wm+footer+
+    sourceLine+wm+footer+
+  '</div>';
+}
+
+// ─── Editorial Broadsheet template ────────────────────────────────────────────
+// Cream BG, black ink, gold accent, DM Serif Display headline. Premium feel.
+function buildEditorialCard(a, fmt, opts) {
+  opts = opts || {};
+  var sections = opts.sections || { market:true, highlights:true, hot:true, source:true };
+  var W  = 360;
+  var AR = fmt==="1x1" ? 1 : fmt==="4x5" ? 1.25 : 1.778;
+  var H  = Math.round(W * AR);
+
+  var rawTitle = (opts.headline || a.title) || "";
+  var title    = rawTitle;  // editorial uses Title Case, not all-caps
+  var snippet  = opts.summary || a.content_snippet || a.contentSnippet || "";
+  var cat      = a.category || "indian";
+  var cl       = (CAT_LABEL[cat] || cat).toUpperCase();
+  var maxC     = fmt === "1x1" ? 90 : 130;
+  var sTitle   = title.length > maxC ? title.slice(0, maxC)+"…" : title;
+  var summary  = snippet.length > 220 ? snippet.slice(0,217)+"…" : snippet;
+
+  // Bullets from sentences (same logic as classic)
+  var rawSents = snippet.replace(/([.!?])\s+/g,'$1|').split('|')
+    .map(function(s){return s.trim().replace(/[.!?]+$/,'');})
+    .filter(function(s){return s.length > 20 && s.length < 140;});
+  var bullets = rawSents.slice(0, 3);
+  if (!bullets.length && snippet) bullets = [snippet.slice(0,120)];
+
+  var dateStr = "—";
+  try {
+    var dd = new Date(a.pub_date || a.pubDate || Date.now());
+    var MM = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+    dateStr = dd.getDate()+" "+MM[dd.getMonth()]+" "+dd.getFullYear();
+  } catch(ex) {}
+
+  // Live market data — minimal one-line strip for editorial
+  var quotes = (_marketLive && _marketLive.quotes) || {};
+  function liveOne(label, sym, prefix) {
+    var q = (quotes && quotes[sym]) || null;
+    if (!q) return label+' —';
+    var pct = q.changePercent;
+    var arrow = pct >= 0 ? '▲' : '▼';
+    var price = (prefix||'')+Number(q.price).toLocaleString('en-IN', {maximumFractionDigits: q.price>=1000?0:2});
+    return label+'  '+price+'  '+arrow+Math.abs(pct).toFixed(2);
+  }
+  var marketLine = sections.market !== false
+    ? '<div style="border-top:1px solid #d4cfb8;border-bottom:1px solid #d4cfb8;padding:7px 0;margin:10px 0 8px;display:flex;justify-content:space-around;font-family:DM Mono,monospace;font-size:7.5px;color:#1a1a1a;letter-spacing:.04em">'+
+        '<span>'+liveOne('NIFTY', '^NSEI', '')+'</span>'+
+        '<span style="color:#d4cfb8">|</span>'+
+        '<span>'+liveOne('SENSEX', '^BSESN', '')+'</span>'+
+        '<span style="color:#d4cfb8">|</span>'+
+        '<span>'+liveOne('USDINR', 'USDINR=X', '₹')+'</span>'+
+      '</div>'
+    : '';
+
+  var nowIst = new Date(Date.now() + 5.5*60*60*1000);
+  var hh = ('0'+nowIst.getUTCHours()).slice(-2);
+  var mm = ('0'+nowIst.getUTCMinutes()).slice(-2);
+
+  // Bullets formatted as editorial paragraphs (no emoji icons)
+  var bullPara = sections.highlights !== false && bullets.length
+    ? bullets.map(function(b) {
+        return '<p style="font-family:DM Sans,serif;font-size:9px;color:#2a2a2a;line-height:1.7;margin:0 0 7px;text-align:justify">'+esc(b)+'.</p>';
+      }).join('')
+    : '';
+
+  var hotEyebrow = '';
+  if (sections.hot !== false) {
+    if (cat === 'ipo') hotEyebrow = ' · TRENDING';
+    else if (cat === 'companies') hotEyebrow = ' · Q4 RESULTS';
+    else if (cat === 'economy' || cat === 'rbi' || cat === 'sebi') hotEyebrow = ' · POLICY';
+  }
+
+  // Headline font sizes per format
+  var headFont = fmt === "1x1" ? 19 : fmt === "4x5" ? 21 : 23;
+
+  // Wordmark
+  var wordmark = '<div style="font-family:DM Serif Display,serif;font-size:14px;color:#1a1a1a;letter-spacing:.5px;text-align:center;font-weight:400">Market Samachar</div>'+
+    '<div style="border-top:1px solid #1a1a1a;width:60px;margin:6px auto 0"></div>';
+
+  // Date + section eyebrow
+  var meta = '<div style="font-family:DM Mono,monospace;font-size:7px;color:#807a64;letter-spacing:1.5px;text-align:center;margin-top:8px">'+
+    esc(dateStr).toUpperCase()+' · MUMBAI'+
+    '</div>'+
+    '<div style="font-family:DM Mono,monospace;font-size:7.5px;color:#a08c4a;letter-spacing:2px;text-align:center;margin-top:6px;font-weight:600">'+
+    esc(cl)+esc(hotEyebrow)+
+    '</div>';
+
+  // Headline
+  var headline = '<div style="font-family:DM Serif Display,serif;font-size:'+headFont+'px;color:#1a1a1a;line-height:1.18;text-align:center;margin:10px 8px 6px;font-weight:400">'+
+    esc(sTitle)+
+    '</div>';
+
+  // Gold rule under headline
+  var goldRule = '<div style="height:1px;background:#a08c4a;width:40px;margin:8px auto 10px"></div>';
+
+  // Summary lead-in
+  var lead = summary
+    ? '<p style="font-family:DM Sans,sans-serif;font-size:10px;color:#1a1a1a;line-height:1.5;margin:0 14px 8px;text-align:justify;font-style:italic">'+esc(summary)+'</p>'
+    : '';
+
+  // Source byline
+  var source = sections.source !== false && a.source
+    ? '<div style="font-family:DM Mono,monospace;font-size:7px;color:#807a64;text-align:center;letter-spacing:1px;margin-top:6px;font-style:italic">— Source: '+esc(a.source)+' —</div>'
+    : '';
+
+  // Footer (mandatory SEBI)
+  var footer = '<div style="padding:7px 12px;border-top:1px solid #d4cfb8;background:#f5f0d8">'+
+    '<div style="font-family:DM Mono,monospace;font-size:5.5px;color:#a08c4a;letter-spacing:1.5px;text-align:center;font-weight:600">'+
+      'NOT INVESTMENT ADVICE · FOR INFO ONLY'+
+    '</div>'+
+    '<div style="font-family:DM Sans,serif;font-size:5px;color:#807a64;text-align:center;line-height:1.4;margin-top:2px">'+
+      '⚠ Investment in securities markets are subject to market risks. Read all related documents carefully.'+
+    '</div>'+
+    '<div style="font-family:DM Mono,monospace;font-size:5.5px;color:#a08c4a;text-align:center;letter-spacing:1.5px;margin-top:3px">'+
+      '◈  marketsamachar.in  ·  '+hh+':'+mm+' IST'+
+    '</div>'+
+  '</div>';
+
+  return '<div style="width:'+W+'px;height:'+H+'px;background:#fafaf5;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Sans,sans-serif">'+
+    '<div style="padding:14px 14px 0;flex-shrink:0">'+
+      wordmark+meta+headline+goldRule+lead+
+    '</div>'+
+    '<div style="padding:0 14px;flex:1;overflow:hidden">'+
+      bullPara+marketLine+source+
+    '</div>'+
+    footer+
+  '</div>';
+}
+
+// ─── Breaking News template ────────────────────────────────────────────────────
+// Red ticker bar at top, red glow on headline, market reaction grid, urgency feel.
+function buildBreakingCard(a, fmt, opts) {
+  opts = opts || {};
+  var sections = opts.sections || { market:true, highlights:true, hot:true, source:true };
+  var W  = 360;
+  var AR = fmt==="1x1" ? 1 : fmt==="4x5" ? 1.25 : 1.778;
+  var H  = Math.round(W * AR);
+
+  var title   = ((opts.headline || a.title) || "").toUpperCase();
+  var snippet = opts.summary || a.content_snippet || a.contentSnippet || "";
+  var cat     = a.category || "indian";
+  var ce      = CAT_EMOJI[cat]  || "🚨";
+  var cl      = CAT_LABEL[cat]  || cat.toUpperCase();
+  var maxC    = fmt === "1x1" ? 90 : 130;
+  var sTitle  = title.length > maxC ? title.slice(0, maxC)+"…" : title;
+  var summary = snippet.length > 180 ? snippet.slice(0,177)+"…" : snippet;
+
+  // Bullets from sentences
+  var rawSents = snippet.replace(/([.!?])\s+/g,'$1|').split('|')
+    .map(function(s){return s.trim().replace(/[.!?]+$/,'');})
+    .filter(function(s){return s.length > 20 && s.length < 110;});
+  var bullets = rawSents.slice(0, 3);
+
+  // Date
+  var nowIst = new Date(Date.now() + 5.5*60*60*1000);
+  var hh = ('0'+nowIst.getUTCHours()).slice(-2);
+  var mm = ('0'+nowIst.getUTCMinutes()).slice(-2);
+  var dateStr = "";
+  try {
+    var dd = new Date(a.pub_date || a.pubDate || Date.now());
+    var MM = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+    dateStr = ("0"+dd.getDate()).slice(-2)+" "+MM[dd.getMonth()]+" "+dd.getFullYear();
+  } catch(ex) {}
+
+  // Ticker bar at top — pulsing red
+  var ticker = '<div style="background:linear-gradient(90deg, #ff4466 0%, #cc0033 50%, #ff4466 100%);padding:5px 12px;display:flex;align-items:center;gap:6px;flex-shrink:0">'+
+    '<span style="width:8px;height:8px;background:#fff;border-radius:50%;box-shadow:0 0 6px #fff"></span>'+
+    '<span style="font-family:DM Mono,monospace;font-size:9px;color:#fff;letter-spacing:3px;font-weight:700">━━━ BREAKING ━━━</span>'+
+    '<span style="margin-left:auto;font-family:DM Mono,monospace;font-size:8px;color:#fff;letter-spacing:1px">LIVE · '+hh+':'+mm+' IST</span>'+
+  '</div>';
+
+  // Category + section label
+  var catBar = '<div style="padding:9px 14px 4px;display:flex;align-items:center;gap:6px;flex-shrink:0">'+
+    '<span style="font-size:18px">🚨</span>'+
+    '<span style="font-family:DM Mono,monospace;font-size:8px;color:#ff4466;letter-spacing:2px;font-weight:700">'+esc(cl)+'</span>'+
+    (dateStr ? '<span style="margin-left:auto;font-family:DM Mono,monospace;font-size:7px;color:#666">'+esc(dateStr)+'</span>' : '')+
+  '</div>';
+
+  // Headline with red glow
+  var headFont = fmt === "1x1" ? 16 : fmt === "4x5" ? 18 : 19;
+  var headline = '<div style="padding:0 14px 8px;flex-shrink:0">'+
+    '<div style="font-family:DM Sans,sans-serif;font-size:'+headFont+'px;color:#ff4466;line-height:1.2;font-weight:700;letter-spacing:.4px;text-shadow:0 0 8px rgba(255,68,102,.4)">'+
+      esc(sTitle)+
+    '</div>'+
+  '</div>';
+
+  // Bullet rail with red diamonds
+  var bullList = sections.highlights !== false && bullets.length
+    ? '<div style="padding:0 14px 8px;flex-shrink:0">'+
+        bullets.map(function(b) {
+          return '<div style="display:flex;gap:7px;margin-bottom:5px;align-items:flex-start">'+
+            '<span style="color:#ff4466;font-size:8px;flex-shrink:0;line-height:1.5">✦</span>'+
+            '<span style="font-family:DM Sans,sans-serif;font-size:9px;color:#ddd;line-height:1.5">'+esc(b)+'</span>'+
+          '</div>';
+        }).join('')+
+      '</div>'
+    : '';
+
+  // Market Reaction grid — live, real
+  var quotes = (_marketLive && _marketLive.quotes) || {};
+  function rxCell(label, sym, prefix, isPercent) {
+    var q = (quotes && quotes[sym]) || null;
+    if (!q) return '<div style="background:rgba(255,68,102,.05);border:1px solid #1a1a1a;border-radius:3px;padding:6px 8px"><div style="font-family:DM Mono,monospace;font-size:6px;color:#666;letter-spacing:1px">'+label+'</div><div style="font-family:DM Mono,monospace;font-size:11px;color:#666;margin-top:3px">—</div></div>';
+    var pct = q.changePercent;
+    var color = pct >= 0 ? '#00ff88' : '#ff4466';
+    var arrow = pct >= 0 ? '▲' : '▼';
+    var price = (prefix||'')+Number(q.price).toLocaleString('en-IN', {maximumFractionDigits: q.price>=1000?0:2});
+    return '<div style="background:rgba(255,68,102,.06);border:1px solid #2a1a1a;border-radius:3px;padding:6px 8px">'+
+      '<div style="font-family:DM Mono,monospace;font-size:6px;color:#888;letter-spacing:1px">'+label+'</div>'+
+      '<div style="font-family:DM Mono,monospace;font-size:11px;color:#fff;margin-top:3px;font-weight:700">'+price+'</div>'+
+      '<div style="font-family:DM Mono,monospace;font-size:7px;color:'+color+';margin-top:1px">'+arrow+' '+Math.abs(pct).toFixed(2)+'%</div>'+
+    '</div>';
+  }
+  var reactionGrid = '';
+  if (sections.market !== false) {
+    reactionGrid = '<div style="padding:0 14px 8px;flex-shrink:0">'+
+      '<div style="font-family:DM Mono,monospace;font-size:7px;color:#ff4466;letter-spacing:2px;margin-bottom:5px;font-weight:700">📊 MARKET REACTION</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">'+
+        rxCell('🏦 BANK NIFTY', '^NSEBANK', '', false)+
+        rxCell('💱 ₹/USD',       'USDINR=X', '', false)+
+        rxCell('📈 NIFTY 50',    '^NSEI', '', false)+
+      '</div>'+
+    '</div>';
+  }
+
+  // Source line
+  var source = sections.source !== false && a.source
+    ? '<div style="padding:0 14px 4px;font-family:DM Mono,monospace;font-size:6.5px;color:#888;letter-spacing:.5px;font-style:italic">— Source: '+esc(a.source)+'</div>'
+    : '';
+
+  // Footer (mandatory SEBI)
+  var footer = '<div style="background:#0a0606;border-top:1px solid #2a1a1a;padding:6px 12px;flex-shrink:0">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'+
+      '<span style="font-family:DM Mono,monospace;font-size:5.5px;background:rgba(255,68,102,.1);border:1px solid rgba(255,68,102,.3);color:#ff4466;border-radius:2px;padding:2px 6px;letter-spacing:1px;font-weight:700">⚠ NOT INVESTMENT ADVICE</span>'+
+      '<span style="font-family:DM Mono,monospace;font-size:7px;color:#ff4466;letter-spacing:1px;font-weight:700">marketsamachar.in</span>'+
+    '</div>'+
+    '<div style="font-family:DM Sans,sans-serif;font-size:4.5px;color:#555;line-height:1.4;margin-top:3px">⚠ Investment in securities markets are subject to market risks. Read all related documents carefully before investing.</div>'+
+  '</div>';
+
+  return '<div style="width:'+W+'px;height:'+H+'px;background:#0a0606;border-radius:6px;display:flex;flex-direction:column;overflow:hidden;font-family:DM Mono,monospace">'+
+    ticker+catBar+headline+
+    '<div style="flex:1;display:flex;flex-direction:column;min-height:0">'+
+      bullList+reactionGrid+source+
+    '</div>'+
+    footer+
   '</div>';
 }
 
