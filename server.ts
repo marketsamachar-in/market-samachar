@@ -69,8 +69,11 @@ import readingRewardsRouter from "./backend/src/routes/readingRewards.ts";
 import authSyncRouter       from "./backend/src/routes/authSync.ts";
 import pulseRouter          from "./backend/src/routes/pulse.ts";
 import chartguessrRouter    from "./backend/src/routes/chartguessr.ts";
+import comboCardRouter      from "./backend/src/routes/comboCard.ts";
+import t20Router            from "./backend/src/routes/t20.ts";
 import referralsRouter      from "./backend/src/routes/referrals.ts";
 import { resolvePulseSwipes } from "./backend/src/services/pulseResolver.ts";
+import { settleCard as settleComboCard } from "./backend/src/services/comboCardService.ts";
 import { startStockPriceCron } from "./backend/src/services/stockPriceService.ts";
 import { createDailyPredictions, resolvePredictions } from "./backend/src/services/predictionService.ts";
 import { addCoins, ensureUser as ensureSqliteUser } from "./backend/src/services/coinService.ts";
@@ -309,16 +312,35 @@ interface MarketQuote {
   low: number | null;
 }
 
-const MARKET_SYMBOLS = ['^NSEI', '^BSESN', '^NSEBANK', 'GC=F', 'CL=F', 'USDINR=X', '^CNXIT'];
+const MARKET_SYMBOLS = [
+  '^NSEI', '^BSESN', '^NSEBANK', 'GC=F', 'CL=F', 'USDINR=X', '^CNXIT',
+  '^DJI', '^GSPC', '^IXIC', '^INDIAVIX', 'BTC-USD', 'ETH-USD', 'SI=F', 'NG=F',
+  // Sectoral indices used by Combo Card "winning sector" question.
+  // ^NSEBANK and ^CNXIT already cover BANK and IT.
+  '^CNXAUTO', '^CNXFMCG', '^CNXPHARMA', '^CNXENERGY', '^CNXREALTY',
+];
 
 const SYMBOL_NAMES: Record<string, string> = {
-  '^NSEI':    'NIFTY 50',
-  '^BSESN':   'SENSEX',
-  '^NSEBANK': 'BANK NIFTY',
-  'GC=F':     'GOLD',
-  'CL=F':     'CRUDE OIL',
-  'USDINR=X': 'USD/INR',
-  '^CNXIT':   'NIFTY IT',
+  '^NSEI':       'NIFTY 50',
+  '^BSESN':      'SENSEX',
+  '^NSEBANK':    'NIFTY BANK',
+  'GC=F':        'GOLD',
+  'CL=F':        'CRUDE OIL',
+  'USDINR=X':    'USD/INR',
+  '^CNXIT':      'NIFTY IT',
+  '^DJI':        'DOW JONES',
+  '^GSPC':       'S&P 500',
+  '^IXIC':       'NASDAQ',
+  '^INDIAVIX':   'INDIA VIX',
+  'BTC-USD':     'BITCOIN',
+  'ETH-USD':     'ETHEREUM',
+  'SI=F':        'SILVER',
+  'NG=F':        'NATURAL GAS',
+  '^CNXAUTO':    'NIFTY AUTO',
+  '^CNXFMCG':    'NIFTY FMCG',
+  '^CNXPHARMA':  'NIFTY PHARMA',
+  '^CNXENERGY':  'NIFTY ENERGY',
+  '^CNXREALTY':  'NIFTY REALTY',
 };
 
 let marketCache: { data: MarketQuote[]; fetchedAt: number } | null = null;
@@ -1332,6 +1354,8 @@ async function startServer() {
   app.use("/api/auth", authSyncRouter);
   app.use("/api/pulse", pulseRouter);
   app.use("/api/chartguessr", chartguessrRouter);
+  app.use("/api/combo", comboCardRouter);
+  app.use("/api/t20", t20Router);
   app.use("/api/referrals", referralsRouter);
 
   // Stricter limiter for Gemini-powered routes (cost-bearing)
@@ -1896,12 +1920,149 @@ async function startServer() {
   // ── Admin API — samachar coins ledger ────────────────────────────────────────
 
   app.get('/api/admin/coins', requireAdmin, (req: Request, res: Response) => {
-    const limit  = Math.min(100, parseInt(req.query.limit as string) || 50);
-    const offset = parseInt(req.query.offset as string) || 0;
-    const total  = (rawDb.prepare('SELECT COUNT(*) as c FROM samachar_coins').get() as any).c;
-    const totalCoinsIssued = (rawDb.prepare('SELECT COALESCE(SUM(amount),0) as s FROM samachar_coins WHERE amount > 0').get() as any).s;
-    const ledger = rawDb.prepare('SELECT * FROM samachar_coins ORDER BY created_at DESC LIMIT ? OFFSET ?').all(limit, offset);
+    const limit      = Math.min(100, parseInt(req.query.limit as string) || 50);
+    const offset     = parseInt(req.query.offset as string) || 0;
+    const actionType = (req.query.action_type as string || '').trim();
+
+    let where = '';
+    let params: any[] = [];
+    if (actionType) {
+      where = 'WHERE action_type = ?';
+      params.push(actionType);
+    }
+
+    const total = (rawDb.prepare('SELECT COUNT(*) as c FROM samachar_coins ' + where).get(...params) as any).c;
+    const totalCoinsIssued = (rawDb.prepare(
+      'SELECT COALESCE(SUM(amount),0) as s FROM samachar_coins WHERE amount > 0 ' + (actionType ? 'AND action_type = ?' : '')
+    ).get(...(actionType ? [actionType] : [])) as any).s;
+    const ledger = rawDb.prepare(
+      'SELECT * FROM samachar_coins ' + where + ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
+    ).all(...params, limit, offset);
     res.json({ ledger, total, totalCoinsIssued });
+  });
+
+  // ── Admin API — Combo Card daily lottery overview ──────────────────────────
+  // Returns: today's card answers, submission stats, score histogram,
+  // last-30-days history, top 5/5 winners.
+  app.get('/api/admin/combo-card', requireAdmin, (_req: Request, res: Response) => {
+    try {
+      const today = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      const todayCard = rawDb.prepare('SELECT * FROM combo_cards WHERE card_date = ?').get(today) as any;
+      const todayPicks = rawDb.prepare(
+        'SELECT COUNT(*) as c, SUM(CASE WHEN settled_at IS NOT NULL THEN 1 ELSE 0 END) as settled FROM user_combo_picks WHERE card_date = ?'
+      ).get(today) as any;
+
+      const scoreHistogram = rawDb.prepare(
+        'SELECT score, COUNT(*) as c FROM user_combo_picks WHERE settled_at IS NOT NULL GROUP BY score ORDER BY score DESC'
+      ).all();
+
+      const historyDays = rawDb.prepare(`
+        SELECT c.card_date, c.answer_nifty, c.answer_banknifty, c.answer_usdinr,
+               c.answer_gold, c.answer_sector, c.settled_at,
+               COALESCE(p.submissions, 0) as submissions,
+               COALESCE(p.total_payout, 0) as total_payout,
+               COALESCE(p.fives, 0) as fives, COALESCE(p.fours, 0) as fours, COALESCE(p.threes, 0) as threes
+          FROM combo_cards c
+          LEFT JOIN (
+            SELECT card_date,
+                   COUNT(*) as submissions,
+                   SUM(coins_awarded) as total_payout,
+                   SUM(CASE WHEN score = 5 THEN 1 ELSE 0 END) as fives,
+                   SUM(CASE WHEN score = 4 THEN 1 ELSE 0 END) as fours,
+                   SUM(CASE WHEN score = 3 THEN 1 ELSE 0 END) as threes
+              FROM user_combo_picks
+             GROUP BY card_date
+          ) p ON p.card_date = c.card_date
+         ORDER BY c.card_date DESC
+         LIMIT 30
+      `).all();
+
+      const topJackpot = rawDb.prepare(`
+        SELECT p.user_id, u.name, u.email, p.card_date, p.coins_awarded, p.score
+          FROM user_combo_picks p
+          LEFT JOIN users u ON u.id = p.user_id
+         WHERE p.score = 5
+         ORDER BY p.settled_at DESC
+         LIMIT 20
+      `).all();
+
+      const totalSubmissions = (rawDb.prepare('SELECT COUNT(*) as c FROM user_combo_picks').get() as any).c;
+      const totalPayouts     = (rawDb.prepare('SELECT COALESCE(SUM(coins_awarded),0) as s FROM user_combo_picks').get() as any).s;
+
+      res.json({
+        today, todayCard, todayPicks,
+        scoreHistogram, historyDays, topJackpot,
+        totalSubmissions, totalPayouts,
+      });
+    } catch (e: any) {
+      console.error('[admin/combo-card] error:', e);
+      res.status(500).json({ error: e?.message || 'Server error' });
+    }
+  });
+
+  // ── Admin API — Dalal Street T20 overview ───────────────────────────────────
+  // Returns: today's match volume, top scorers, biggest knocks, payout totals.
+  app.get('/api/admin/t20', requireAdmin, (_req: Request, res: Response) => {
+    try {
+      const today = new Date(Date.now() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+      const stats = rawDb.prepare(`
+        SELECT
+          COUNT(*) as totalMatches,
+          SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed,
+          COUNT(DISTINCT user_id) as uniquePlayers,
+          COALESCE(SUM(coins_awarded), 0) as totalPayout,
+          COALESCE(AVG(CASE WHEN status = 'COMPLETED' THEN runs ELSE NULL END), 0) as avgRuns,
+          SUM(CASE WHEN bonus_kind = 'CENTURY' THEN 1 ELSE 0 END) as centuries,
+          SUM(CASE WHEN bonus_kind = 'DOUBLE_TON' THEN 1 ELSE 0 END) as doubleTons
+        FROM t20_matches
+      `).get();
+
+      const todayStats = rawDb.prepare(`
+        SELECT
+          COUNT(*) as matches,
+          COUNT(DISTINCT user_id) as players,
+          COALESCE(SUM(coins_awarded), 0) as payout,
+          COALESCE(MAX(runs), 0) as topScore
+        FROM t20_matches
+        WHERE match_date = ?
+      `).get(today);
+
+      const todayLeaderboard = rawDb.prepare(`
+        SELECT m.user_id, u.name, u.email, m.runs, m.wickets, m.balls_bowled, m.coins_awarded, m.bonus_kind
+          FROM t20_matches m
+          LEFT JOIN users u ON u.id = m.user_id
+         WHERE m.match_date = ? AND m.status = 'COMPLETED'
+         ORDER BY m.runs DESC, m.balls_bowled ASC
+         LIMIT 20
+      `).all(today);
+
+      const allTimeBest = rawDb.prepare(`
+        SELECT m.user_id, u.name, u.email, m.runs, m.wickets, m.balls_bowled, m.match_date, m.bonus_kind
+          FROM t20_matches m
+          LEFT JOIN users u ON u.id = m.user_id
+         WHERE m.status = 'COMPLETED'
+         ORDER BY m.runs DESC
+         LIMIT 20
+      `).all();
+
+      const recentBigKnocks = rawDb.prepare(`
+        SELECT m.user_id, u.name, m.runs, m.balls_bowled, m.match_date, m.bonus_kind, m.coins_awarded, m.ended_at
+          FROM t20_matches m
+          LEFT JOIN users u ON u.id = m.user_id
+         WHERE m.bonus_kind IS NOT NULL
+         ORDER BY m.ended_at DESC
+         LIMIT 20
+      `).all();
+
+      res.json({
+        today, stats, todayStats, todayLeaderboard, allTimeBest, recentBigKnocks,
+      });
+    } catch (e: any) {
+      console.error('[admin/t20] error:', e);
+      res.status(500).json({ error: e?.message || 'Server error' });
+    }
   });
 
   // ── End admin dashboard routes ───────────────────────────────────────────────
@@ -4081,6 +4242,17 @@ body{background:#07070e;color:#e8eaf0;font-family:'DM Sans',sans-serif;min-heigh
       await resolvePredictions();
     } catch (e) {
       console.error("[cron] resolvePredictions error:", e);
+    }
+  }, { timezone: "Asia/Kolkata" });
+
+  // 15:36 IST weekdays → settle Combo Card with actual market close data
+  cron.schedule("36 15 * * 1-5", async () => {
+    console.log("[cron] Settling Combo Card…");
+    try {
+      const result = await settleComboCard();
+      console.log("[cron] Combo Card settle result:", result);
+    } catch (e) {
+      console.error("[cron] settleComboCard error:", e);
     }
   }, { timezone: "Asia/Kolkata" });
 
