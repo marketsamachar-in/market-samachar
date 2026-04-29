@@ -107,3 +107,39 @@ export const CHARTGUESSR_DAILY_LIMIT    = 30;   // max plays/day before paywall
 export const CHARTGUESSR_STREAK_5_BONUS = 50;   // +50 at streak of 5
 export const CHARTGUESSR_STREAK_10_BONUS = 200; // +200 at streak of 10
 export const CHARTGUESSR_STREAK_20_BONUS = 1000;// +1000 at streak of 20
+
+// ─── COMBO CARD — Daily 5-question prediction lottery ────────────────────────
+// Submitted before 9:30 IST market open, settled at 15:35 IST close.
+// Payout is score-based — no participation reward (keeps the tension).
+//   3/5 → 1X   |   4/5 → 5X   |   5/5 → 50X (jackpot)
+// 0–2/5 → 0 coins.  Expected EV per random play ≈ 75 coins/day, capped by the
+// once-per-day rule.  Tune here if economy drifts.
+export const COMBO_CARD_3OF5_COINS = 1  * X;        //   100 coins
+export const COMBO_CARD_4OF5_COINS = 5  * X;        //   500 coins
+export const COMBO_CARD_5OF5_COINS = 50 * X;        // 5,000 coins jackpot
+export const COMBO_CARD_SUBMIT_CUTOFF_IST = { h: 9,  m: 30 };  // strict
+export const COMBO_CARD_SETTLE_IST        = { h: 15, m: 35 };
+
+// ─── DALAL STREET T20 — Cricket-themed chart-reading reaction game ───────────
+//   36 balls per match · 10 wickets max · 5 matches per IST day.
+//   Each ball: tap UP or DOWN within 1.8s of seeing the chart.
+//   Runs scored by reaction time (faster = more runs); wrong tap = wicket.
+//
+//   Average match score (good play): 80–150 runs ≈ 80–150 coins.
+//   Centuries (≥100 runs)      : +200 bonus.
+//   Double-tons (≥200 runs)    : +500 bonus (replaces century, not stacked).
+//   Daily cap on matches keeps coin-burn bounded at ~750 coins/day.
+export const T20_DAILY_MATCH_CAP   = 5;
+export const T20_BALLS_PER_MATCH   = 36;
+export const T20_WICKETS_MAX       = 10;
+export const T20_COINS_PER_RUN     = 1;
+export const T20_CENTURY_BONUS     = 200;     // runs ≥ 100
+export const T20_DOUBLE_TON_BONUS  = 500;     // runs ≥ 200 (replaces century)
+
+// Reaction-time scoring tiers (ms).  ≥ TIMEOUT or wrong direction = wicket.
+export const T20_BALL_TIMEOUT_MS   = 1800;
+export const T20_BALL_FAST_MS      = 600;     // <600 ms correct → 6 (six)
+export const T20_BALL_NORMAL_MS    = 1000;    // 600–999 ms     → 4 (boundary)
+export const T20_BALL_SLOW_MS      = 1500;    // 1000–1499 ms   → 2
+                                              // 1500–1799 ms   → 1
+                                              // ≥1800 ms       → wicket
