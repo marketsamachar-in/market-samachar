@@ -49,8 +49,10 @@ function calcMarketStatus() {
 
 /* ─── Coin earn options (inline data — no extra file dep) ───────────────────── */
 const EARN_OPTIONS = [
-  { icon: '⚡', label: 'Pulse — Bull/Bear Swiper', desc: '5/swipe · +20 bonus when right after 24h',  reward: '+520',  href: '/app',           color: '#ff9f3b' },
-  { icon: '📊', label: 'Chartguessr',              desc: '20/correct · streak bonus up to 1000',      reward: '+1000', href: '/app',           color: '#3b9eff' },
+  { icon: '🏏', label: 'Dalal Street T20',         desc: '1/run · century +200 · double-ton +500',    reward: '+2000', href: '/t20',           color: '#00ff88', isNew: true },
+  { icon: '🎯', label: 'Combo Card',               desc: 'Daily 5-Q lottery · 5/5 = 5,000 jackpot',   reward: '+5000', href: '/combo',         color: '#3b9eff', isNew: true },
+  { icon: '⚡', label: 'Pulse — Bull/Bear Swiper', desc: '5/swipe · +20 bonus when right after 24h',  reward: '+520',  href: '/pulse',         color: '#ff9f3b' },
+  { icon: '📊', label: 'Chartguessr',              desc: '20/correct · streak bonus up to 1000',      reward: '+1000', href: '/chartguessr',   color: '#3b9eff' },
   { icon: '📈', label: 'Trade Stocks',             desc: '50/trade · 500 bonus for 5%+ profit',       reward: '+550',  href: '/paper-trading', color: '#00ff88' },
   { icon: '📅', label: 'Daily Login Streak',       desc: '100 base + 50/day streak (max 500)',        reward: '+600',  href: '/rewards',       color: '#3bffee' },
   { icon: '👥', label: 'Refer a Friend',           desc: 'Both get 500 coins on signup',              reward: '+500',  href: '/rewards',       color: '#ffdd3b' },
@@ -90,6 +92,12 @@ const ACTION_LABELS: Record<string, string> = {
   NEWS_IMPACT_CORRECT:   'News quiz correct',
   IPO_PREDICTION:        'IPO prediction',
   IPO_CORRECT:           'IPO correct',
+  COMBO_CARD_3OF5:       'Combo Card · 3/5',
+  COMBO_CARD_4OF5:       'Combo Card · 4/5',
+  COMBO_CARD_5OF5:       'Combo Card · 5/5 🔥',
+  T20_RUNS:              'T20 runs',
+  T20_CENTURY:           'T20 century 💯',
+  T20_DOUBLE_TON:        'T20 double-ton 🚀',
 };
 
 interface LedgerEntry {
@@ -615,14 +623,25 @@ function CoinsPopupInline({ open, onClose, balance }: {
                   onClick={onClose}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    background: '#09091a', border: '1px solid ' + BORDER,
-                    borderRadius: 8, padding: '10px 12px',
+                    background: opt.isNew ? `linear-gradient(90deg, ${opt.color}10, #09091a 60%)` : '#09091a',
+                    border: '1px solid ' + (opt.isNew ? opt.color + '40' : BORDER),
+                    borderRadius: 8, padding: '12px 12px',
                     textDecoration: 'none',
+                    minHeight: 44,
                   }}
                 >
                   <span style={{ fontSize: 18, flexShrink: 0 }}>{opt.icon}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: TXT, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600 }}>{opt.label}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ color: TXT, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600 }}>{opt.label}</span>
+                      {opt.isNew && (
+                        <span style={{
+                          ...MONO, fontSize: 8, color: '#ffdd3b',
+                          background: 'rgba(255,221,59,0.1)', border: '1px solid #ffdd3b40',
+                          borderRadius: 3, padding: '1px 5px', letterSpacing: '0.08em', fontWeight: 700,
+                        }}>NEW</span>
+                      )}
+                    </div>
                     <div style={{ color: MUTED, fontFamily: "'DM Sans', sans-serif", fontSize: 11, marginTop: 1 }}>{opt.desc}</div>
                   </div>
                   <span style={{
