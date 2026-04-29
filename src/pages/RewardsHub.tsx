@@ -200,6 +200,27 @@ const ACTION_META: Record<string, { label: string; emoji: string; color: string 
   PURCHASE:           { label: "Coin purchase",                  emoji: "💳", color: BLUE },
   FIRST_LOGIN:        { label: "Welcome bonus — 10X! 🎉",       emoji: "🎉", color: GREEN },
   DAILY_LOGIN:        { label: "Daily login reward (1X)",        emoji: "📅", color: ORANGE },
+  PULSE_SWIPE:        { label: "Pulse swipe",                    emoji: "⚡", color: ORANGE },
+  PULSE_CORRECT:      { label: "Pulse direction correct",        emoji: "✅", color: GREEN },
+  CHARTGUESSR_CORRECT:{ label: "Chartguessr correct",            emoji: "📊", color: BLUE },
+  CHARTGUESSR_WRONG:  { label: "Chartguessr penalty",            emoji: "❌", color: RED },
+  CHARTGUESSR_STREAK: { label: "Chartguessr streak bonus",       emoji: "🔥", color: ORANGE },
+  POLL_VOTE:          { label: "Poll vote",                      emoji: "🗳️", color: PURPLE },
+  POLL_VOTE_BONUS:    { label: "Poll streak bonus",              emoji: "🗳️", color: PURPLE },
+  SHARE_ARTICLE:      { label: "Article shared",                 emoji: "🔗", color: PURPLE },
+  SHARE_ARTICLE_BONUS:{ label: "Share streak bonus",             emoji: "🔗", color: PURPLE },
+  AI_SUMMARY_READ:    { label: "AI summary read",                emoji: "📰", color: BLUE },
+  ARTICLE_LISTEN:     { label: "Article listened",               emoji: "🎧", color: BLUE },
+  DAILY_READING_STREAK:{ label: "Daily reading streak (5X)",     emoji: "📚", color: ORANGE },
+  COMBO_CARD_3OF5:    { label: "Combo Card 3/5 (1X)",            emoji: "🎯", color: GREEN },
+  COMBO_CARD_4OF5:    { label: "Combo Card 4/5 (5X)",            emoji: "🎯", color: YELLOW },
+  COMBO_CARD_5OF5:    { label: "Combo Card 5/5 jackpot 🔥",      emoji: "🎯", color: YELLOW },
+  T20_RUNS:           { label: "Dalal Street T20 runs",          emoji: "🏏", color: GREEN },
+  T20_CENTURY:        { label: "T20 century bonus 💯",           emoji: "🏏", color: YELLOW },
+  T20_DOUBLE_TON:     { label: "T20 double-ton bonus 🚀",        emoji: "🏏", color: YELLOW },
+  QUIZ_PODIUM_DAILY:  { label: "Quiz podium · daily",            emoji: "🥇", color: YELLOW },
+  QUIZ_PODIUM_WEEKLY: { label: "Quiz podium · weekly",           emoji: "🥇", color: YELLOW },
+  QUIZ_PODIUM_MONTHLY:{ label: "Quiz podium · monthly",          emoji: "🥇", color: YELLOW },
 };
 
 function getLedgerMeta(actionType: string, amount: number, note: string | null) {
@@ -235,7 +256,12 @@ function ChartTooltip({ active, payload, label }: any) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function RewardsHub({ authToken }: { authToken?: string }) {
+export default function RewardsHub({
+  authToken, onNavigate,
+}: {
+  authToken?: string;
+  onNavigate?: (view: string) => void;
+}) {
   const { user, coins, investorIq, profile } = useAuth();
   const [data,    setData]    = useState<HubData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -533,6 +559,9 @@ export default function RewardsHub({ authToken }: { authToken?: string }) {
       </div>
 
       <div style={{ padding: "16px" }} className="flex flex-col gap-4">
+
+        {/* ── 🏏 Dalal Street T20 — Cricket-themed reaction game ────────── */}
+        <T20EntryWidget authToken={authToken} onPlay={() => onNavigate?.("t20")} />
 
         {/* ── Today's Tasks ─────────────────────────────────────────────── */}
         <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: "14px 16px" }}>
@@ -901,6 +930,127 @@ export default function RewardsHub({ authToken }: { authToken?: string }) {
         </div>
 
       </div>{/* /padding wrapper */}
+    </div>
+  );
+}
+
+// ─── T20 Entry Widget — hero card linking to Dalal Street T20 game ───────────
+
+interface T20State {
+  ok:           boolean;
+  playedToday:  number;
+  dailyCap:     number;
+  remaining:    number;
+  careerBest:   number;
+  top3:         Array<{ rank: number; name: string | null; runs: number; balls: number }>;
+}
+
+function T20EntryWidget({
+  authToken, onPlay,
+}: {
+  authToken?: string;
+  onPlay: () => void;
+}) {
+  const [state, setState] = useState<T20State | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authToken) return;
+    let alive = true;
+    setLoading(true);
+    fetch("/api/t20/state", { headers: { Authorization: `Bearer ${authToken}` } })
+      .then((r) => r.json())
+      .then((d) => { if (alive) setState(d); })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [authToken]);
+
+  // Compose tagline based on state
+  const remaining   = state?.remaining ?? 0;
+  const careerBest  = state?.careerBest ?? 0;
+  const top         = state?.top3?.[0];
+  const canPlay     = remaining > 0;
+
+  return (
+    <div
+      onClick={canPlay ? onPlay : undefined}
+      style={{
+        background: "linear-gradient(135deg, rgba(0,255,136,0.08) 0%, rgba(0,255,136,0.03) 50%, rgba(255,204,68,0.05) 100%)",
+        border: `1px solid ${canPlay ? GREEN + "40" : BORDER}`,
+        borderRadius: 12, padding: "14px 16px",
+        cursor: canPlay ? "pointer" : "default",
+        position: "relative", overflow: "hidden",
+        transition: "transform 0.15s",
+      }}
+      onMouseEnter={(e) => { if (canPlay) (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)"; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; }}
+    >
+      {/* Background cricket ball decoration */}
+      <div style={{
+        position: "absolute", top: -10, right: -10, fontSize: 80, opacity: 0.06,
+        pointerEvents: "none", lineHeight: 1,
+      }}>🏏</div>
+
+      <div style={{ position: "relative" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: 20 }}>🏏</span>
+          <span style={{ ...MONO, fontSize: 12, color: GREEN, letterSpacing: "0.08em", fontWeight: 700 }}>
+            DALAL STREET T20
+          </span>
+          <span style={{
+            ...MONO, fontSize: 9, color: YELLOW, background: "rgba(255,221,59,0.1)",
+            border: `1px solid ${YELLOW}40`, borderRadius: 3, padding: "1px 6px",
+            letterSpacing: "0.08em",
+          }}>NEW</span>
+        </div>
+
+        <div style={{ ...SANS, fontSize: 13, color: TEXT, marginBottom: 8, lineHeight: 1.4 }}>
+          Read the chart, swing for the boundary.<br/>
+          <span style={{ color: MUTED, fontSize: 12 }}>
+            36 balls · 10 wickets · 1 coin per run · Century +200
+          </span>
+        </div>
+
+        {/* Stat strip */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 10,
+        }}>
+          <MiniStat label="TODAY" value={state ? `${state.playedToday}/${state.dailyCap}` : "—"} color={canPlay ? GREEN : ORANGE} />
+          <MiniStat label="BEST"  value={careerBest > 0 ? String(careerBest) : "—"} color={YELLOW} />
+          <MiniStat label="LEADER" value={top ? String(top.runs) : "—"} color={BLUE} />
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={(e) => { e.stopPropagation(); if (canPlay) onPlay(); }}
+          disabled={!canPlay || loading}
+          style={{
+            width: "100%", padding: "10px",
+            background: canPlay ? GREEN : "#1a1a2e",
+            color: canPlay ? "#000" : DIM, border: "none", borderRadius: 8,
+            ...MONO, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em",
+            cursor: canPlay ? "pointer" : "not-allowed",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}
+        >
+          {loading ? "LOADING…"
+            : !canPlay ? "DAILY CAP REACHED"
+            : <>▶ PLAY MATCH <span style={{ opacity: 0.7, fontWeight: 400, marginLeft: 4 }}>· {remaining} LEFT</span></>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div style={{
+      background: "rgba(13,13,30,0.6)", border: `1px solid ${BORDER}`,
+      borderRadius: 5, padding: "5px 6px", textAlign: "center",
+    }}>
+      <div style={{ ...MONO, fontSize: 8, color: DIM, letterSpacing: "0.08em" }}>{label}</div>
+      <div style={{ ...MONO, fontSize: 13, color, fontWeight: 700, marginTop: 1 }}>{value}</div>
     </div>
   );
 }
