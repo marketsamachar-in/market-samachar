@@ -2137,7 +2137,10 @@ function insertEmoji(emoji) {
 // Apply font multiplier to rendered HTML (regex over inline font-size:Npx).
 function applyFontMult(html, mult) {
   if (!mult || mult === 1) return html;
-  return html.replace(/font-size:\s*(\d+(?:\.\d+)?)px/g, function(_m, n) {
+  // Build regex from string so backslashes survive the TS template literal.
+  // Direct /\s\d\./ regex literals get \s/\d/\. stripped to s/d/. by template parsing.
+  var re = new RegExp("font-size:\\\\s*(\\\\d+(?:\\\\.\\\\d+)?)px", "g");
+  return html.replace(re, function(_m, n) {
     return "font-size:" + (parseFloat(n) * mult).toFixed(2) + "px";
   });
 }
@@ -2194,7 +2197,7 @@ function buildClassicCard(a, fmt, opts) {
   var summary = snippet.length > 160 ? snippet.slice(0,157)+"…" : snippet;
 
   // Better bullet extraction - split by sentence
-  var rawSents = snippet.replace(/([.!?])\s+/g,'$1|').split('|')
+  var rawSents = snippet.replace(new RegExp("([.!?])\\\\s+","g"),'$1|').split('|')
     .map(function(s){return s.trim().replace(/[.!?]+$/,'');})
     .filter(function(s){return s.length > 20 && s.length < 120;});
   var bullets = rawSents.slice(0, fmt==="1x1" ? 3 : 4);
@@ -2501,7 +2504,7 @@ function buildEditorialCard(a, fmt, opts) {
   var summary  = snippet.length > 220 ? snippet.slice(0,217)+"…" : snippet;
 
   // Bullets from sentences (same logic as classic)
-  var rawSents = snippet.replace(/([.!?])\s+/g,'$1|').split('|')
+  var rawSents = snippet.replace(new RegExp("([.!?])\\\\s+","g"),'$1|').split('|')
     .map(function(s){return s.trim().replace(/[.!?]+$/,'');})
     .filter(function(s){return s.length > 20 && s.length < 140;});
   var bullets = rawSents.slice(0, 3);
@@ -2628,7 +2631,7 @@ function buildBreakingCard(a, fmt, opts) {
   var summary = snippet.length > 180 ? snippet.slice(0,177)+"…" : snippet;
 
   // Bullets from sentences
-  var rawSents = snippet.replace(/([.!?])\s+/g,'$1|').split('|')
+  var rawSents = snippet.replace(new RegExp("([.!?])\\\\s+","g"),'$1|').split('|')
     .map(function(s){return s.trim().replace(/[.!?]+$/,'');})
     .filter(function(s){return s.length > 20 && s.length < 110;});
   var bullets = rawSents.slice(0, 3);
