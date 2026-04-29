@@ -1183,6 +1183,73 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS chartguessr_user_idx ON chartguessr_plays (user_id, played_at DESC);
 
+  -- ── COMBO CARD — Daily 5-question prediction lottery ─────────────────────
+  -- One card per IST trading day. Questions are fixed (Nifty/BankNifty/USDINR/
+  -- Gold direction + winning sector). Answers filled in at 15:35 IST settle.
+  CREATE TABLE IF NOT EXISTS combo_cards (
+    card_date           TEXT PRIMARY KEY,                    -- IST "YYYY-MM-DD"
+    answer_nifty        TEXT,                                -- 'UP' | 'DOWN' | NULL until settled
+    answer_banknifty    TEXT,
+    answer_usdinr       TEXT,
+    answer_gold         TEXT,
+    answer_sector       TEXT,                                -- 'AUTO'|'BANK'|'FMCG'|'IT'|'PHARMA'|'ENERGY'|'REALTY'
+    sector_pcts_json    TEXT,                                -- JSON snapshot of all 7 sector %s at close
+    created_at          INTEGER NOT NULL,
+    settled_at          INTEGER                              -- NULL until settled
+  );
+
+  CREATE TABLE IF NOT EXISTS user_combo_picks (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id           TEXT NOT NULL,
+    card_date         TEXT NOT NULL,
+    pick_nifty        TEXT NOT NULL CHECK(pick_nifty     IN ('UP','DOWN')),
+    pick_banknifty    TEXT NOT NULL CHECK(pick_banknifty IN ('UP','DOWN')),
+    pick_usdinr       TEXT NOT NULL CHECK(pick_usdinr    IN ('UP','DOWN')),
+    pick_gold         TEXT NOT NULL CHECK(pick_gold      IN ('UP','DOWN')),
+    pick_sector       TEXT NOT NULL CHECK(pick_sector    IN ('AUTO','BANK','FMCG','IT','PHARMA','ENERGY','REALTY')),
+    score             INTEGER,                               -- 0..5, NULL until settled
+    coins_awarded     INTEGER NOT NULL DEFAULT 0,
+    submitted_at      INTEGER NOT NULL,
+    settled_at        INTEGER,
+    UNIQUE(user_id, card_date)
+  );
+  CREATE INDEX IF NOT EXISTS combo_picks_user_idx ON user_combo_picks (user_id, card_date DESC);
+  CREATE INDEX IF NOT EXISTS combo_picks_settle_idx ON user_combo_picks (card_date, settled_at);
+
+  -- ── DALAL STREET T20 — Cricket-themed chart-reading reaction game ─────────
+  -- 36 balls per match, 10 wickets max. Server scores each ball.
+  CREATE TABLE IF NOT EXISTS t20_matches (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id         TEXT NOT NULL,
+    match_date      TEXT NOT NULL,           -- IST "YYYY-MM-DD" for daily cap
+    started_at      INTEGER NOT NULL,
+    ended_at        INTEGER,                  -- NULL while in-progress
+    runs            INTEGER NOT NULL DEFAULT 0,
+    wickets         INTEGER NOT NULL DEFAULT 0,
+    balls_bowled    INTEGER NOT NULL DEFAULT 0,
+    status          TEXT    NOT NULL DEFAULT 'IN_PROGRESS'
+                            CHECK(status IN ('IN_PROGRESS','COMPLETED','ABANDONED')),
+    coins_awarded   INTEGER NOT NULL DEFAULT 0,
+    bonus_kind      TEXT                      -- 'CENTURY' | 'DOUBLE_TON' | NULL
+  );
+  CREATE INDEX IF NOT EXISTS t20_user_date_idx ON t20_matches (user_id, match_date);
+  CREATE INDEX IF NOT EXISTS t20_leaderboard_idx ON t20_matches (match_date, runs DESC);
+
+  CREATE TABLE IF NOT EXISTS t20_balls (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    match_id        INTEGER NOT NULL,
+    ball_no         INTEGER NOT NULL,         -- 1..36
+    symbol          TEXT    NOT NULL,
+    correct_dir     TEXT    NOT NULL CHECK(correct_dir IN ('UP','DOWN')),
+    user_dir        TEXT,                      -- NULL until played
+    reaction_ms     INTEGER,
+    runs            INTEGER NOT NULL DEFAULT 0,
+    is_wicket       INTEGER NOT NULL DEFAULT 0,
+    played_at       INTEGER,
+    UNIQUE(match_id, ball_no)
+  );
+  CREATE INDEX IF NOT EXISTS t20_balls_match_idx ON t20_balls (match_id, ball_no);
+
   -- Drop removed-scope tables (IQ-centric quiz redesign removed practice mode)
   DROP TABLE IF EXISTS quiz_practice_attempts;
 `);
@@ -1251,7 +1318,9 @@ export type CoinActionType =
   | 'POLL_VOTE'           | 'SHARE_ARTICLE'
   | 'POLL_VOTE_BONUS'     | 'SHARE_ARTICLE_BONUS'
   | 'PULSE_SWIPE'         | 'PULSE_CORRECT'
-  | 'CHARTGUESSR_CORRECT' | 'CHARTGUESSR_WRONG'  | 'CHARTGUESSR_STREAK';
+  | 'CHARTGUESSR_CORRECT' | 'CHARTGUESSR_WRONG'  | 'CHARTGUESSR_STREAK'
+  | 'COMBO_CARD_3OF5'     | 'COMBO_CARD_4OF5'    | 'COMBO_CARD_5OF5'
+  | 'T20_RUNS'            | 'T20_CENTURY'        | 'T20_DOUBLE_TON';
 
 export interface UserRow {
   id:                   string;
