@@ -14,7 +14,9 @@ import type { CertificateData } from "./lib/certificate";
 import { useAuth } from "./hooks/useAuth";
 import PaperTrading from "./pages/PaperTrading";
 import Pulse from "./pages/Pulse";
-import Chartguessr from "./pages/Chartguessr";
+import Chartguessr     from "./pages/Chartguessr";
+import ComboCard       from "./pages/ComboCard";
+import DalalStreetT20  from "./pages/DalalStreetT20";
 import RewardsHub from "./pages/RewardsHub";
 import { MarketForecast } from "./components/MarketForecast";
 import IPOPredictions from "./components/IPOPredictions";
@@ -287,10 +289,10 @@ const NewsCard: React.FC<{
         );
       })()}
 
-      {/* 4-button action row */}
+      {/* 4-button action row — 2×2 on phones, 1×4 on sm+ */}
       <div
-        className="grid gap-2 pt-2 mt-2"
-        style={{ borderTop: "1px solid #1a1a2e", gridTemplateColumns: 'repeat(4, 1fr)' }}
+        className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 mt-2"
+        style={{ borderTop: "1px solid #1a1a2e" }}
       >
         <button onClick={() => setActivePopup('timeline')} style={btnStyle('#3bffee')} className="hover:brightness-125 justify-center">
           📖 Timeline
@@ -346,12 +348,14 @@ export default function App() {
   const { user, profile, investorIq, session } = useAuth();
 
   // ── URL ↔ view sync ──────────────────────────────────────────────────────
-  type ViewType = "news" | "trading" | "pulse" | "chartguessr" | "rewards";
+  type ViewType = "news" | "trading" | "pulse" | "combo" | "chartguessr" | "t20" | "rewards";
 
   function pathToView(p: string): ViewType {
     if (p.startsWith("/paper-trading")) return "trading";
     if (p.startsWith("/pulse"))         return "pulse";
+    if (p.startsWith("/combo"))         return "combo";
     if (p.startsWith("/chartguessr"))   return "chartguessr";
+    if (p.startsWith("/t20"))           return "t20";
     if (p.startsWith("/rewards"))       return "rewards";
     return "news";
   }
@@ -360,7 +364,9 @@ export default function App() {
     switch (v) {
       case "trading":     return "/paper-trading";
       case "pulse":       return "/pulse";
+      case "combo":       return "/combo";
       case "chartguessr": return "/chartguessr";
+      case "t20":         return "/t20";
       case "rewards":     return "/rewards";
       default:            return "/";
     }
@@ -373,7 +379,9 @@ export default function App() {
     news:        "Market Samachar — Live News",
     trading:     "Paper Trading — Virtual Markets",
     pulse:       "Pulse — Bull/Bear News Swiper",
+    combo:       "Combo Card — Daily 5-Question Lottery",
     chartguessr: "Chartguessr — Guess the Stock",
+    t20:         "Dalal Street T20 — Cricket-Themed Stock Game",
     rewards:     "Rewards Hub — Market Samachar",
   };
   useEffect(() => { document.title = TAB_TITLES[view]; }, [view]);
@@ -561,14 +569,30 @@ export default function App() {
           <Pulse authToken={session?.access_token} />
         </div>
       )}
+      {view === "combo" && (
+        <div key="combo" className="page-enter">
+          <ComboCard authToken={session?.access_token} />
+        </div>
+      )}
       {view === "chartguessr" && (
         <div key="chartguessr" className="page-enter">
           <Chartguessr authToken={session?.access_token} />
         </div>
       )}
+      {view === "t20" && (
+        <div key="t20" className="page-enter">
+          <DalalStreetT20
+            authToken={session?.access_token}
+            onExit={() => navigate("rewards")}
+          />
+        </div>
+      )}
       {view === "rewards" && (
         <div key="rewards" className="page-enter" style={{ paddingBottom: 80 }}>
-          <RewardsHub authToken={session?.access_token} />
+          <RewardsHub
+            authToken={session?.access_token}
+            onNavigate={(v) => navigate(v as any)}
+          />
         </div>
       )}
 
@@ -623,7 +647,7 @@ export default function App() {
       </div>
 
       {/* ══ MAIN LAYOUT ═════════════════════════════════════════════════════ */}
-      <div className="flex gap-4 px-4 pb-24">
+      <div className="flex gap-4 px-4 pb-20 lg:pb-24">
 
         {/* ── LEFT: Category pills + News feed ─────────────────────────── */}
         <div className="flex-1 min-w-0">
@@ -719,7 +743,7 @@ export default function App() {
             {[
               { id: "trading"     as ViewType, label: "Paper Trading",  icon: <TradingIcon size={16} />, color: "#00ff88", desc: "Virtual Trading" },
               { id: "pulse"       as ViewType, label: "Pulse",          icon: <Zap         size={16} />, color: "#ff9f3b", desc: "Bull/Bear Swiper" },
-              { id: "chartguessr" as ViewType, label: "Chartguessr",    icon: <Activity    size={16} />, color: "#3b9eff", desc: "Guess the Stock" },
+              { id: "combo"       as ViewType, label: "Combo Card",     icon: <Activity    size={16} />, color: "#3b9eff", desc: "Daily 5-Q Lottery" },
               { id: "rewards"     as ViewType, label: "Rewards Hub",    icon: <Star        size={16} />, color: "#ffdd3b", desc: "Coins & Badges"  },
             ].map((item) => (
               <button
