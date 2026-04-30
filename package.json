@@ -1,7 +1,7 @@
 {
   "name": "market-samachar",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -11,6 +11,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "setup-admin": "tsx scripts/setup-admin.ts",
+    "quiz-import": "tsx scripts/quiz-import.ts",
     "backfill": "tsx scripts/backfill-summaries.ts",
     "test-slides": "tsx scripts/test-generator.ts",
     "convert-og": "tsx scripts/convert-og-image.ts"
