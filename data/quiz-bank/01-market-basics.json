@@ -1,0 +1,229 @@
+[
+  {
+    "external_id": "basics-001",
+    "category": "Market Basics",
+    "difficulty": 1,
+    "question": "What does NSE stand for?",
+    "options": [
+      "National Stock Exchange",
+      "New Stock Enterprise",
+      "Nifty Stock Exchange",
+      "National Securities Establishment"
+    ],
+    "correct": "A",
+    "explanation": "NSE = National Stock Exchange of India, founded in 1992 and the first electronic exchange in India.",
+    "source": "NSE India",
+    "tags": ["nse", "basics"]
+  },
+  {
+    "external_id": "basics-002",
+    "category": "Market Basics",
+    "difficulty": 1,
+    "question": "What is a 'bull market'?",
+    "options": [
+      "A market that is closed for the day",
+      "A period of falling prices",
+      "A period of rising prices and optimism",
+      "A market only for agricultural stocks"
+    ],
+    "correct": "C",
+    "explanation": "A bull market is a sustained period when prices rise and investor sentiment is positive — the bull symbolises charging upward.",
+    "tags": ["bull", "sentiment"]
+  },
+  {
+    "external_id": "basics-003",
+    "category": "Market Basics",
+    "difficulty": 1,
+    "question": "What is a 'bear market'?",
+    "options": [
+      "A market with extreme volatility",
+      "A sustained period of falling prices, typically 20%+ from peak",
+      "A government-controlled market",
+      "A market closed during winter"
+    ],
+    "correct": "B",
+    "explanation": "A bear market is conventionally defined as a 20% or greater decline from a recent peak. The bear swipes down — the opposite of a charging bull.",
+    "tags": ["bear", "sentiment"]
+  },
+  {
+    "external_id": "basics-004",
+    "category": "Market Basics",
+    "difficulty": 1,
+    "question": "What is the full form of IPO?",
+    "options": [
+      "Internal Profit Order",
+      "Initial Public Offering",
+      "Indian Public Offering",
+      "Investor Pre-Order"
+    ],
+    "correct": "B",
+    "explanation": "An Initial Public Offering is a company's first sale of shares to the public.",
+    "tags": ["ipo"]
+  },
+  {
+    "external_id": "basics-005",
+    "category": "Market Basics",
+    "difficulty": 2,
+    "question": "What does P/E ratio measure?",
+    "options": [
+      "Price-to-Equity ratio",
+      "Profit-to-Earnings ratio",
+      "Price-to-Earnings ratio (price per share / EPS)",
+      "Profit-to-Equity ratio"
+    ],
+    "correct": "C",
+    "explanation": "P/E ratio = current share price ÷ earnings per share. It tells you how much investors are paying per rupee of earnings.",
+    "tags": ["pe-ratio", "valuation"]
+  },
+  {
+    "external_id": "basics-006",
+    "category": "Market Basics",
+    "difficulty": 2,
+    "question": "What is 'market capitalisation'?",
+    "options": [
+      "The total profit a company has made",
+      "Total revenue × number of years operating",
+      "Share price × total number of outstanding shares",
+      "The maximum price a stock has ever reached"
+    ],
+    "correct": "C",
+    "explanation": "Market cap = current share price multiplied by total outstanding shares. It's a quick measure of a company's total equity value.",
+    "tags": ["market-cap"]
+  },
+  {
+    "external_id": "basics-007",
+    "category": "Market Basics",
+    "difficulty": 2,
+    "question": "Which of these is considered a 'large-cap' stock in India?",
+    "options": [
+      "A company with market cap below ₹500 crore",
+      "Any stock listed on BSE",
+      "A company in the top 100 by market cap (per SEBI)",
+      "Any company older than 50 years"
+    ],
+    "correct": "C",
+    "explanation": "SEBI defines large-cap as the top 100 companies by full market capitalisation, mid-cap as ranks 101–250, and small-cap as 251 onwards.",
+    "source": "SEBI Categorisation Circular 2017",
+    "tags": ["large-cap", "sebi"]
+  },
+  {
+    "external_id": "basics-008",
+    "category": "Market Basics",
+    "difficulty": 2,
+    "question": "What is a 'dividend'?",
+    "options": [
+      "A loan a company takes from shareholders",
+      "A portion of company profits paid out to shareholders",
+      "The fee charged by stock exchanges",
+      "A penalty for selling shares too early"
+    ],
+    "correct": "B",
+    "explanation": "Dividends are profit-sharing payments to shareholders, usually paid quarterly or annually. They are taxable in the shareholder's hands in India.",
+    "tags": ["dividend"]
+  },
+  {
+    "external_id": "basics-009",
+    "category": "Market Basics",
+    "difficulty": 1,
+    "question": "What is the trading hours for NSE/BSE equity markets?",
+    "options": [
+      "10:00 to 16:00 IST",
+      "09:15 to 15:30 IST",
+      "09:00 to 18:00 IST",
+      "08:30 to 14:30 IST"
+    ],
+    "correct": "B",
+    "explanation": "Indian equity markets open at 09:15 IST and close at 15:30 IST. There's a pre-open session from 09:00 to 09:15.",
+    "tags": ["trading-hours"]
+  },
+  {
+    "external_id": "basics-010",
+    "category": "Market Basics",
+    "difficulty": 3,
+    "question": "What is a 'circuit filter' on a stock?",
+    "options": [
+      "A penalty fee for over-trading",
+      "A price band beyond which trading is halted to prevent extreme moves",
+      "A type of options contract",
+      "A government tax on intraday trades"
+    ],
+    "correct": "B",
+    "explanation": "Circuit filters set upper and lower price limits per stock per day. If hit, trading on that stock is halted to cool down speculative moves.",
+    "tags": ["circuit-filter", "volatility"]
+  },
+  {
+    "external_id": "basics-011",
+    "category": "Market Basics",
+    "difficulty": 3,
+    "question": "What does 'EPS' stand for and represent?",
+    "options": [
+      "Equity Per Share — total equity divided by shares",
+      "Earnings Per Share — net profit ÷ outstanding shares",
+      "Effective Price Sensitivity",
+      "Estimated Price Spread"
+    ],
+    "correct": "B",
+    "explanation": "EPS = net profit ÷ number of outstanding shares. It is a key profitability metric and the denominator in P/E calculations.",
+    "tags": ["eps", "fundamentals"]
+  },
+  {
+    "external_id": "basics-012",
+    "category": "Market Basics",
+    "difficulty": 2,
+    "question": "What is 'short selling'?",
+    "options": [
+      "Buying stocks for less than ₹100",
+      "Selling shares you don't own, hoping to buy back lower",
+      "Selling all your holdings at once",
+      "Trading without using a broker"
+    ],
+    "correct": "B",
+    "explanation": "Short selling means borrowing shares to sell now, then buying them back later — profitable if the price falls. In India, short-selling on the cash segment is restricted to intraday only for retail traders.",
+    "tags": ["short-selling"]
+  },
+  {
+    "external_id": "basics-013",
+    "category": "Market Basics",
+    "difficulty": 4,
+    "question": "What does 'beta' of a stock measure?",
+    "options": [
+      "The dividend yield",
+      "The stock's volatility relative to the broader market index",
+      "The stock's debt level",
+      "The time since IPO"
+    ],
+    "correct": "B",
+    "explanation": "Beta measures sensitivity to market moves. Beta of 1 means the stock moves in line with the market; >1 means more volatile, <1 means less volatile.",
+    "tags": ["beta", "risk"]
+  },
+  {
+    "external_id": "basics-014",
+    "category": "Market Basics",
+    "difficulty": 4,
+    "question": "What is a 'stock split'?",
+    "options": [
+      "A company splitting into two separate listed entities",
+      "An increase in the number of shares outstanding by reducing each share's face value",
+      "Selling part of one's holdings",
+      "Trading the same stock on two exchanges"
+    ],
+    "correct": "B",
+    "explanation": "A stock split increases share count by reducing face value, e.g. a 1:5 split turns one ₹10 face-value share into five ₹2 face-value shares. Total holding value is unchanged on split day.",
+    "tags": ["stock-split", "corporate-action"]
+  },
+  {
+    "external_id": "basics-015",
+    "category": "Market Basics",
+    "difficulty": 4,
+    "question": "What is the purpose of a 'bonus share' issue?",
+    "options": [
+      "To raise fresh capital from shareholders",
+      "To distribute company reserves to shareholders as additional free shares",
+      "To pay tax obligations",
+      "To dilute foreign holdings"
+    ],
+    "correct": "B",
+    "explanation": "Bonus shares are issued free to existing shareholders by capitalising company reserves. The share price typically adjusts down proportionately so total holding value stays the same on issue.",
+    "tags": ["bonus-shares", "corporate-action"]
+  }
+]
