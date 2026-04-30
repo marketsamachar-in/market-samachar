@@ -10,7 +10,6 @@
  *   to the client until the ball is played.
  */
 
-import YahooFinance from "yahoo-finance2";
 import rawDb from "../../../pipeline/db.ts";
 import { addCoins } from "./coinService.ts";
 import { NIFTY_50 } from "../data/nse-symbols.ts";
@@ -27,29 +26,69 @@ import {
   T20_BALL_SLOW_MS,
 } from "./rewardConfig.ts";
 
-// ─── Yahoo client + chart cache (mirrors chartguessr pattern) ─────────────────
-
-const yf = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+// ─── Chart source: Yahoo Finance v8 chart API (direct fetch) ─────────────────
+// We previously used the `yahoo-finance2` npm package, but it sends headers
+// that Yahoo filters from datacenter IPs (Railway, Render, etc.), returning
+// ETIMEDOUT and breaking T20 in production. Calling the public chart endpoint
+// directly with a browser User-Agent works reliably from any environment.
 
 interface ChartPoint { t: number; c: number; }
 
 const CHART_CACHE = new Map<string, { points: ChartPoint[]; fetchedAt: number }>();
 const CHART_TTL = 60 * 60_000;  // 1h — daily bars don't change intraday
 
+const YAHOO_HOSTS = [
+  "https://query1.finance.yahoo.com",
+  "https://query2.finance.yahoo.com",
+];
+const BROWSER_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+  "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+async function fetchYahooChart(symbol: string): Promise<ChartPoint[]> {
+  // & in symbols (e.g. "M&M") must be URL-encoded as %26
+  const sym = encodeURIComponent(`${symbol}.NS`);
+  const path = `/v8/finance/chart/${sym}?range=1mo&interval=1d`;
+
+  let lastErr: unknown;
+  for (const host of YAHOO_HOSTS) {
+    try {
+      const res = await fetch(`${host}${path}`, {
+        headers: {
+          "User-Agent": BROWSER_UA,
+          "Accept":     "application/json,text/plain,*/*",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) { lastErr = new Error(`yahoo ${res.status}`); continue; }
+      const data = await res.json() as any;
+
+      const result = data?.chart?.result?.[0];
+      if (!result) { lastErr = new Error("no chart result"); continue; }
+
+      const ts:    number[] = result.timestamp ?? [];
+      const close: (number | null)[] = result.indicators?.quote?.[0]?.close ?? [];
+
+      const points: ChartPoint[] = [];
+      for (let i = 0; i < ts.length; i++) {
+        const c = close[i];
+        if (c == null || !Number.isFinite(c)) continue;
+        points.push({ t: ts[i] * 1000, c: Math.round(c * 100) / 100 });
+      }
+      return points;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr ?? new Error(`yahoo fetch failed for ${symbol}`);
+}
+
 async function fetchOneMonthChart(symbol: string): Promise<ChartPoint[]> {
   const hit = CHART_CACHE.get(symbol);
   if (hit && Date.now() - hit.fetchedAt < CHART_TTL) return hit.points;
 
-  const period2 = new Date();
-  const period1 = new Date(period2.getTime() - 31 * 86_400_000);
-  const result  = await yf.chart(`${symbol}.NS`, {
-    period1, period2, interval: "1d" as any,
-  } as any);
-  const quotes = (result?.quotes ?? []) as any[];
-  const points: ChartPoint[] = quotes
-    .filter((q) => q && q.close != null)
-    .map((q) => ({ t: new Date(q.date).getTime(), c: Math.round(q.close * 100) / 100 }));
-
+  const points = await fetchYahooChart(symbol);
   CHART_CACHE.set(symbol, { points, fetchedAt: Date.now() });
   return points;
 }
