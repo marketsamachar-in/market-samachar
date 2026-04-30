@@ -1,0 +1,156 @@
+[
+  {
+    "external_id": "fund-001",
+    "category": "Fundamental Analysis",
+    "difficulty": 2,
+    "question": "What does 'ROE' stand for and measure?",
+    "options": [
+      "Return on Equity — net profit ÷ shareholders' equity",
+      "Rate of Earnings — annual EPS growth",
+      "Revenue on Expenses — top-line efficiency",
+      "Return on Expansion"
+    ],
+    "correct": "A",
+    "explanation": "Return on Equity (ROE) shows how efficiently a company turns shareholder equity into profit. Warren Buffett-style investors look for consistent ROE above 15%.",
+    "tags": ["roe", "fundamentals"]
+  },
+  {
+    "external_id": "fund-002",
+    "category": "Fundamental Analysis",
+    "difficulty": 3,
+    "question": "What is 'free cash flow' (FCF)?",
+    "options": [
+      "Cash a company has without any debt",
+      "Operating cash flow minus capital expenditures",
+      "Cash held in foreign currency",
+      "Total revenue minus total cost"
+    ],
+    "correct": "B",
+    "explanation": "FCF = Operating Cash Flow − CapEx. It represents cash available to repay debt, pay dividends, or reinvest. Sustained positive FCF is a strong fundamental signal.",
+    "tags": ["fcf", "valuation"]
+  },
+  {
+    "external_id": "fund-003",
+    "category": "Fundamental Analysis",
+    "difficulty": 3,
+    "question": "What does the 'debt-to-equity ratio' tell you?",
+    "options": [
+      "How much profit goes to debt repayment",
+      "Total liabilities ÷ shareholders' equity — leverage level",
+      "Equity issued ÷ outstanding debt",
+      "Long-term debt ÷ short-term debt"
+    ],
+    "correct": "B",
+    "explanation": "D/E ratio = total debt ÷ shareholders' equity. Higher = more leveraged. Acceptable levels vary by sector — banks have high D/E by design; FMCG companies typically below 1.",
+    "tags": ["d/e", "leverage"]
+  },
+  {
+    "external_id": "fund-004",
+    "category": "Fundamental Analysis",
+    "difficulty": 4,
+    "question": "What does 'PEG ratio' attempt to address that P/E does not?",
+    "options": [
+      "Industry comparisons",
+      "Growth — PEG = P/E ÷ earnings growth rate",
+      "Dividend coverage",
+      "Cash flow consistency"
+    ],
+    "correct": "B",
+    "explanation": "Peter Lynch's PEG ratio adjusts P/E for growth: PEG = (P/E) ÷ EPS growth %. PEG < 1 is typically considered undervalued for a growth stock.",
+    "source": "Peter Lynch, 'One Up on Wall Street'",
+    "tags": ["peg", "growth"]
+  },
+  {
+    "external_id": "mf-001",
+    "category": "Mutual Funds & SIPs",
+    "difficulty": 1,
+    "question": "What does 'SIP' stand for in mutual fund investing?",
+    "options": [
+      "Stock Investment Plan",
+      "Systematic Investment Plan",
+      "Special Investor Privilege",
+      "Sectoral Index Plan"
+    ],
+    "correct": "B",
+    "explanation": "A SIP — Systematic Investment Plan — lets you invest a fixed amount in a mutual fund at regular intervals (usually monthly), enabling rupee-cost averaging.",
+    "tags": ["sip"]
+  },
+  {
+    "external_id": "mf-002",
+    "category": "Mutual Funds & SIPs",
+    "difficulty": 2,
+    "question": "What is 'NAV' of a mutual fund?",
+    "options": [
+      "Net Asset Value — fund's per-unit market value at end of day",
+      "Net Annual Value",
+      "New Allocation Value",
+      "Net Available Volume"
+    ],
+    "correct": "A",
+    "explanation": "NAV = (Total assets − liabilities) ÷ units outstanding. Indian mutual funds calculate NAV daily after market close. Buy/sell orders are processed at the next applicable NAV.",
+    "tags": ["nav", "mutual-funds"]
+  },
+  {
+    "external_id": "mf-003",
+    "category": "Mutual Funds & SIPs",
+    "difficulty": 3,
+    "question": "What is the difference between 'direct' and 'regular' mutual fund plans?",
+    "options": [
+      "Direct plans pay higher returns guaranteed",
+      "Direct plans have no distributor commission and lower expense ratio; regular plans include commission paid via expense ratio",
+      "Direct plans are only for HNIs",
+      "There is no real difference"
+    ],
+    "correct": "B",
+    "explanation": "Direct plans skip the distributor's commission. Over 10–20 years, the 0.5–1% expense ratio difference compounds into meaningful returns. Buy direct if you don't need advice.",
+    "source": "SEBI MF circular 2012",
+    "tags": ["direct", "regular", "expense-ratio"]
+  },
+  {
+    "external_id": "mf-004",
+    "category": "Mutual Funds & SIPs",
+    "difficulty": 4,
+    "question": "What is the 'exit load' on equity mutual funds typically?",
+    "options": [
+      "1% if redeemed within 1 year, 0% after",
+      "Always 2% regardless of holding period",
+      "5% in the first month",
+      "There is no exit load on equity funds"
+    ],
+    "correct": "A",
+    "explanation": "Most equity mutual funds charge a 1% exit load if redeemed within 1 year; thereafter, no exit load. Short-term capital gains tax (15% under STCG) also applies on redemptions within 1 year.",
+    "tags": ["exit-load", "stcg"]
+  },
+  {
+    "external_id": "mf-005",
+    "category": "Mutual Funds & SIPs",
+    "difficulty": 4,
+    "question": "What is an 'ELSS' mutual fund?",
+    "options": [
+      "An exchange-listed sector fund",
+      "An Equity Linked Savings Scheme — tax-saving fund with 3-year lock-in under Section 80C",
+      "A debt fund for senior citizens",
+      "An emergency loan scheme"
+    ],
+    "correct": "B",
+    "explanation": "ELSS funds invest predominantly in equities and qualify for Section 80C deduction up to ₹1.5 lakh annually. The 3-year lock-in is the shortest among 80C tax-saving instruments.",
+    "source": "Income Tax Act, Sec 80C",
+    "tags": ["elss", "80c", "tax"]
+  },
+  {
+    "external_id": "tax-001",
+    "category": "Tax & Capital Gains",
+    "difficulty": 3,
+    "question": "What is the LTCG tax rate on listed Indian equities held for more than 1 year (FY 2024-25 onward)?",
+    "options": [
+      "10% above ₹1 lakh exemption",
+      "12.5% above ₹1.25 lakh exemption per year",
+      "20% with indexation",
+      "15% flat"
+    ],
+    "correct": "B",
+    "explanation": "Per the Union Budget 2024 changes, LTCG on listed equities and equity MFs is taxed at 12.5% on gains exceeding ₹1.25 lakh per financial year. Holding period is 12+ months.",
+    "source": "Income Tax Act, Sec 112A (post Budget 2024)",
+    "tags": ["ltcg", "tax", "budget"]
+  }
+]
