@@ -72,9 +72,12 @@ import chartguessrRouter    from "./backend/src/routes/chartguessr.ts";
 import comboCardRouter      from "./backend/src/routes/comboCard.ts";
 import t20Router            from "./backend/src/routes/t20.ts";
 import referralsRouter      from "./backend/src/routes/referrals.ts";
+import marketMoveRouter     from "./backend/src/routes/marketMove.ts";
+import quizMasterRouter     from "./backend/src/routes/quizMaster.ts";
 import { resolvePulseSwipes } from "./backend/src/services/pulseResolver.ts";
 import { settleCard as settleComboCard } from "./backend/src/services/comboCardService.ts";
 import { startStockPriceCron } from "./backend/src/services/stockPriceService.ts";
+import { startMarketMoveCron } from "./backend/src/services/marketMoveService.ts";
 import { createDailyPredictions, resolvePredictions } from "./backend/src/services/predictionService.ts";
 import { addCoins, ensureUser as ensureSqliteUser } from "./backend/src/services/coinService.ts";
 import { requireAuth } from "./backend/src/middleware/auth.ts";
@@ -1357,6 +1360,8 @@ async function startServer() {
   app.use("/api/combo", comboCardRouter);
   app.use("/api/t20", t20Router);
   app.use("/api/referrals", referralsRouter);
+  app.use("/api/market-move", marketMoveRouter);
+  app.use("/api/quiz-master", quizMasterRouter);
 
   // Stricter limiter for Gemini-powered routes (cost-bearing)
   app.use("/api/news/article", articleLimiter);
@@ -4214,6 +4219,9 @@ body{background:#07070e;color:#e8eaf0;font-family:'DM Sans',sans-serif;min-heigh
 
   // Start stock price background refresh (every 15 min during market hours)
   startStockPriceCron();
+
+  // Market Move — FII/DII daily fetch + MTF list refresh
+  startMarketMoveCron();
 
   // ── PULSE swipe resolver — every 30 min, batch up to 50 due swipes ─────────
   cron.schedule("*/30 * * * *", async () => {
