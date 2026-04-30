@@ -1,0 +1,208 @@
+[
+  {
+    "external_id": "ind-001",
+    "category": "Indian Markets",
+    "difficulty": 1,
+    "question": "How many companies make up the Nifty 50 index?",
+    "options": ["50", "100", "30", "Nifty has no fixed number"],
+    "correct": "A",
+    "explanation": "Nifty 50 contains 50 large-cap Indian companies across sectors, weighted by free-float market capitalisation.",
+    "tags": ["nifty"]
+  },
+  {
+    "external_id": "ind-002",
+    "category": "Indian Markets",
+    "difficulty": 1,
+    "question": "How many companies are in the Sensex (BSE Sensex)?",
+    "options": ["50", "30", "100", "60"],
+    "correct": "B",
+    "explanation": "The S&P BSE Sensex tracks 30 large, well-established companies on the BSE.",
+    "tags": ["sensex"]
+  },
+  {
+    "external_id": "ind-003",
+    "category": "Indian Markets",
+    "difficulty": 2,
+    "question": "Which is India's oldest stock exchange?",
+    "options": [
+      "NSE (National Stock Exchange)",
+      "BSE (Bombay Stock Exchange)",
+      "MCX (Multi Commodity Exchange)",
+      "Calcutta Stock Exchange"
+    ],
+    "correct": "B",
+    "explanation": "BSE was established in 1875 and is Asia's oldest stock exchange. NSE came in 1992.",
+    "source": "BSE India",
+    "tags": ["bse", "history"]
+  },
+  {
+    "external_id": "ind-004",
+    "category": "Indian Markets",
+    "difficulty": 2,
+    "question": "What is 'India VIX'?",
+    "options": [
+      "An index of FII inflows",
+      "A volatility index based on Nifty option prices",
+      "A bond yield indicator",
+      "A measure of FX volatility"
+    ],
+    "correct": "B",
+    "explanation": "India VIX measures expected market volatility over the next 30 days, derived from Nifty 50 option prices. It rises in fear, falls in calm markets.",
+    "tags": ["vix", "volatility"]
+  },
+  {
+    "external_id": "ind-005",
+    "category": "Indian Markets",
+    "difficulty": 2,
+    "question": "What does 'F&O ban' mean for a stock?",
+    "options": [
+      "The stock cannot be bought or sold at all",
+      "Fresh F&O positions are restricted; only square-off allowed",
+      "The stock has been delisted",
+      "Foreign investors cannot buy it"
+    ],
+    "correct": "B",
+    "explanation": "When a stock's market-wide position limit (MWPL) crosses 95%, no new F&O positions can be added — only existing positions can be closed. The ban is reviewed daily.",
+    "source": "NSE F&O regulations",
+    "tags": ["f&o", "ban"]
+  },
+  {
+    "external_id": "ind-006",
+    "category": "Indian Markets",
+    "difficulty": 3,
+    "question": "What is the 'lot size' for Nifty 50 futures (as of 2026)?",
+    "options": ["25", "50", "75", "100"],
+    "correct": "C",
+    "explanation": "Nifty 50 futures have a lot size of 75 (changed from 50 to 75 in 2024). Lot sizes change occasionally to keep contract value within SEBI's prescribed range.",
+    "source": "NSE F&O lot size circular",
+    "tags": ["nifty", "f&o"]
+  },
+  {
+    "external_id": "ind-007",
+    "category": "Indian Markets",
+    "difficulty": 3,
+    "question": "On which day of the week does Nifty weekly options typically expire?",
+    "options": ["Monday", "Tuesday", "Wednesday", "Thursday"],
+    "correct": "D",
+    "explanation": "Nifty 50 weekly options expire on Thursdays. (Bank Nifty weekly contracts were discontinued in late 2024.)",
+    "tags": ["expiry", "f&o"]
+  },
+  {
+    "external_id": "ind-008",
+    "category": "Indian Markets",
+    "difficulty": 3,
+    "question": "What does 'STT' stand for?",
+    "options": [
+      "Stock Transaction Tax",
+      "Securities Trading Tariff",
+      "Securities Transaction Tax",
+      "Standard Transfer Tax"
+    ],
+    "correct": "C",
+    "explanation": "STT — Securities Transaction Tax — is levied on every equity, derivatives, and mutual fund transaction. Rates differ by segment and side.",
+    "tags": ["tax", "stt"]
+  },
+  {
+    "external_id": "ind-009",
+    "category": "Indian Markets",
+    "difficulty": 4,
+    "question": "What is the T+1 settlement cycle?",
+    "options": [
+      "Trade settles 1 hour after execution",
+      "Trade settles 1 trading day after the trade date",
+      "Trade settles within 1 minute",
+      "Trade settles 1 month after execution"
+    ],
+    "correct": "B",
+    "explanation": "T+1 means securities and money settle one trading day after the trade. India fully shifted to T+1 in January 2023, becoming one of the world's fastest equity-settlement markets.",
+    "source": "SEBI T+1 implementation",
+    "tags": ["settlement", "t+1"]
+  },
+  {
+    "external_id": "ind-010",
+    "category": "Indian Markets",
+    "difficulty": 4,
+    "question": "Which sector has the largest weight in the Nifty 50 (as of 2026)?",
+    "options": ["IT", "Energy", "Financial Services", "FMCG"],
+    "correct": "C",
+    "explanation": "Financial Services consistently holds the highest sector weight in Nifty 50 — typically around 33–37% — driven by the heavy weighting of HDFC Bank, ICICI Bank, SBI and other financial majors.",
+    "tags": ["nifty", "sectors"]
+  },
+  {
+    "external_id": "ind-011",
+    "category": "Indian Markets",
+    "difficulty": 5,
+    "question": "Under SEBI's framework, what is the upper circuit for an IPO on listing day if the issue price is ₹500 and there is no F&O on it?",
+    "options": [
+      "5% above the discovered price",
+      "10% above the discovered price",
+      "Variable — discovered via the call auction with a wider band on day 1",
+      "Always +20%"
+    ],
+    "correct": "C",
+    "explanation": "On listing day, NSE/BSE conduct a special pre-open call auction to discover the opening price; the band is wider (typically up to ±90% from issue price) to allow price discovery. After day 1, normal circuit filters apply.",
+    "source": "SEBI listing day price discovery framework",
+    "tags": ["ipo", "circuits"]
+  },
+  {
+    "external_id": "ind-012",
+    "category": "Indian Markets",
+    "difficulty": 2,
+    "question": "What does 'BSE 500' represent?",
+    "options": [
+      "Top 500 companies by listing date on BSE",
+      "An index of 500 large + mid + small-cap BSE-listed companies covering ~94% of market cap",
+      "500 companies with the highest dividend",
+      "500 oldest BSE-listed companies"
+    ],
+    "correct": "B",
+    "explanation": "BSE 500 covers 500 companies across market caps and sectors, representing roughly 94% of total BSE market capitalisation — a broader benchmark than Sensex.",
+    "tags": ["bse", "index"]
+  },
+  {
+    "external_id": "ind-013",
+    "category": "Indian Markets",
+    "difficulty": 2,
+    "question": "What does 'GMP' mean in the context of an IPO?",
+    "options": [
+      "Gross Market Profit",
+      "Grey Market Premium — unofficial price above issue price",
+      "Government Mandated Price",
+      "General Merchandising Premium"
+    ],
+    "correct": "B",
+    "explanation": "GMP is the unofficial premium at which IPO shares trade in the grey market before listing. It's an indicator of demand but is not regulated by SEBI.",
+    "tags": ["ipo", "gmp"]
+  },
+  {
+    "external_id": "ind-014",
+    "category": "Indian Markets",
+    "difficulty": 3,
+    "question": "What is the 'main board' vs 'SME platform' on NSE/BSE?",
+    "options": [
+      "Main board is for foreign companies; SME for Indian only",
+      "Main board lists large companies; SME platform has lighter listing rules for small/medium businesses",
+      "There is no difference",
+      "SME is only for state-owned enterprises"
+    ],
+    "correct": "B",
+    "explanation": "The SME platform (NSE Emerge / BSE SME) has lighter listing requirements designed for smaller companies. Lot sizes are larger (₹1 lakh minimum) to keep retail speculation in check.",
+    "source": "SEBI SME framework",
+    "tags": ["sme", "ipo"]
+  },
+  {
+    "external_id": "ind-015",
+    "category": "Indian Markets",
+    "difficulty": 5,
+    "question": "What is 'pre-open session' on NSE and what happens during it?",
+    "options": [
+      "Trading from 8:00 to 9:00 with full liquidity",
+      "A 15-minute session from 09:00 to 09:15 with order entry, modification and call auction price discovery",
+      "Settlement-only window before market opens",
+      "A test session only run on options expiry"
+    ],
+    "correct": "B",
+    "explanation": "The pre-open runs 09:00–09:15 IST. Orders are collected; the equilibrium price is determined via call auction; trades execute at 09:15. Helps reduce volatility at market open.",
+    "tags": ["pre-open", "trading-session"]
+  }
+]
