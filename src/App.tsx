@@ -16,6 +16,8 @@ import PaperTrading from "./pages/PaperTrading";
 import Pulse from "./pages/Pulse";
 import Chartguessr     from "./pages/Chartguessr";
 import ComboCard       from "./pages/ComboCard";
+import MarketMove      from "./pages/MarketMove";
+import QuizMaster      from "./pages/QuizMaster";
 import DalalStreetT20  from "./pages/DalalStreetT20";
 import RewardsHub from "./pages/RewardsHub";
 import { MarketForecast } from "./components/MarketForecast";
@@ -349,11 +351,13 @@ export default function App() {
   const { user, profile, investorIq, session } = useAuth();
 
   // ── URL ↔ view sync ──────────────────────────────────────────────────────
-  type ViewType = "news" | "trading" | "pulse" | "combo" | "chartguessr" | "t20" | "rewards";
+  type ViewType = "news" | "trading" | "pulse" | "move" | "quiz-master" | "combo" | "chartguessr" | "t20" | "rewards";
 
   function pathToView(p: string): ViewType {
     if (p.startsWith("/paper-trading")) return "trading";
     if (p.startsWith("/pulse"))         return "pulse";
+    if (p.startsWith("/market-move"))   return "move";
+    if (p.startsWith("/quiz-master"))   return "quiz-master";
     if (p.startsWith("/combo"))         return "combo";
     if (p.startsWith("/chartguessr"))   return "chartguessr";
     if (p.startsWith("/t20"))           return "t20";
@@ -365,6 +369,8 @@ export default function App() {
     switch (v) {
       case "trading":     return "/paper-trading";
       case "pulse":       return "/pulse";
+      case "move":        return "/market-move";
+      case "quiz-master": return "/quiz-master";
       case "combo":       return "/combo";
       case "chartguessr": return "/chartguessr";
       case "t20":         return "/t20";
@@ -380,6 +386,8 @@ export default function App() {
     news:        "Market Samachar — Live News",
     trading:     "Paper Trading — Virtual Markets",
     pulse:       "Pulse — Bull/Bear News Swiper",
+    move:        "Market Move — Live Indian Market Activity",
+    "quiz-master": "Quiz Master — Infinite Market Quiz",
     combo:       "Combo Card — Daily 5-Question Lottery",
     chartguessr: "Chartguessr — Guess the Stock",
     t20:         "Dalal Street T20 — Cricket-Themed Stock Game",
@@ -570,6 +578,16 @@ export default function App() {
           <Pulse authToken={session?.access_token} />
         </div>
       )}
+      {view === "move" && (
+        <div key="move" className="page-enter">
+          <MarketMove />
+        </div>
+      )}
+      {view === "quiz-master" && (
+        <div key="quiz-master" className="page-enter">
+          <QuizMaster authToken={session?.access_token} />
+        </div>
+      )}
       {view === "combo" && (
         <div key="combo" className="page-enter">
           <ComboCard authToken={session?.access_token} />
@@ -744,7 +762,8 @@ export default function App() {
             {[
               { id: "trading"     as ViewType, label: "Paper Trading",  icon: <TradingIcon size={16} />, color: "#00ff88", desc: "Virtual Trading" },
               { id: "pulse"       as ViewType, label: "Pulse",          icon: <Zap         size={16} />, color: "#ff9f3b", desc: "Bull/Bear Swiper" },
-              { id: "combo"       as ViewType, label: "Combo Card",     icon: <Activity    size={16} />, color: "#3b9eff", desc: "Daily 5-Q Lottery" },
+              { id: "move"        as ViewType, label: "Market Move",    icon: <Activity    size={16} />, color: "#3b9eff", desc: "Gainers · FII · Buzz" },
+              { id: "quiz-master" as ViewType, label: "Quiz Master",    icon: <Brain       size={16} />, color: "#b366ff", desc: "Infinite Quiz Bank" },
               { id: "rewards"     as ViewType, label: "Rewards Hub",    icon: <Star        size={16} />, color: "#ffdd3b", desc: "Coins & Badges"  },
             ].map((item) => (
               <button
