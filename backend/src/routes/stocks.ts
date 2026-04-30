@@ -11,6 +11,7 @@ import {
   fetchStockPrice,
   getPopularStocks,
   getAllStocks,
+  getMarketMovers,
   searchSymbols,
   isMarketOpen,
   nextMarketOpen,
@@ -95,6 +96,25 @@ router.get("/search", (req, res) => {
   }
   const symbols = searchSymbols(q);
   res.json({ ok: true, symbols });
+});
+
+// ── GET /api/stocks/movers ────────────────────────────────────────────────────
+// Top gainers, top losers, and most active by volume (proxy for institutional
+// flow). Computed from the cached Nifty 50 + Next 50 pool, no extra fetches.
+// Must be registered BEFORE /:symbol so it isn't swallowed by the param route.
+router.get("/movers", (req, res) => {
+  try {
+    const rawLimit = Number(req.query.limit);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 20 ? rawLimit : 5;
+    res.json({ ok: true, ...getMarketMovers(limit) });
+  } catch (err) {
+    console.error("[/api/stocks/movers] error:", err);
+    res.status(503).json({
+      ok: false,
+      error: "Failed to compute movers",
+      gainers: [], losers: [], mostActive: [],
+    });
+  }
 });
 
 // ── GET /api/stocks/market-status ─────────────────────────────────────────────
