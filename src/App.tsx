@@ -21,6 +21,7 @@ import RewardsHub from "./pages/RewardsHub";
 import { MarketForecast } from "./components/MarketForecast";
 import IPOPredictions from "./components/IPOPredictions";
 import NewsImpactQuiz from "./components/NewsImpactQuiz";
+import MarketMovers from "./components/MarketMovers";
 import { AppHeader } from "./components/AppHeader";
 import { BottomNav, getOnClickNavTabs } from "./components/BottomNav";
 import { Sparkline } from "./components/Sparkline";
@@ -846,6 +847,9 @@ export default function App() {
               <span style={{ color: '#334466', ...MONO, fontSize: 9, marginLeft: 4, alignSelf: 'center' }}>500 pts</span>
             </div>
           </button>
+
+          {/* Market Movers — top gainers / losers / most active */}
+          <MarketMovers />
 
           {/* Daily Forecast — market predictions */}
           <MarketForecast authToken={session?.access_token} />
