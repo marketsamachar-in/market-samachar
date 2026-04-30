@@ -464,7 +464,13 @@ function MatchPlayer({
                   <stop offset="100%" stopColor={GREEN} stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
+              <YAxis
+                hide
+                domain={[
+                  (dataMin: number) => dataMin - Math.max(1, dataMin * 0.005),
+                  (dataMax: number) => dataMax + Math.max(1, dataMax * 0.005),
+                ]}
+              />
               <Area
                 type="monotone" dataKey="c" stroke={GREEN} strokeWidth={2}
                 fill="url(#t20-grad)" isAnimationActive={false}
