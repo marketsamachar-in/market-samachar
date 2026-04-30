@@ -955,6 +955,11 @@ db.exec(`
 // Migration: add `change` column (absolute ₹ change vs previous close)
 try { db.exec('ALTER TABLE stock_price_cache ADD COLUMN change REAL NOT NULL DEFAULT 0'); } catch {}
 
+// Migration: add `volume` and `high`/`low` (used by Market Movers "Most Active" tab)
+try { db.exec('ALTER TABLE stock_price_cache ADD COLUMN volume INTEGER NOT NULL DEFAULT 0'); } catch {}
+try { db.exec('ALTER TABLE stock_price_cache ADD COLUMN high REAL NOT NULL DEFAULT 0');     } catch {}
+try { db.exec('ALTER TABLE stock_price_cache ADD COLUMN low  REAL NOT NULL DEFAULT 0');     } catch {}
+
 // Add UNIQUE constraint on article_id to prevent duplicate questions per article
 try {
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS news_impact_questions_article_unique ON news_impact_questions (article_id)');
@@ -1492,15 +1497,21 @@ export function upsertStockPrice(
   price: number,
   change: number,
   changePct: number,
+  volume: number = 0,
+  high:   number = 0,
+  low:    number = 0,
 ): void {
   db.prepare(`
-    INSERT INTO stock_price_cache (symbol, company_name, current_price, change, change_percent, last_updated)
-    VALUES (@symbol, @company_name, @current_price, @change, @change_percent, @last_updated)
+    INSERT INTO stock_price_cache (symbol, company_name, current_price, change, change_percent, volume, high, low, last_updated)
+    VALUES (@symbol, @company_name, @current_price, @change, @change_percent, @volume, @high, @low, @last_updated)
     ON CONFLICT(symbol) DO UPDATE SET
       company_name   = excluded.company_name,
       current_price  = excluded.current_price,
       change         = excluded.change,
       change_percent = excluded.change_percent,
+      volume         = excluded.volume,
+      high           = excluded.high,
+      low            = excluded.low,
       last_updated   = excluded.last_updated
   `).run({
     symbol,
@@ -1508,6 +1519,9 @@ export function upsertStockPrice(
     current_price:  price,
     change,
     change_percent: changePct,
+    volume,
+    high,
+    low,
     last_updated:   Date.now(),
   });
 }
