@@ -1,0 +1,154 @@
+[
+  {
+    "external_id": "rbi-001",
+    "category": "RBI & Monetary Policy",
+    "difficulty": 1,
+    "question": "What does RBI stand for?",
+    "options": [
+      "Reserve Bank of India",
+      "Regulated Bank of India",
+      "Republic Bank of India",
+      "Rupee Bank of India"
+    ],
+    "correct": "A",
+    "explanation": "The Reserve Bank of India is India's central bank, founded on 1 April 1935.",
+    "tags": ["rbi"]
+  },
+  {
+    "external_id": "rbi-002",
+    "category": "RBI & Monetary Policy",
+    "difficulty": 2,
+    "question": "What is the 'repo rate'?",
+    "options": [
+      "The interest rate banks charge their best customers",
+      "The rate at which RBI lends to commercial banks against government securities",
+      "The rate banks pay on savings accounts",
+      "The interbank lending rate"
+    ],
+    "correct": "B",
+    "explanation": "The repo (repurchase) rate is the rate at which RBI lends short-term funds to commercial banks against government securities. Lowering it makes credit cheaper.",
+    "source": "RBI Monetary Policy Framework",
+    "tags": ["repo-rate", "rbi"]
+  },
+  {
+    "external_id": "rbi-003",
+    "category": "RBI & Monetary Policy",
+    "difficulty": 3,
+    "question": "How often does the RBI Monetary Policy Committee (MPC) typically meet?",
+    "options": [
+      "Once a month",
+      "Bi-monthly (every two months) — six times a year",
+      "Once a quarter",
+      "Only when the economy needs intervention"
+    ],
+    "correct": "B",
+    "explanation": "The MPC holds bi-monthly scheduled meetings — six per financial year — to review and set the repo rate based on the inflation-targeting framework.",
+    "source": "RBI MPC framework",
+    "tags": ["mpc", "rbi"]
+  },
+  {
+    "external_id": "rbi-004",
+    "category": "RBI & Monetary Policy",
+    "difficulty": 3,
+    "question": "What is the inflation target set under RBI's flexible inflation-targeting framework?",
+    "options": [
+      "2% with a 1% band",
+      "4% with a +/- 2% tolerance band",
+      "6% fixed",
+      "There is no formal target"
+    ],
+    "correct": "B",
+    "explanation": "Under the 2016 FIT framework, RBI must keep CPI inflation at 4% with a tolerance band of +/-2% (i.e. 2–6%). Failure for 3 consecutive quarters requires a written explanation to the government.",
+    "source": "RBI Act, FIT framework 2016",
+    "tags": ["inflation", "fit", "cpi"]
+  },
+  {
+    "external_id": "rbi-005",
+    "category": "RBI & Monetary Policy",
+    "difficulty": 4,
+    "question": "What is 'CRR' and what does increasing it do to liquidity?",
+    "options": [
+      "Cash Reserve Ratio — increasing reduces liquidity in the banking system",
+      "Credit Risk Ratio — increasing protects banks from defaults",
+      "Capital Reserve Requirement — increasing helps banks lend more",
+      "Currency Reserve Ratio — increasing makes the rupee stronger"
+    ],
+    "correct": "A",
+    "explanation": "CRR is the percentage of a bank's NDTL (net demand and time liabilities) it must keep with RBI as cash. Raising CRR pulls liquidity out of banks; lowering it adds liquidity.",
+    "source": "RBI Banking Regulation",
+    "tags": ["crr", "liquidity"]
+  },
+  {
+    "external_id": "sebi-001",
+    "category": "SEBI & Regulations",
+    "difficulty": 1,
+    "question": "What does SEBI stand for?",
+    "options": [
+      "Stock Exchange Board of India",
+      "Securities and Exchange Board of India",
+      "Securities and Equity Bureau of India",
+      "Stock Empowerment Board of India"
+    ],
+    "correct": "B",
+    "explanation": "SEBI — Securities and Exchange Board of India — is the regulator of India's securities and commodities markets, established by SEBI Act 1992.",
+    "tags": ["sebi"]
+  },
+  {
+    "external_id": "sebi-002",
+    "category": "SEBI & Regulations",
+    "difficulty": 2,
+    "question": "Which year was SEBI given statutory powers by an Act of Parliament?",
+    "options": ["1988", "1992", "2002", "1995"],
+    "correct": "B",
+    "explanation": "SEBI existed from 1988 as a non-statutory body but was empowered by the SEBI Act, 1992, after the Harshad Mehta scam exposed regulatory gaps.",
+    "source": "SEBI Act, 1992",
+    "tags": ["sebi", "history"]
+  },
+  {
+    "external_id": "sebi-003",
+    "category": "SEBI & Regulations",
+    "difficulty": 3,
+    "question": "What is the role of a 'merchant banker' in an IPO process?",
+    "options": [
+      "They lend the company the money for the IPO",
+      "They underwrite, price, market, and manage the IPO process and file the DRHP with SEBI",
+      "They only handle the listing day price discovery",
+      "They are the company's regulators"
+    ],
+    "correct": "B",
+    "explanation": "Merchant bankers (Book-Running Lead Managers) handle every step of the IPO — due diligence, DRHP/RHP filing, pricing via book-building, marketing, and post-issue compliance.",
+    "tags": ["merchant-banker", "ipo"]
+  },
+  {
+    "external_id": "sebi-004",
+    "category": "SEBI & Regulations",
+    "difficulty": 4,
+    "question": "What is 'insider trading' under SEBI regulations?",
+    "options": [
+      "Buying shares of a company you work for via ESOP",
+      "Trading based on unpublished price-sensitive information (UPSI)",
+      "Trading too frequently from inside an office",
+      "Foreign investors buying Indian stocks"
+    ],
+    "correct": "B",
+    "explanation": "Insider trading is dealing in securities while in possession of UPSI (Unpublished Price-Sensitive Information). It's prohibited under SEBI (PIT) Regulations 2015 with severe penalties.",
+    "source": "SEBI (Prohibition of Insider Trading) Regulations 2015",
+    "tags": ["insider-trading", "regulations"]
+  },
+  {
+    "external_id": "sebi-005",
+    "category": "SEBI & Regulations",
+    "difficulty": 4,
+    "question": "What is the lock-in period for promoter shares post-IPO under SEBI ICDR?",
+    "options": [
+      "6 months for all promoter holdings",
+      "Minimum promoter contribution (20% of post-issue capital) is locked-in for 18 months; remaining promoter holdings for 6 months",
+      "1 year for all promoter holdings",
+      "There is no lock-in for IPOs"
+    ],
+    "correct": "B",
+    "explanation": "Per SEBI (ICDR) Regulations 2018 (amended 2021), the minimum promoter contribution is locked for 18 months from listing, and excess promoter holdings are locked for 6 months — designed to align promoters with public investors.",
+    "source": "SEBI (ICDR) Regulations 2018, Reg. 16",
+    "tags": ["ipo", "lock-in", "promoter"]
+  }
+]
