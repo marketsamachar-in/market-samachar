@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Newspaper, TrendingUp, Zap, Target, Trophy } from 'lucide-react';
+import { Newspaper, TrendingUp, Zap, Activity, Trophy } from 'lucide-react';
 
 /* ─── Design tokens ──────────────────────────────────────────────────────────── */
 const GREEN  = '#00ff88';
@@ -170,7 +170,7 @@ export function getHrefNavTabs(activePath: string): BottomNavTab[] {
     { id: 'news',        label: 'NEWS',    icon: <Newspaper  size={20} />, href: '/'             },
     { id: 'trading',     label: 'TRADE',   icon: <TrendingUp size={22} />, href: '/paper-trading', hot: true },
     { id: 'pulse',       label: 'PULSE',   icon: <Zap        size={20} />, href: '/pulse',         hot: true },
-    { id: 'combo',       label: 'COMBO',   icon: <Target     size={20} />, href: '/combo',         hot: true },
+    { id: 'move',        label: 'MOVE',    icon: <Activity   size={20} />, href: '/market-move',   hot: true },
     { id: 'rewards',     label: 'REWARDS', icon: <Trophy     size={20} />, href: '/rewards'      },
   ];
   return tabs.map(t => ({
@@ -188,7 +188,7 @@ export function getOnClickNavTabs(
     { id: 'news',        label: 'NEWS',    icon: <Newspaper  size={20} />, onClick: () => navigate('news'),        active: view === 'news'        },
     { id: 'trading',     label: 'TRADE',   icon: <TrendingUp size={22} />, onClick: () => navigate('trading'),     active: view === 'trading',     hot: true },
     { id: 'pulse',       label: 'PULSE',   icon: <Zap        size={20} />, onClick: () => navigate('pulse'),       active: view === 'pulse',       hot: true },
-    { id: 'combo',       label: 'COMBO',   icon: <Target     size={20} />, onClick: () => navigate('combo'),       active: view === 'combo',       hot: true },
+    { id: 'move',        label: 'MOVE',    icon: <Activity   size={20} />, onClick: () => navigate('move'),        active: view === 'move',        hot: true },
     { id: 'rewards',     label: 'REWARDS', icon: <Trophy     size={20} />, onClick: () => navigate('rewards'),     active: view === 'rewards'     },
   ];
 }
