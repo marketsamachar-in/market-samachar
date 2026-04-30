@@ -255,7 +255,11 @@ export async function fetchStockPrice(symbol: string): Promise<StockPrice> {
   // ── 2. Fetch from NSE India ───────────────────────────────────────────────
   try {
     const price = await fetchFromNSE(baseSymbol);
-    upsertStockPrice(price.symbol, price.companyName, price.currentPrice, price.change, price.changePercent);
+    upsertStockPrice(
+      price.symbol, price.companyName, price.currentPrice,
+      price.change, price.changePercent,
+      price.volume, price.high, price.low,
+    );
     return price;
   } catch (err) {
     console.error(`[StockPriceService] NSE fetch error for ${baseSymbol}:`, (err as Error).message);
@@ -324,6 +328,55 @@ export function getAllStocks(): StockPrice[] {
   }
 
   return results;
+}
+
+/**
+ * Return Market Movers from the cached Nifty 50 + Next 50 pool.
+ * Skips entries with currentPrice = 0 (uninitialised cache slots) and stale
+ * entries with no real change data.
+ *
+ *   gainers     — top N by changePercent (descending)
+ *   losers      — top N by changePercent (ascending)
+ *   mostActive  — top N by volume (descending)  [proxy for institutional flow]
+ *
+ * "Most active by volume" is a strong proxy for institutional activity in
+ * large-caps because retail volume alone rarely tops the list — institutions
+ * dominate Nifty 50/Next 50 turnover by ~3-5x.
+ */
+export function getMarketMovers(limit: number = 5): {
+  gainers:    StockPrice[];
+  losers:     StockPrice[];
+  mostActive: StockPrice[];
+  isMarketOpen: boolean;
+  lastUpdated:  number;
+} {
+  // Pull all cached Nifty 50 + Next 50; drop placeholders (price=0)
+  const all = getPopularStocks().filter((s) => s.currentPrice > 0);
+
+  const gainers = [...all]
+    .sort((a, b) => b.changePercent - a.changePercent)
+    .slice(0, limit);
+
+  const losers = [...all]
+    .sort((a, b) => a.changePercent - b.changePercent)
+    .slice(0, limit);
+
+  const mostActive = [...all]
+    .filter((s) => s.volume > 0)  // skip entries without volume data
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, limit);
+
+  const lastUpdated = all.length
+    ? Math.max(...all.map((s) => s.lastUpdated))
+    : 0;
+
+  return {
+    gainers,
+    losers,
+    mostActive,
+    isMarketOpen: isMarketOpen(),
+    lastUpdated,
+  };
 }
 
 /**
